@@ -1,0 +1,12 @@
+# Environment variables (contains API keys)
+.env
+
+# Test output
+test-job/
+
+# Logs
+logs/
+*.log
+
+# Job directories
+jobs/

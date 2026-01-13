@@ -1,0 +1,2288 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <title>Admin Portal v2 | AI Product Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- html2canvas for screenshots -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <!-- Centralized Configuration -->
+    <script src="js/config.js"></script>
+
+    <!-- Unified Theme System (MUST be before any rendering) -->
+    <script src="js/theme.js"></script>
+
+    <!-- Chat Widget -->
+    <link rel="stylesheet" href="css/chat-widget.css">
+
+    <style>
+        /* Theme CSS Variables */
+        :root {
+            --transition-speed: 0.4s;
+        }
+
+        /* Dark Theme (Default) */
+        [data-theme="dark"] {
+            --bg-primary: #020617;
+            --bg-secondary: #0f172a;
+            --bg-card: rgba(15, 23, 42, 0.7);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: rgba(99, 102, 241, 0.2);
+            --primary: #6366f1;
+            --secondary: #8b5cf6;
+            --accent: #06b6d4;
+            --nav-bg: rgba(2, 6, 23, 0.8);
+            --glow-color: rgba(99, 102, 241, 0.3);
+        }
+
+        /* Midnight Theme */
+        [data-theme="midnight"] {
+            --bg-primary: #0c0a1d;
+            --bg-secondary: #1a1533;
+            --bg-card: rgba(26, 21, 51, 0.8);
+            --text-primary: #e8e4f3;
+            --text-secondary: #a59fc4;
+            --text-muted: #7a73a0;
+            --border-color: rgba(167, 139, 250, 0.25);
+            --primary: #a78bfa;
+            --secondary: #c084fc;
+            --accent: #f472b6;
+            --nav-bg: rgba(12, 10, 29, 0.9);
+            --glow-color: rgba(167, 139, 250, 0.35);
+        }
+
+        /* Dusk Theme */
+        [data-theme="dusk"] {
+            --bg-primary: #1e1b2e;
+            --bg-secondary: #2d2844;
+            --bg-card: rgba(45, 40, 68, 0.75);
+            --text-primary: #f5f3ff;
+            --text-secondary: #c4b5fd;
+            --text-muted: #a78bfa;
+            --border-color: rgba(251, 146, 60, 0.25);
+            --primary: #fb923c;
+            --secondary: #f97316;
+            --accent: #fbbf24;
+            --nav-bg: rgba(30, 27, 46, 0.9);
+            --glow-color: rgba(251, 146, 60, 0.3);
+        }
+
+        /* Light Theme */
+        [data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #e2e8f0;
+            --bg-card: rgba(255, 255, 255, 0.9);
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            --border-color: rgba(99, 102, 241, 0.15);
+            --primary: #4f46e5;
+            --secondary: #7c3aed;
+            --accent: #0891b2;
+            --nav-bg: rgba(248, 250, 252, 0.95);
+            --glow-color: rgba(79, 70, 229, 0.2);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            transition: background var(--transition-speed) ease, color var(--transition-speed) ease;
+        }
+        .glass-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            transition: background var(--transition-speed) ease, border-color var(--transition-speed) ease;
+        }
+        .status-pending { background: #fbbf24; color: #1e1b4b; }
+        .status-approved { background: #22c55e; color: white; }
+        .status-rejected { background: #ef4444; color: white; }
+        .btn-approve { background: linear-gradient(135deg, #22c55e, #16a34a); }
+        .btn-reject { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .btn-approve:hover, .btn-reject:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .app-card, .build-card { transition: all 0.3s ease; }
+        .app-card:hover, .build-card:hover { border-color: rgba(99, 102, 241, 0.5); }
+        .app-card.expanded, .build-card.expanded { border-color: rgba(99, 102, 241, 0.8); box-shadow: 0 0 30px rgba(99, 102, 241, 0.2); }
+        .modal-overlay { background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); }
+
+        /* Expandable card styles */
+        .card-header { cursor: pointer; }
+        .card-details { max-height: 0; overflow: hidden; transition: max-height 0.3s ease, padding 0.3s ease; }
+        .app-card.expanded .card-details, .build-card.expanded .card-details { max-height: 2000px; padding-top: 1rem; }
+        .expand-icon { transition: transform 0.3s ease; }
+        .app-card.expanded .expand-icon, .build-card.expanded .expand-icon { transform: rotate(180deg); }
+
+        /* Progress bar styles */
+        .progress-container { background: rgba(30, 41, 59, 0.8); border-radius: 8px; overflow: hidden; }
+        .progress-bar { height: 8px; background: linear-gradient(90deg, #6366f1, #8b5cf6, #06b6d4); transition: width 0.5s ease; }
+        .progress-bar.failed { background: linear-gradient(90deg, #ef4444, #dc2626); }
+        .progress-bar.completed { background: linear-gradient(90deg, #22c55e, #16a34a); }
+
+        /* Build log styles */
+        .build-log { max-height: 300px; overflow-y: auto; font-family: 'Monaco', 'Menlo', monospace; font-size: 12px; }
+        .build-log::-webkit-scrollbar { width: 6px; }
+        .build-log::-webkit-scrollbar-track { background: #1e293b; }
+        .build-log::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+
+        /* Action buttons */
+        .btn-cancel { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .btn-rebuild { background: linear-gradient(135deg, #6366f1, #4f46e5); }
+
+        /* Chat widget theme variable overrides - uses theme vars */
+        :root {
+            --chat-primary: var(--primary);
+            --chat-secondary: var(--secondary);
+            --chat-bg: var(--bg-secondary);
+            --chat-messages-bg: var(--bg-primary);
+            --chat-input-bg: var(--bg-card);
+            --chat-border: var(--border-color);
+            --chat-text-primary: var(--text-primary);
+            --chat-text-secondary: var(--text-secondary);
+            --chat-text-muted: var(--text-muted);
+            --chat-msg-assistant-bg: var(--bg-card);
+            --chat-msg-assistant-text: var(--text-primary);
+        }
+
+        /* Light theme specific overrides */
+        [data-theme="light"] .glass-card {
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="light"] header {
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="light"] .nav-tab:not(.active) {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        [data-theme="light"] .nav-tab:not(.active):hover {
+            background: #cbd5e1;
+        }
+
+        [data-theme="light"] .filter-btn:not(.active) {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        [data-theme="light"] input,
+        [data-theme="light"] .input-field {
+            background: #f1f5f9;
+            border-color: #e2e8f0;
+            color: #0f172a;
+        }
+
+        /* Theme Selector Styles */
+        .theme-selector {
+            position: relative;
+        }
+
+        .theme-toggle-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .theme-toggle-btn:hover {
+            border-color: var(--primary);
+            background: var(--bg-card);
+        }
+
+        .theme-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 8px;
+            min-width: 160px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            display: none;
+        }
+
+        .theme-dropdown.open {
+            display: block;
+        }
+
+        .theme-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .theme-option:hover {
+            background: var(--bg-secondary);
+        }
+
+        .theme-option.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .theme-option-icon {
+            font-size: 18px;
+        }
+
+        /* Build Progress Tracker */
+        .progress-tracker { display: flex; gap: 8px; margin: 16px 0; }
+        .progress-step { flex: 1; text-align: center; padding: 12px 8px; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); transition: all 0.3s; }
+        .progress-step.pending { opacity: 0.5; }
+        .progress-step.in_progress { background: linear-gradient(135deg, var(--primary), var(--secondary)); border-color: var(--primary); animation: pulse 2s infinite; }
+        .progress-step.completed { background: linear-gradient(135deg, #22c55e, #16a34a); border-color: #22c55e; }
+        .progress-step.failed { background: linear-gradient(135deg, #ef4444, #dc2626); border-color: #ef4444; }
+        .progress-step-icon { font-size: 20px; margin-bottom: 4px; }
+        .progress-step-label { font-size: 12px; font-weight: 600; }
+        .progress-step-status { font-size: 10px; opacity: 0.8; margin-top: 2px; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        .mvp-ready { background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(6, 182, 212, 0.2)); border: 2px solid #22c55e; border-radius: 12px; padding: 20px; text-align: center; }
+        .mvp-url { font-family: monospace; background: var(--bg-primary); padding: 12px; border-radius: 8px; word-break: break-all; margin: 12px 0; }
+
+        /* Real-time Build Progress */
+        .live-build-panel { position: fixed; bottom: 20px; right: 20px; width: 400px; max-height: 500px; background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-color); border-radius: 16px; z-index: 100; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+        .live-build-panel.hidden { display: none; }
+        .live-build-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid var(--border-color); background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1)); }
+        .live-build-header h3 { font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .live-indicator { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; animation: blink 1s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        .live-build-content { padding: 16px; max-height: 350px; overflow-y: auto; }
+        .live-progress-bar { height: 8px; background: var(--bg-secondary); border-radius: 4px; overflow: hidden; margin-bottom: 12px; }
+        .live-progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent)); transition: width 0.3s ease; border-radius: 4px; }
+        .live-phase { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: rgba(99, 102, 241, 0.1); border-radius: 8px; margin-bottom: 8px; }
+        .live-phase-icon { font-size: 20px; }
+        .live-phase-text { flex: 1; }
+        .live-phase-name { font-weight: 600; font-size: 14px; }
+        .live-phase-message { font-size: 12px; color: var(--text-muted); }
+        .live-logs { font-family: monospace; font-size: 11px; background: var(--bg-primary); border-radius: 8px; padding: 12px; max-height: 150px; overflow-y: auto; }
+        .live-log-entry { padding: 4px 0; border-bottom: 1px solid var(--bg-secondary); color: var(--text-muted); }
+        .live-log-entry.tool_use { color: var(--accent); }
+        .live-log-entry.thinking { color: var(--secondary); }
+        .live-log-entry.error { color: #f87171; }
+        .ws-status { font-size: 10px; padding: 2px 8px; border-radius: 10px; }
+        .ws-status.connected { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+        .ws-status.disconnected { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="login-screen" class="min-h-screen flex items-center justify-center p-6">
+        <div class="glass-card rounded-2xl p-8 w-full max-w-md">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+                </div>
+                <h1 class="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">Admin Portal</h1>
+                <p class="mt-2" style="color: var(--text-secondary);">AI Product Studio Applications</p>
+            </div>
+            <div id="login-error" class="hidden bg-red-500/20 border border-red-500/50 rounded-lg p-3 mb-4 text-red-300 text-sm"></div>
+            <div class="space-y-4">
+                <input type="password" id="password-input" placeholder="Enter admin password"
+                    class="w-full px-4 py-3 rounded-xl focus:outline-none" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary);" onfocus="this.style.borderColor='var(--primary)'">
+                <button id="login-btn" class="w-full py-3 rounded-xl font-semibold hover:opacity-90 transition" style="background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white;">
+                    Login
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="dashboard" class="hidden">
+        <!-- Header -->
+        <header class="glass-card sticky top-0 z-50" style="border-bottom: 1px solid var(--border-color);">
+            <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg" style="color: var(--text-primary);">AI Product Studio <span class="text-xs" style="color: var(--text-muted);">(v2)</span></h1>
+                        <p class="text-xs" style="color: var(--text-secondary);">Admin Portal</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <!-- Theme Selector -->
+                    <div class="theme-selector">
+                        <button class="theme-toggle-btn" id="theme-toggle">
+                            <span id="current-theme-icon">🌙</span>
+                            <span id="current-theme-name">Dark</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div class="theme-dropdown" id="theme-dropdown">
+                            <div class="theme-option" data-theme="dark">
+                                <span class="theme-option-icon">🌙</span>
+                                <span>Dark</span>
+                            </div>
+                            <div class="theme-option" data-theme="midnight">
+                                <span class="theme-option-icon">🌌</span>
+                                <span>Midnight</span>
+                            </div>
+                            <div class="theme-option" data-theme="dusk">
+                                <span class="theme-option-icon">🌅</span>
+                                <span>Dusk</span>
+                            </div>
+                            <div class="theme-option" data-theme="light">
+                                <span class="theme-option-icon">☀️</span>
+                                <span>Light</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="refresh-btn" class="flex items-center gap-2 px-4 py-2 rounded-lg transition" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        Refresh
+                    </button>
+                    <button id="logout-btn" class="flex items-center gap-2 px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                        </svg>
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Stats -->
+        <div class="max-w-7xl mx-auto px-6 py-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                <div class="glass-card rounded-xl p-4">
+                    <p class="text-sm" style="color: var(--text-secondary);">Total Applications</p>
+                    <p id="stat-total" class="text-3xl font-bold mt-1" style="color: var(--text-primary);">0</p>
+                </div>
+                <div class="glass-card rounded-xl p-4">
+                    <p class="text-yellow-400 text-sm">Pending</p>
+                    <p id="stat-pending" class="text-3xl font-bold mt-1 text-yellow-400">0</p>
+                </div>
+                <div class="glass-card rounded-xl p-4">
+                    <p class="text-green-400 text-sm">Approved</p>
+                    <p id="stat-approved" class="text-3xl font-bold mt-1 text-green-400">0</p>
+                </div>
+                <div class="glass-card rounded-xl p-4">
+                    <p class="text-red-400 text-sm">Rejected</p>
+                    <p id="stat-rejected" class="text-3xl font-bold mt-1 text-red-400">0</p>
+                </div>
+            </div>
+
+            <!-- Main Navigation Tabs -->
+            <div class="flex gap-2 mb-6 pb-4" style="border-bottom: 1px solid var(--border-color);">
+                <button class="nav-tab active px-6 py-3 rounded-lg font-semibold" data-view="applications" style="background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white;">
+                    📋 Applications
+                </button>
+                <button class="nav-tab px-6 py-3 rounded-lg" data-view="chats" style="background: var(--bg-secondary); color: var(--text-secondary);">
+                    💬 Chat History
+                </button>
+                <button class="nav-tab px-6 py-3 rounded-lg" data-view="clients" style="background: var(--bg-secondary); color: var(--text-secondary);">
+                    👤 Clients
+                </button>
+                <button class="nav-tab px-6 py-3 rounded-lg" data-view="builds" style="background: var(--bg-secondary); color: var(--text-secondary);">
+                    🔨 Builds
+                </button>
+            </div>
+
+            <!-- Applications View -->
+            <div id="view-applications" class="view-content">
+                <!-- Filter Tabs -->
+                <div class="flex gap-2 mb-6">
+                    <button class="filter-btn active px-4 py-2 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30" data-filter="all">All</button>
+                    <button class="filter-btn px-4 py-2 rounded-lg" data-filter="pending" style="background: var(--bg-secondary); color: var(--text-secondary);">Pending</button>
+                    <button class="filter-btn px-4 py-2 rounded-lg" data-filter="approved" style="background: var(--bg-secondary); color: var(--text-secondary);">Approved</button>
+                    <button class="filter-btn px-4 py-2 rounded-lg" data-filter="rejected" style="background: var(--bg-secondary); color: var(--text-secondary);">Rejected</button>
+                </div>
+
+                <!-- Applications List -->
+            <div id="applications-list" class="space-y-4">
+                <div class="text-center py-12" style="color: var(--text-muted);">
+                    <svg class="w-12 h-12 mx-auto mb-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    Loading applications...
+                </div>
+            </div>
+            </div><!-- End view-applications -->
+
+            <!-- Chat History View -->
+            <div id="view-chats" class="view-content hidden">
+                <div class="flex gap-2 mb-6">
+                    <button class="chat-filter-btn active px-4 py-2 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30" data-source="all">All Chats</button>
+                    <button class="chat-filter-btn px-4 py-2 rounded-lg" data-source="landing" style="background: var(--bg-secondary); color: var(--text-secondary);">Landing Page</button>
+                    <button class="chat-filter-btn px-4 py-2 rounded-lg" data-source="apply" style="background: var(--bg-secondary); color: var(--text-secondary);">Apply Page</button>
+                </div>
+                <div id="chats-list" class="space-y-4">
+                    <div class="text-center py-12" style="color: var(--text-muted);">Loading chat sessions...</div>
+                </div>
+            </div>
+
+            <!-- Clients View -->
+            <div id="view-clients" class="view-content hidden">
+                <div id="clients-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="text-center py-12 col-span-full" style="color: var(--text-muted);">Loading client profiles...</div>
+                </div>
+            </div>
+
+            <!-- Builds View -->
+            <div id="view-builds" class="view-content hidden">
+                <div id="builds-list" class="space-y-4">
+                    <div class="text-center py-12" style="color: var(--text-muted);">Loading build history...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generic Detail Modal (for Chats, Clients, Builds views) -->
+    <div id="detail-modal" class="hidden fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4">
+        <div class="glass-card rounded-2xl w-full max-w-3xl flex flex-col" style="max-height: calc(100vh - 2rem);">
+            <div class="p-6 flex justify-between items-start flex-shrink-0" style="border-bottom: 1px solid var(--border-color);">
+                <div>
+                    <h2 id="modal-name" class="text-xl font-bold" style="color: var(--text-primary);"></h2>
+                    <p id="modal-email" class="text-sm" style="color: var(--text-secondary);"></p>
+                </div>
+                <button id="close-modal" class="p-2 rounded-lg transition" style="background: var(--bg-secondary);">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--text-primary);">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1 min-h-0">
+                <div id="modal-content" class="space-y-6"></div>
+            </div>
+            <div class="p-4 border-t border-slate-700 flex flex-wrap gap-3 flex-shrink-0" style="display:none;">
+                <input type="text" id="review-notes" placeholder="Add notes (optional)" style="display:none;"
+                    class="flex-1 min-w-[200px] px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+                <div class="flex gap-2">
+                    <button id="modal-approve" style="display:none;" class="btn-approve px-6 py-2 rounded-lg font-semibold transition">Approve</button>
+                    <button id="modal-reject" style="display:none;" class="btn-reject px-6 py-2 rounded-lg font-semibold transition">Reject</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Build Progress Panel (legacy - kept for compatibility) -->
+    <div id="live-build-panel" class="live-build-panel hidden">
+        <div class="live-build-header">
+            <h3><span class="live-indicator"></span> Live Build</h3>
+            <div class="flex items-center gap-2">
+                <span id="ws-status" class="ws-status disconnected">disconnected</span>
+                <button onclick="toggleLiveBuildPanel()" class="text-slate-400 hover:text-white">✕</button>
+            </div>
+        </div>
+        <div class="live-build-content">
+            <div id="live-job-info" class="mb-4"></div>
+            <div class="live-progress-bar">
+                <div id="live-progress-fill" class="live-progress-fill" style="width: 0%"></div>
+            </div>
+            <div id="live-percent" class="text-center text-sm text-slate-400 mb-4">0%</div>
+            <div id="live-phase" class="live-phase">
+                <span class="live-phase-icon">⏳</span>
+                <div class="live-phase-text">
+                    <div class="live-phase-name">Waiting...</div>
+                    <div class="live-phase-message">Connect to worker to see live progress</div>
+                </div>
+            </div>
+            <div class="mt-4">
+                <div class="text-xs text-slate-500 mb-2">Live Logs:</div>
+                <div id="live-logs" class="live-logs">
+                    <div class="text-slate-500">Waiting for build activity...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Widget Container -->
+    <div id="chat-widget-container"></div>
+
+    <script>
+        console.log('🚀 Admin Portal v2 loaded - Expandable Cards Edition');
+
+        // Use centralized configuration
+        const isLocal = AppConfig.isLocal;
+        const API_URL = AppConfig.api.chat;
+        const WS_URL = AppConfig.websocket.url;
+
+        // Fix URLs that have wrong port (legacy data in S3 may have port 3000)
+        function fixMvpUrl(url) {
+            if (!url) return url;
+            // Replace any localhost:3000 with correct port from config
+            return url.replace(/localhost:3000/g, `localhost:${AppConfig.ports.http}`);
+        }
+
+        let adminPassword = '';
+        let applications = [];
+        let currentFilter = 'all';
+        let currentApp = null;
+        let progressPollInterval = null;
+        let currentBuildState = null;
+
+        // WebSocket connection
+        let ws = null;
+        let wsReconnectInterval = null;
+        let liveBuildLogs = [];
+
+        function initWebSocket() {
+            if (!WS_URL) return;
+
+            ws = new WebSocket(WS_URL);
+
+            ws.onopen = () => {
+                console.log('📡 WebSocket connected');
+                document.getElementById('ws-status').textContent = 'connected';
+                document.getElementById('ws-status').className = 'ws-status connected';
+                if (wsReconnectInterval) {
+                    clearInterval(wsReconnectInterval);
+                    wsReconnectInterval = null;
+                }
+            };
+
+            ws.onclose = () => {
+                console.log('📡 WebSocket disconnected');
+                document.getElementById('ws-status').textContent = 'disconnected';
+                document.getElementById('ws-status').className = 'ws-status disconnected';
+                // Try to reconnect
+                if (!wsReconnectInterval) {
+                    wsReconnectInterval = setInterval(() => {
+                        console.log('📡 Attempting to reconnect...');
+                        initWebSocket();
+                    }, 5000);
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error('📡 WebSocket error:', error);
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    handleWebSocketMessage(msg);
+                } catch (e) {
+                    console.error('Failed to parse WS message:', e);
+                }
+            };
+        }
+
+        function handleWebSocketMessage(msg) {
+            switch (msg.type) {
+                case 'build_started':
+                    liveBuildLogs = [];
+                    currentBuildState = {
+                        s3Key: msg.data.s3Key,
+                        status: 'in_progress',
+                        percent: 5,
+                        phase: 'starting',
+                        message: 'Build started...',
+                        client: msg.data.client
+                    };
+                    addLiveLog('Build started...');
+                    renderApplications();
+                    // Auto-expand the building card
+                    if (msg.data.s3Key) {
+                        setTimeout(() => {
+                            const card = document.querySelector(`.app-card[data-key="${msg.data.s3Key}"]`);
+                            if (card && !card.classList.contains('expanded')) {
+                                card.classList.add('expanded');
+                            }
+                        }, 100);
+                    }
+                    break;
+
+                case 'progress':
+                    currentBuildState = {
+                        ...currentBuildState,
+                        s3Key: msg.data.s3Key || currentBuildState?.s3Key,
+                        status: 'in_progress',
+                        percent: msg.data.percent || 0,
+                        phase: msg.data.phase || 'working',
+                        message: msg.data.message || 'Processing...'
+                    };
+                    // Update inline progress bars
+                    updateInlineProgress();
+                    break;
+
+                case 'tool_use':
+                    addLiveLog(`🔧 ${msg.data.tool}: ${JSON.stringify(msg.data.input).substring(0, 50)}...`);
+                    updateBuildLogs();
+                    break;
+
+                case 'thinking':
+                    addLiveLog(`💭 ${msg.data.content.substring(0, 60)}...`);
+                    updateBuildLogs();
+                    break;
+
+                case 'log':
+                    addLiveLog(`[${msg.data.phase}] ${msg.data.content.substring(0, 60)}`);
+                    updateBuildLogs();
+                    break;
+
+                case 'build_completed':
+                    const fixedMvpUrl = fixMvpUrl(msg.data.mvpUrl);
+                    currentBuildState = {
+                        ...currentBuildState,
+                        status: 'completed',
+                        percent: 100,
+                        phase: 'completed',
+                        message: 'Build complete!',
+                        mvpUrl: fixedMvpUrl
+                    };
+                    addLiveLog(`✅ MVP ready: ${fixedMvpUrl}`);
+                    showToast('Build completed!', 'success');
+                    // Update the application with build URL
+                    const completedApp = applications.find(a => a.s3Key === currentBuildState.s3Key);
+                    if (completedApp) {
+                        completedApp.buildUrl = fixedMvpUrl;
+                        completedApp.buildProgress = currentBuildState;
+                    }
+                    renderApplications();
+                    currentBuildState = null;
+                    break;
+
+                case 'build_failed':
+                    currentBuildState = {
+                        ...currentBuildState,
+                        status: 'failed',
+                        phase: 'failed',
+                        message: msg.data.error || 'Build failed'
+                    };
+                    addLiveLog(`❌ Error: ${msg.data.error}`);
+                    showToast('Build failed', 'error');
+                    const failedApp = applications.find(a => a.s3Key === currentBuildState?.s3Key);
+                    if (failedApp) {
+                        failedApp.buildProgress = currentBuildState;
+                    }
+                    renderApplications();
+                    currentBuildState = null;
+                    break;
+
+                case 'build_cancelled':
+                    showToast('Build cancelled', 'info');
+                    currentBuildState = null;
+                    loadApplications();
+                    break;
+
+                case 'error':
+                    addLiveLog(`❌ ${msg.data.message}`);
+                    break;
+
+                case 'state':
+                    if (msg.data) {
+                        currentBuildState = msg.data;
+                        renderApplications();
+                    }
+                    break;
+            }
+        }
+
+        // Update inline progress bars without full re-render
+        function updateInlineProgress() {
+            if (!currentBuildState) return;
+
+            // Update progress bars in header
+            document.querySelectorAll('.progress-bar').forEach(bar => {
+                bar.style.width = `${currentBuildState.percent || 0}%`;
+            });
+
+            // Update percent text
+            document.querySelectorAll('.app-card').forEach(card => {
+                if (card.dataset.key === currentBuildState.s3Key) {
+                    const phaseText = card.querySelector('.text-indigo-400');
+                    const percentText = card.querySelector('.text-slate-400');
+                    if (phaseText) phaseText.textContent = `${currentBuildState.phase || 'Building'}...`;
+                }
+            });
+
+            // Update build section in expanded card
+            const buildSectionId = currentBuildState.s3Key?.replace(/[^a-zA-Z0-9]/g, '_');
+            const buildSection = document.getElementById(`build-section-${buildSectionId}`);
+            if (buildSection) {
+                const app = applications.find(a => a.s3Key === currentBuildState.s3Key);
+                if (app) {
+                    app.buildProgress = currentBuildState;
+                    buildSection.innerHTML = renderBuildSection(app);
+                }
+            }
+        }
+
+        // Update build logs in expanded card
+        function updateBuildLogs() {
+            if (!currentBuildState) return;
+            const buildLogId = currentBuildState.s3Key?.replace(/[^a-zA-Z0-9]/g, '_');
+            const logDiv = document.getElementById(`build-log-${buildLogId}`);
+            if (logDiv) {
+                logDiv.innerHTML = liveBuildLogs.slice(-10).map(log => `<div class="text-xs">${log}</div>`).join('');
+                logDiv.scrollTop = logDiv.scrollHeight;
+            }
+        }
+
+        function addLiveLog(text) {
+            // Just add to array - actual display is handled by updateBuildLogs
+            if (typeof text === 'string') {
+                liveBuildLogs.push(text);
+            } else {
+                liveBuildLogs.push(text.text || String(text));
+            }
+            // Keep only last 50 logs
+            if (liveBuildLogs.length > 50) liveBuildLogs = liveBuildLogs.slice(-50);
+        }
+
+        // Initialize WebSocket when logged in
+        function onLoginSuccess() {
+            initWebSocket();
+        }
+
+        // DOM Elements
+        const loginScreen = document.getElementById('login-screen');
+        const dashboard = document.getElementById('dashboard');
+        const passwordInput = document.getElementById('password-input');
+        const loginBtn = document.getElementById('login-btn');
+        const loginError = document.getElementById('login-error');
+        const logoutBtn = document.getElementById('logout-btn');
+        const refreshBtn = document.getElementById('refresh-btn');
+        const applicationsList = document.getElementById('applications-list');
+        const detailModal = document.getElementById('detail-modal');
+        const closeModal = document.getElementById('close-modal');
+        const filterBtns = document.querySelectorAll('.filter-btn');
+
+        // Login
+        loginBtn.addEventListener('click', async () => {
+            const password = passwordInput.value;
+            if (!password) return;
+
+            loginBtn.textContent = 'Logging in...';
+            loginBtn.disabled = true;
+
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'admin-login', password })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    adminPassword = password;
+                    sessionStorage.setItem('adminPassword', password);
+                    loginScreen.classList.add('hidden');
+                    dashboard.classList.remove('hidden');
+                    loadApplications();
+                    onLoginSuccess(); // Initialize WebSocket
+                } else {
+                    loginError.textContent = 'Invalid password';
+                    loginError.classList.remove('hidden');
+                }
+            } catch (e) {
+                loginError.textContent = 'Connection error. Please try again.';
+                loginError.classList.remove('hidden');
+            }
+
+            loginBtn.textContent = 'Login';
+            loginBtn.disabled = false;
+        });
+
+        passwordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') loginBtn.click();
+        });
+
+        // Logout
+        logoutBtn.addEventListener('click', () => {
+            adminPassword = '';
+            sessionStorage.removeItem('adminPassword');
+            dashboard.classList.add('hidden');
+            loginScreen.classList.remove('hidden');
+            passwordInput.value = '';
+        });
+
+        // Load Applications
+        async function loadApplications() {
+            console.log('[Admin] loadApplications called, password:', adminPassword ? 'SET' : 'NOT SET');
+            applicationsList.innerHTML = `
+                <div class="text-center py-12 text-slate-500">
+                    <svg class="w-12 h-12 mx-auto mb-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    Loading applications...
+                </div>
+            `;
+
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'admin-list', password: adminPassword })
+                });
+                const data = await res.json();
+
+                console.log('[Admin] API response:', data);
+                if (data.success) {
+                    // Fix any legacy URLs with wrong port
+                    applications = data.applications.map(app => ({
+                        ...app,
+                        buildUrl: fixMvpUrl(app.buildUrl),
+                        mvpUrl: fixMvpUrl(app.mvpUrl)
+                    }));
+                    console.log('[Admin] Loaded', applications.length, 'applications');
+                    updateStats();
+                    try {
+                        renderApplications();
+                        console.log('[Admin] renderApplications completed');
+                    } catch (renderError) {
+                        console.error('[Admin] renderApplications error:', renderError);
+                        applicationsList.innerHTML = `<div class="text-center py-12 text-red-400">Render error: ${renderError.message}</div>`;
+                    }
+                } else {
+                    console.error('[Admin] API error:', data.error);
+                    applicationsList.innerHTML = `<div class="text-center py-12 text-red-400">Error: ${data.error}</div>`;
+                }
+            } catch (e) {
+                console.error('[Admin] Connection error:', e);
+                applicationsList.innerHTML = `<div class="text-center py-12 text-red-400">Connection error: ${e.message}</div>`;
+            }
+        }
+
+        // Update Stats
+        function updateStats() {
+            document.getElementById('stat-total').textContent = applications.length;
+            // Treat undefined/null status as 'pending' (new applications)
+            document.getElementById('stat-pending').textContent = applications.filter(a => !a.status || a.status === 'pending').length;
+            document.getElementById('stat-approved').textContent = applications.filter(a => a.status === 'approved').length;
+            document.getElementById('stat-rejected').textContent = applications.filter(a => a.status === 'rejected').length;
+        }
+
+        // Render Applications with expandable cards
+        function renderApplications() {
+            let filtered;
+            if (currentFilter === 'all') {
+                filtered = applications;
+            } else if (currentFilter === 'pending') {
+                filtered = applications.filter(a => !a.status || a.status === 'pending');
+            } else {
+                filtered = applications.filter(a => a.status === currentFilter);
+            }
+
+            if (filtered.length === 0) {
+                applicationsList.innerHTML = `
+                    <div class="text-center py-12 text-slate-500">
+                        <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        No applications found
+                    </div>
+                `;
+                return;
+            }
+
+            applicationsList.innerHTML = filtered.map(app => {
+                const status = app.status || 'pending';
+                const buildProgress = app.buildProgress || currentBuildState?.s3Key === app.s3Key ? currentBuildState : null;
+                const isBuilding = buildProgress && buildProgress.status === 'in_progress';
+
+                return `
+                <div class="app-card glass-card rounded-xl overflow-hidden" data-key="${app.s3Key}">
+                    <!-- Card Header (clickable to expand) -->
+                    <div class="card-header p-5" onclick="toggleCard('${app.s3Key}')">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-3">
+                                    <h3 class="font-semibold text-lg">${app.visitorInfo?.name || 'Unknown'}</h3>
+                                    <span class="status-${status} px-3 py-1 rounded-full text-xs font-semibold">
+                                        ${status.toUpperCase()}
+                                    </span>
+                                </div>
+                                <p class="text-slate-400 text-sm mt-1">${app.visitorInfo?.email || 'No email'}</p>
+                                <p class="text-sm text-slate-300 mt-2 line-clamp-1">${app.formData?.product_idea || app.formData?.productIdea || 'No product idea'}</p>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <p class="text-slate-500 text-xs">${app.submittedAtEST || ''}</p>
+                                <svg class="expand-icon w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </div>
+                        </div>
+
+                        ${isBuilding ? `
+                        <!-- Inline Progress Bar -->
+                        <div class="mt-4">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-indigo-400">${buildProgress.phase || 'Building'}...</span>
+                                <span class="text-slate-400">${buildProgress.percent || 0}%</span>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar" style="width: ${buildProgress.percent || 5}%"></div>
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- Expandable Details -->
+                    <div class="card-details border-t border-slate-700">
+                        <div class="p-5 space-y-4">
+                            <!-- Business Details -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p class="text-slate-500 text-xs uppercase mb-1">Industry</p>
+                                    <p class="text-slate-200">${app.formData?.industry || 'Not specified'}</p>
+                                </div>
+                                <div>
+                                    <p class="text-slate-500 text-xs uppercase mb-1">Business Stage</p>
+                                    <p class="text-slate-200">${app.formData?.business_stage || app.formData?.businessStage || 'Not specified'}</p>
+                                </div>
+                                <div>
+                                    <p class="text-slate-500 text-xs uppercase mb-1">Time Commitment</p>
+                                    <p class="text-slate-200">${app.formData?.time_commitment || app.formData?.timeCommitment || 'Not specified'}</p>
+                                </div>
+                                <div>
+                                    <p class="text-slate-500 text-xs uppercase mb-1">Phone</p>
+                                    <p class="text-slate-200">${app.visitorInfo?.phone || 'Not provided'}</p>
+                                </div>
+                            </div>
+
+                            <!-- Product Idea -->
+                            <div>
+                                <p class="text-slate-500 text-xs uppercase mb-1">Product Idea</p>
+                                <p class="text-slate-200 whitespace-pre-wrap">${app.formData?.product_idea || app.formData?.productIdea || 'Not provided'}</p>
+                            </div>
+
+                            <!-- Target Market -->
+                            ${app.formData?.target_market || app.formData?.targetMarket ? `
+                            <div>
+                                <p class="text-slate-500 text-xs uppercase mb-1">Target Market</p>
+                                <p class="text-slate-200">${app.formData.target_market || app.formData.targetMarket}</p>
+                            </div>
+                            ` : ''}
+
+                            <!-- Build Progress Section -->
+                            <div id="build-section-${app.s3Key?.replace(/[^a-zA-Z0-9]/g, '_')}" class="build-section">
+                                ${renderBuildSection(app)}
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="flex gap-3 pt-4 border-t border-slate-700">
+                                ${status === 'pending' || !status ? `
+                                    <button onclick="event.stopPropagation(); quickApprove('${app.s3Key}')"
+                                        class="btn-approve px-4 py-2 rounded-lg font-semibold transition flex-1">
+                                        ✓ Approve & Build
+                                    </button>
+                                    <button onclick="event.stopPropagation(); quickReject('${app.s3Key}')"
+                                        class="btn-reject px-4 py-2 rounded-lg font-semibold transition flex-1">
+                                        ✗ Reject
+                                    </button>
+                                ` : status === 'approved' ? `
+                                    ${isBuilding ? `
+                                        <button onclick="event.stopPropagation(); cancelBuild('${app.s3Key}')"
+                                            class="btn-cancel px-4 py-2 rounded-lg font-semibold transition flex-1">
+                                            ⏹ Cancel Build
+                                        </button>
+                                    ` : `
+                                        <button onclick="event.stopPropagation(); rebuildMVP('${app.s3Key}')"
+                                            class="btn-rebuild px-4 py-2 rounded-lg font-semibold transition flex-1">
+                                            🔄 Rebuild MVP
+                                        </button>
+                                        ${app.buildUrl ? `
+                                        <a href="${app.buildUrl}" target="_blank" onclick="event.stopPropagation()"
+                                            class="px-4 py-2 rounded-lg font-semibold transition flex-1 text-center bg-green-500/20 text-green-400 border border-green-500/30">
+                                            🌐 View MVP
+                                        </a>
+                                        ` : ''}
+                                    `}
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        // Render build section for an application
+        function renderBuildSection(app) {
+            const buildProgress = currentBuildState?.s3Key === app.s3Key ? currentBuildState : app.buildProgress;
+            if (!buildProgress && app.status !== 'approved') return '';
+
+            const isBuilding = buildProgress?.status === 'in_progress';
+            const isFailed = buildProgress?.status === 'failed';
+            const isCompleted = buildProgress?.status === 'completed';
+
+            if (isBuilding) {
+                return `
+                    <div class="bg-slate-800/50 rounded-lg p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-indigo-400 font-semibold">🔨 Building MVP</span>
+                            <span class="text-slate-400 text-sm">${buildProgress.percent || 0}%</span>
+                        </div>
+                        <div class="progress-container mb-3">
+                            <div class="progress-bar" style="width: ${buildProgress.percent || 5}%"></div>
+                        </div>
+                        <p class="text-slate-300 text-sm">${buildProgress.message || 'Processing...'}</p>
+                        ${buildProgress.phase ? `<p class="text-slate-500 text-xs mt-1">Phase: ${buildProgress.phase}</p>` : ''}
+
+                        <!-- Live Logs -->
+                        <div class="mt-3 build-log bg-slate-900 rounded p-3 text-slate-400" id="build-log-${app.s3Key?.replace(/[^a-zA-Z0-9]/g, '_')}">
+                            ${liveBuildLogs.slice(-10).map(log => `<div class="text-xs">${log}</div>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (isFailed) {
+                return `
+                    <div class="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                        <div class="flex items-center gap-2 text-red-400 font-semibold mb-2">
+                            <span>❌ Build Failed</span>
+                        </div>
+                        <p class="text-slate-300 text-sm">${buildProgress.message || 'Build failed. Click Rebuild to try again.'}</p>
+                    </div>
+                `;
+            }
+
+            if (isCompleted || app.buildUrl) {
+                return `
+                    <div class="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+                        <div class="flex items-center gap-2 text-green-400 font-semibold mb-2">
+                            <span>✅ Build Complete</span>
+                        </div>
+                        ${app.buildUrl ? `<p class="text-slate-300 text-sm">MVP is live at: <a href="${app.buildUrl}" target="_blank" class="text-indigo-400 hover:underline">${app.buildUrl}</a></p>` : ''}
+                    </div>
+                `;
+            }
+
+            return '';
+        }
+
+        // Toggle card expansion
+        function toggleCard(s3Key) {
+            const card = document.querySelector(`.app-card[data-key="${s3Key}"]`);
+            const wasExpanded = card.classList.contains('expanded');
+
+            // Close all other cards
+            document.querySelectorAll('.app-card.expanded').forEach(c => c.classList.remove('expanded'));
+
+            // Toggle this card
+            if (!wasExpanded) {
+                card.classList.add('expanded');
+                currentApp = applications.find(a => a.s3Key === s3Key);
+            } else {
+                currentApp = null;
+            }
+        }
+
+        // Quick approve without confirmation
+        async function quickApprove(s3Key) {
+            const app = applications.find(a => a.s3Key === s3Key);
+            if (!app) return;
+
+            currentApp = app;
+            await updateStatus('approved');
+        }
+
+        // Quick reject without confirmation
+        async function quickReject(s3Key) {
+            const app = applications.find(a => a.s3Key === s3Key);
+            if (!app) return;
+
+            currentApp = app;
+            await updateStatus('rejected');
+        }
+
+        // Rebuild MVP without confirmation - just start immediately
+        async function rebuildMVP(s3Key) {
+            const app = applications.find(a => a.s3Key === s3Key);
+            if (!app) return;
+
+            currentApp = app;
+
+            // Start build immediately - no confirmation
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'trigger-build',
+                        s3Key: s3Key,
+                        password: adminPassword,
+                        rebuild: true
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Build started!', 'success');
+                    // Update app with job info
+                    app.jobId = data.jobId;
+                    app.buildProgress = { status: 'in_progress', percent: 5, phase: 'starting', message: 'Initializing...' };
+                    renderApplications();
+                    // Expand the card to show progress
+                    setTimeout(() => toggleCard(s3Key), 100);
+                } else {
+                    showToast(data.error || 'Failed to start build', 'error');
+                }
+            } catch (error) {
+                showToast('Failed to start build', 'error');
+            }
+        }
+
+        // Cancel build and terminate agent
+        async function cancelBuild(s3Key) {
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'cancel-build',
+                        s3Key: s3Key,
+                        password: adminPassword
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Build cancelled', 'info');
+                    // Also send WebSocket cancel message
+                    if (ws && ws.readyState === 1) {
+                        ws.send(JSON.stringify({ type: 'cancel', s3Key }));
+                    }
+                    loadApplications();
+                } else {
+                    showToast(data.error || 'Failed to cancel', 'error');
+                }
+            } catch (error) {
+                showToast('Failed to cancel build', 'error');
+            }
+        }
+
+        // Filter
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterBtns.forEach(b => {
+                    b.classList.remove('active', 'bg-indigo-500/20', 'text-indigo-400', 'border', 'border-indigo-500/30');
+                    b.classList.add('bg-slate-800', 'text-slate-400');
+                });
+                btn.classList.remove('bg-slate-800', 'text-slate-400');
+                btn.classList.add('active', 'bg-indigo-500/20', 'text-indigo-400', 'border', 'border-indigo-500/30');
+                currentFilter = btn.dataset.filter;
+                renderApplications();
+            });
+        });
+
+        // Refresh
+        refreshBtn.addEventListener('click', loadApplications);
+
+        // ========== BUILD PROGRESS TRACKING ==========
+
+        // Fetch build progress from API
+        async function fetchBuildProgress(jobId) {
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'admin-progress', password: adminPassword, jobId })
+                });
+                const data = await res.json();
+                return data.success ? data.progress : null;
+            } catch (e) {
+                console.error('Failed to fetch progress:', e);
+                return null;
+            }
+        }
+
+        // Render build progress UI
+        function renderBuildProgress(progress) {
+            const container = document.getElementById('build-progress-container');
+            if (!container) return;
+
+            if (!progress) {
+                container.innerHTML = `
+                    <div class="text-center py-4 text-slate-400">
+                        <span class="animate-pulse">Loading build status...</span>
+                    </div>
+                `;
+                return;
+            }
+
+            const phases = ['architect', 'developer', 'deployer'];
+            const phaseIcons = { architect: '📐', developer: '💻', deployer: '🚀' };
+            const phaseLabels = { architect: 'Architect', developer: 'Developer', deployer: 'Deployer' };
+            const statusIcons = { pending: '⏸', in_progress: '⏳', completed: '✅', failed: '❌' };
+
+            // Check if MVP is ready
+            if (progress.status === 'completed' && progress.result?.mvpUrl) {
+                container.innerHTML = `
+                    <div class="mvp-ready">
+                        <div class="text-3xl mb-3">🎉</div>
+                        <h3 class="text-xl font-bold text-green-400 mb-2">MVP Ready!</h3>
+                        <p class="text-slate-300 text-sm mb-4">The MVP has been built and deployed successfully.</p>
+                        <div class="mvp-url text-cyan-400">${progress.result.mvpUrl}</div>
+                        <div class="flex gap-3 justify-center mt-4">
+                            <a href="${progress.result.mvpUrl}" target="_blank"
+                               class="px-6 py-2 bg-gradient-to-r from-green-500 to-cyan-500 rounded-lg font-semibold hover:opacity-90 transition inline-flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                </svg>
+                                View MVP
+                            </a>
+                            <button onclick="navigator.clipboard.writeText('${progress.result.mvpUrl}').then(() => alert('URL copied!'))"
+                                    class="px-4 py-2 bg-slate-700 rounded-lg font-semibold hover:bg-slate-600 transition inline-flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
+                                </svg>
+                                Copy URL
+                            </button>
+                        </div>
+                    </div>
+                `;
+                // Stop polling when complete
+                if (progressPollInterval) {
+                    clearInterval(progressPollInterval);
+                    progressPollInterval = null;
+                }
+                return;
+            }
+
+            // Show progress tracker for in-progress builds
+            let progressHtml = `
+                <div class="bg-slate-800/50 rounded-xl p-4 border border-indigo-500/30">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="text-xl">🚀</span>
+                        <h3 class="font-semibold">MVP Build Progress</h3>
+                        ${progress.status === 'in_progress' ? '<span class="ml-auto text-xs bg-indigo-500/30 text-indigo-300 px-2 py-1 rounded animate-pulse">Building...</span>' : ''}
+                        ${progress.status === 'failed' ? '<span class="ml-auto text-xs bg-red-500/30 text-red-300 px-2 py-1 rounded">Failed</span>' : ''}
+                    </div>
+                    <div class="progress-tracker">
+            `;
+
+            phases.forEach(phase => {
+                const phaseData = progress.phases?.[phase] || { status: 'pending' };
+                const status = phaseData.status || 'pending';
+                progressHtml += `
+                    <div class="progress-step ${status}">
+                        <div class="progress-step-icon">${status === 'completed' ? '✅' : status === 'in_progress' ? '⏳' : status === 'failed' ? '❌' : phaseIcons[phase]}</div>
+                        <div class="progress-step-label">${phaseLabels[phase]}</div>
+                        <div class="progress-step-status">${status === 'in_progress' ? 'In Progress' : status.charAt(0).toUpperCase() + status.slice(1)}</div>
+                    </div>
+                `;
+            });
+
+            progressHtml += `</div>`;
+
+            // Show latest message
+            const latestPhase = progress.phases?.[progress.currentPhase];
+            if (latestPhase?.message) {
+                progressHtml += `
+                    <div class="mt-4 p-3 bg-slate-900 rounded-lg border border-slate-700">
+                        <p class="text-xs text-slate-500 mb-1">Latest Update:</p>
+                        <p class="text-sm text-slate-300">${latestPhase.message}</p>
+                    </div>
+                `;
+            }
+
+            // Show logs
+            if (progress.logs && progress.logs.length > 0) {
+                const recentLogs = progress.logs.slice(-3).reverse();
+                progressHtml += `
+                    <details class="mt-4">
+                        <summary class="text-xs text-slate-500 cursor-pointer hover:text-slate-400">View build logs</summary>
+                        <div class="mt-2 space-y-1 max-h-32 overflow-y-auto">
+                            ${recentLogs.map(log => `
+                                <div class="text-xs text-slate-400 font-mono">
+                                    <span class="text-slate-600">${new Date(log.timestamp).toLocaleTimeString()}</span>
+                                    ${log.message || log.status}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </details>
+                `;
+            }
+
+            progressHtml += `</div>`;
+            container.innerHTML = progressHtml;
+        }
+
+        // Start polling for progress
+        function startProgressPolling(jobId) {
+            // Clear any existing interval
+            if (progressPollInterval) {
+                clearInterval(progressPollInterval);
+            }
+
+            // Initial fetch
+            fetchBuildProgress(jobId).then(renderBuildProgress);
+
+            // Poll every 5 seconds
+            progressPollInterval = setInterval(async () => {
+                const progress = await fetchBuildProgress(jobId);
+                renderBuildProgress(progress);
+
+                // Stop polling if completed or failed
+                if (progress && (progress.status === 'completed' || progress.status === 'failed')) {
+                    clearInterval(progressPollInterval);
+                    progressPollInterval = null;
+                }
+            }, 5000);
+        }
+
+        // Stop polling
+        function stopProgressPolling() {
+            if (progressPollInterval) {
+                clearInterval(progressPollInterval);
+                progressPollInterval = null;
+            }
+        }
+
+        // Update Status (for expandable cards - no modal)
+        async function updateStatus(status) {
+            if (!currentApp) return;
+
+            try {
+                showToast(`${status === 'approved' ? 'Approving' : 'Rejecting'}...`, 'info');
+
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'admin-update',
+                        password: adminPassword,
+                        s3Key: currentApp.s3Key,
+                        status: status,
+                        reviewNotes: ''
+                    })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    // Update local data
+                    const idx = applications.findIndex(a => a.s3Key === currentApp.s3Key);
+                    if (idx !== -1) {
+                        applications[idx] = { ...applications[idx], ...data.application };
+                    }
+                    updateStats();
+
+                    // If approved and has jobId, update progress state
+                    if (status === 'approved' && data.application?.jobId) {
+                        currentApp = { ...currentApp, ...data.application };
+                        applications[idx].buildProgress = { status: 'in_progress', percent: 5, phase: 'starting', message: 'Build starting...' };
+                    }
+
+                    renderApplications();
+
+                    // Re-expand the card to show progress
+                    if (status === 'approved') {
+                        setTimeout(() => toggleCard(currentApp.s3Key), 100);
+                    }
+
+                    showToast(status === 'approved' ? 'Approved! Build starting...' : 'Rejected', status === 'approved' ? 'success' : 'info');
+                } else {
+                    showToast('Error: ' + data.error, 'error');
+                }
+            } catch (e) {
+                showToast('Connection error', 'error');
+            }
+        }
+
+        // Modal close handlers (for Chats, Clients, Builds views)
+        closeModal.addEventListener('click', () => {
+            detailModal.classList.add('hidden');
+        });
+        detailModal.addEventListener('click', (e) => {
+            if (e.target === detailModal) {
+                detailModal.classList.add('hidden');
+            }
+        });
+
+        // Check for saved session
+        const savedPassword = sessionStorage.getItem('adminPassword');
+        if (savedPassword) {
+            adminPassword = savedPassword;
+            loginScreen.classList.add('hidden');
+            dashboard.classList.remove('hidden');
+            loadApplications();
+            onLoginSuccess(); // Initialize WebSocket
+        }
+
+        // ========== CHAT WIDGET (loaded externally) ==========
+        // Chat widget will be initialized after the script loads
+
+        // ========== NAVIGATION TABS ==========
+        const navTabs = document.querySelectorAll('.nav-tab');
+        const viewContents = document.querySelectorAll('.view-content');
+        let currentView = 'applications';
+
+        navTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const view = tab.dataset.view;
+                if (view === currentView) return;
+
+                // Update active tab
+                navTabs.forEach(t => {
+                    t.classList.remove('active', 'bg-gradient-to-r', 'from-indigo-500', 'to-purple-500', 'text-white', 'font-semibold');
+                    t.classList.add('bg-slate-800', 'text-slate-400');
+                });
+                tab.classList.remove('bg-slate-800', 'text-slate-400');
+                tab.classList.add('active', 'bg-gradient-to-r', 'from-indigo-500', 'to-purple-500', 'text-white', 'font-semibold');
+
+                // Show/hide views
+                viewContents.forEach(v => v.classList.add('hidden'));
+                document.getElementById(`view-${view}`).classList.remove('hidden');
+                currentView = view;
+
+                // Load data for the view
+                if (view === 'chats') loadChatSessions();
+                if (view === 'clients') loadClientProfiles();
+                if (view === 'builds') loadBuildHistory();
+            });
+        });
+
+        // ========== CHAT HISTORY ==========
+        let chatSessions = [];
+        let chatSourceFilter = 'all';
+
+        document.querySelectorAll('.chat-filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.chat-filter-btn').forEach(b => {
+                    b.classList.remove('active', 'bg-indigo-500/20', 'text-indigo-400', 'border', 'border-indigo-500/30');
+                    b.classList.add('bg-slate-800', 'text-slate-400');
+                });
+                btn.classList.remove('bg-slate-800', 'text-slate-400');
+                btn.classList.add('active', 'bg-indigo-500/20', 'text-indigo-400', 'border', 'border-indigo-500/30');
+                chatSourceFilter = btn.dataset.source;
+                loadChatSessions();
+            });
+        });
+
+        async function loadChatSessions() {
+            const chatsList = document.getElementById('chats-list');
+            chatsList.innerHTML = '<div class="text-center py-12 text-slate-500">Loading chat sessions...</div>';
+
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'admin-chats', password: adminPassword, source: chatSourceFilter })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    chatSessions = data.sessions;
+                    renderChatSessions();
+                } else {
+                    chatsList.innerHTML = `<div class="text-center py-12 text-red-400">Error: ${data.error}</div>`;
+                }
+            } catch (e) {
+                chatsList.innerHTML = `<div class="text-center py-12 text-red-400">Connection error</div>`;
+            }
+        }
+
+        function renderChatSessions() {
+            const chatsList = document.getElementById('chats-list');
+            if (chatSessions.length === 0) {
+                chatsList.innerHTML = '<div class="text-center py-12 text-slate-500">No chat sessions found</div>';
+                return;
+            }
+
+            chatsList.innerHTML = chatSessions.map(session => {
+                const lastMsg = session.messages?.[session.messages.length - 1]?.content?.substring(0, 100) || 'No messages';
+                const statusColor = session.status === 'converted' ? 'text-green-400' : session.status === 'active' ? 'text-yellow-400' : 'text-slate-400';
+                const sourceIcon = session.source === 'apply' ? '📝' : '🏠';
+                return `
+                    <div class="glass-card rounded-xl p-4 cursor-pointer hover:border-indigo-500/50 transition" onclick="showChatDetail('${session.sessionId}', '${session.source}')">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xl">${sourceIcon}</span>
+                                <span class="font-semibold">${session.visitorInfo?.name || 'Anonymous'}</span>
+                                <span class="text-xs px-2 py-1 rounded-full ${statusColor} bg-slate-800">${session.status}</span>
+                            </div>
+                            <span class="text-xs text-slate-500">${new Date(session.startedAt).toLocaleString()}</span>
+                        </div>
+                        <p class="text-sm text-slate-400 truncate">${lastMsg}...</p>
+                        <div class="flex gap-4 mt-2 text-xs text-slate-500">
+                            <span>💬 ${session.metadata?.totalMessages || 0} messages</span>
+                            ${session.visitorInfo?.email ? `<span>📧 ${session.visitorInfo.email}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function showChatDetail(sessionId, source) {
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'admin-chat-detail', password: adminPassword, sessionId, source })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const session = data.session;
+                    const modalContent = document.getElementById('modal-content');
+                    document.getElementById('modal-name').textContent = session.visitorInfo?.name || 'Anonymous Chat';
+                    document.getElementById('modal-email').textContent = `Session: ${sessionId} | ${session.source}`;
+
+                    modalContent.innerHTML = `
+                        <div class="space-y-4">
+                            <div class="flex gap-4 text-sm">
+                                <span class="text-slate-400">Started: ${new Date(session.startedAt).toLocaleString()}</span>
+                                <span class="text-slate-400">Status: ${session.status}</span>
+                            </div>
+                            <div class="border-t border-slate-700 pt-4">
+                                <h4 class="font-semibold mb-3">Conversation:</h4>
+                                <div class="space-y-3 max-h-96 overflow-y-auto">
+                                    ${session.messages?.map(m => `
+                                        <div class="p-3 rounded-lg ${m.role === 'user' ? 'bg-indigo-500/20 ml-8' : 'bg-slate-700/50 mr-8'}">
+                                            <p class="text-xs text-slate-400 mb-1">${m.role === 'user' ? '👤 User' : '🤖 AI'}</p>
+                                            <p class="text-sm">${m.content}</p>
+                                        </div>
+                                    `).join('') || '<p class="text-slate-500">No messages</p>'}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    document.getElementById('modal-approve').style.display = 'none';
+                    document.getElementById('modal-reject').style.display = 'none';
+                    document.getElementById('review-notes').style.display = 'none';
+                    detailModal.classList.remove('hidden');
+                }
+            } catch (e) {
+                console.error('Error loading chat detail:', e);
+            }
+        }
+
+        // ========== CLIENT PROFILES ==========
+        let clientProfiles = [];
+
+        async function loadClientProfiles() {
+            const clientsList = document.getElementById('clients-list');
+            clientsList.innerHTML = '<div class="text-center py-12 text-slate-500 col-span-full">Loading client profiles...</div>';
+
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'admin-clients', password: adminPassword })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    clientProfiles = data.clients;
+                    renderClientProfiles();
+                } else {
+                    clientsList.innerHTML = `<div class="text-center py-12 text-red-400 col-span-full">Error: ${data.error}</div>`;
+                }
+            } catch (e) {
+                clientsList.innerHTML = `<div class="text-center py-12 text-red-400 col-span-full">Connection error</div>`;
+            }
+        }
+
+        function renderClientProfiles() {
+            const clientsList = document.getElementById('clients-list');
+            if (clientProfiles.length === 0) {
+                clientsList.innerHTML = '<div class="text-center py-12 text-slate-500 col-span-full">No client profiles found</div>';
+                return;
+            }
+
+            const statusColors = {
+                prospect: 'bg-slate-500',
+                applied: 'bg-yellow-500',
+                approved: 'bg-blue-500',
+                building: 'bg-purple-500',
+                delivered: 'bg-green-500'
+            };
+
+            clientsList.innerHTML = clientProfiles.map(client => `
+                <div class="glass-card rounded-xl p-4 cursor-pointer hover:border-indigo-500/50 transition" onclick="showClientDetail('${client.clientId}')">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-xl font-bold">
+                            ${(client.name?.[0] || '?').toUpperCase()}
+                        </div>
+                        <div>
+                            <p class="font-semibold">${client.name || 'Unknown'}</p>
+                            <p class="text-xs text-slate-400">${client.email || 'No email'}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-xs px-2 py-1 rounded-full text-white ${statusColors[client.status] || 'bg-slate-500'}">${client.status}</span>
+                    </div>
+                    <div class="text-xs text-slate-500 flex gap-4">
+                        <span>💬 ${client.chatSessions?.length || 0} chats</span>
+                        <span>📋 ${client.applications?.length || 0} apps</span>
+                        <span>🔨 ${client.builds?.length || 0} builds</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function showClientDetail(clientId) {
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'admin-client-detail', password: adminPassword, clientId })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const client = data.client;
+                    document.getElementById('modal-name').textContent = client.name || 'Unknown Client';
+                    document.getElementById('modal-email').textContent = client.email || clientId;
+
+                    const modalContent = document.getElementById('modal-content');
+                    modalContent.innerHTML = `
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div class="glass-card rounded-lg p-3">
+                                <p class="text-xs text-slate-400">Phone</p>
+                                <p class="font-semibold">${client.phone || 'N/A'}</p>
+                            </div>
+                            <div class="glass-card rounded-lg p-3">
+                                <p class="text-xs text-slate-400">Status</p>
+                                <p class="font-semibold capitalize">${client.status}</p>
+                            </div>
+                        </div>
+                        <div class="border-t border-slate-700 pt-4">
+                            <h4 class="font-semibold mb-3">Timeline:</h4>
+                            <div class="space-y-2 max-h-64 overflow-y-auto">
+                                ${client.timeline?.map(event => `
+                                    <div class="flex items-center gap-3 text-sm">
+                                        <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                                        <span class="text-slate-400">${new Date(event.timestamp).toLocaleString()}</span>
+                                        <span class="capitalize">${event.event?.replace(/_/g, ' ')}</span>
+                                    </div>
+                                `).join('') || '<p class="text-slate-500">No timeline events</p>'}
+                            </div>
+                        </div>
+                    `;
+
+                    document.getElementById('modal-approve').style.display = 'none';
+                    document.getElementById('modal-reject').style.display = 'none';
+                    document.getElementById('review-notes').style.display = 'none';
+                    detailModal.classList.remove('hidden');
+                }
+            } catch (e) {
+                console.error('Error loading client detail:', e);
+            }
+        }
+
+        // ========== BUILD HISTORY ==========
+        let buildHistory = [];
+
+        async function loadBuildHistory() {
+            const buildsList = document.getElementById('builds-list');
+            buildsList.innerHTML = '<div class="text-center py-12 text-slate-500">Loading build history...</div>';
+
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'admin-builds', password: adminPassword })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    // Fix any legacy URLs with wrong port
+                    buildHistory = data.builds.map(build => ({
+                        ...build,
+                        mvpUrl: fixMvpUrl(build.mvpUrl)
+                    }));
+                    renderBuildHistory();
+                } else {
+                    buildsList.innerHTML = `<div class="text-center py-12 text-red-400">Error: ${data.error}</div>`;
+                }
+            } catch (e) {
+                buildsList.innerHTML = `<div class="text-center py-12 text-red-400">Connection error</div>`;
+            }
+        }
+
+        function renderBuildHistory() {
+            const buildsList = document.getElementById('builds-list');
+            if (buildHistory.length === 0) {
+                buildsList.innerHTML = '<div class="text-center py-12 text-slate-500">No builds found</div>';
+                return;
+            }
+
+            const statusColors = {
+                pending: 'text-slate-400',
+                building: 'text-yellow-400',
+                completed: 'text-green-400',
+                failed: 'text-red-400'
+            };
+
+            const statusBg = {
+                pending: 'bg-slate-500/20',
+                building: 'bg-yellow-500/20',
+                completed: 'bg-green-500/20',
+                failed: 'bg-red-500/20'
+            };
+
+            // Sort builds by datetime descending (newest first)
+            const sortedBuilds = [...buildHistory].sort((a, b) => {
+                const dateA = new Date(a.timestamps?.created || a.createdAt || 0);
+                const dateB = new Date(b.timestamps?.created || b.createdAt || 0);
+                return dateB - dateA; // Descending order
+            });
+
+            buildsList.innerHTML = sortedBuilds.map(build => `
+                <div class="build-card glass-card rounded-xl overflow-hidden" data-build-id="${build.buildId}">
+                    <!-- Card Header (clickable to expand) -->
+                    <div class="card-header p-4" onclick="toggleBuildCard('${build.buildId}')">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-3">
+                                    <h3 class="font-semibold">${build.client?.name || 'Unknown Client'}</h3>
+                                    <span class="px-2 py-1 rounded-full text-xs font-semibold ${statusBg[build.status] || 'bg-slate-500/20'} ${statusColors[build.status] || 'text-slate-400'} ${build.status === 'building' ? 'animate-pulse' : ''}">
+                                        ${build.status === 'building' ? '⏳ ' : ''}${build.status.toUpperCase()}
+                                    </span>
+                                </div>
+                                <p class="text-slate-500 text-xs mt-1">${build.buildId}</p>
+                                <p class="text-sm text-slate-300 mt-2 line-clamp-1">${build.business?.idea?.substring(0, 80) || 'No description'}...</p>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <button onclick="event.stopPropagation(); viewBuildLogs('${build.buildId}')"
+                                        class="px-2 py-1 text-xs rounded-lg bg-slate-700 hover:bg-slate-600 text-cyan-400 transition flex items-center gap-1"
+                                        title="View Build Logs">
+                                    📋 Logs
+                                </button>
+                                <p class="text-slate-500 text-xs">${new Date(build.timestamps?.created || build.createdAt).toLocaleDateString()}</p>
+                                <svg class="expand-icon w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </div>
+                        </div>
+
+                        ${build.status === 'building' ? `
+                        <div class="mt-3 bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-2">
+                            <p class="text-yellow-400 text-sm flex items-center gap-2">
+                                <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                </svg>
+                                Building MVP... ${build.currentPhase ? `(${build.currentPhase})` : ''}
+                            </p>
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- Expandable Details -->
+                    <div class="card-details border-t border-slate-700">
+                        <div class="p-4 space-y-4">
+                            <!-- Build Info Grid -->
+                            <div class="grid grid-cols-3 gap-4">
+                                <div>
+                                    <p class="text-slate-500 text-xs uppercase mb-1">Status</p>
+                                    <p class="${statusColors[build.status] || 'text-slate-200'} font-semibold capitalize">${build.status}</p>
+                                </div>
+                                <div>
+                                    <p class="text-slate-500 text-xs uppercase mb-1">Files Created</p>
+                                    <p class="text-slate-200">${build.filesCreated?.length || 0}</p>
+                                </div>
+                                <div>
+                                    <p class="text-slate-500 text-xs uppercase mb-1">Created</p>
+                                    <p class="text-slate-200 text-sm">${new Date(build.timestamps?.created || build.createdAt).toLocaleString()}</p>
+                                </div>
+                            </div>
+
+                            <!-- MVP Ready -->
+                            ${build.mvpUrl ? `
+                            <div class="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+                                <p class="text-green-400 font-semibold mb-2">🚀 MVP Ready!</p>
+                                <p class="text-slate-400 text-sm mb-2 break-all">${build.mvpUrl}</p>
+                                <a href="${build.mvpUrl}" target="_blank" onclick="event.stopPropagation()"
+                                   class="inline-block px-4 py-2 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition">
+                                    View MVP
+                                </a>
+                            </div>
+                            ` : ''}
+
+                            <!-- Failed State -->
+                            ${build.status === 'failed' ? `
+                            <div class="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                                <p class="text-red-400 font-semibold mb-2">❌ Build Failed</p>
+                                <p class="text-sm text-slate-400 mb-4">The MVP build did not complete successfully. Check the logs for details.</p>
+                                <div class="flex gap-3">
+                                    <button onclick="event.stopPropagation(); viewBuildLogs('${build.buildId}')"
+                                            class="px-4 py-2 bg-slate-700 text-cyan-400 rounded-lg font-semibold hover:bg-slate-600 transition inline-flex items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                        </svg>
+                                        View Logs
+                                    </button>
+                                    <button onclick="event.stopPropagation(); restartBuild('${build.buildId}')"
+                                            class="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg font-semibold hover:opacity-90 transition inline-flex items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                        </svg>
+                                        Restart Build
+                                    </button>
+                                </div>
+                            </div>
+                            ` : ''}
+
+                            <!-- Agent Log Placeholder - loads on expand -->
+                            <div id="build-log-${build.buildId.replace(/[^a-zA-Z0-9]/g, '_')}" class="build-log-container">
+                                <p class="text-slate-500 text-sm">Click to load agent log...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Toggle build card expansion and load details
+        async function toggleBuildCard(buildId) {
+            const card = document.querySelector(`.build-card[data-build-id="${buildId}"]`);
+            const wasExpanded = card.classList.contains('expanded');
+
+            // Close all other cards
+            document.querySelectorAll('.build-card.expanded').forEach(c => c.classList.remove('expanded'));
+
+            if (!wasExpanded) {
+                card.classList.add('expanded');
+                // Load agent log if not already loaded
+                const logContainer = document.getElementById(`build-log-${buildId.replace(/[^a-zA-Z0-9]/g, '_')}`);
+                if (logContainer && logContainer.innerHTML.includes('Click to load')) {
+                    loadBuildAgentLog(buildId, logContainer);
+                }
+            }
+        }
+
+        // Load agent log for a build
+        async function loadBuildAgentLog(buildId, container) {
+            container.innerHTML = '<p class="text-slate-500 text-sm">Loading agent log...</p>';
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'admin-build-detail', password: adminPassword, buildId })
+                });
+                const data = await res.json();
+                if (data.success && data.build.agentLog?.entries?.length) {
+                    const log = data.build.agentLog;
+                    container.innerHTML = `
+                        <div class="border-t border-slate-700 pt-4">
+                            <h4 class="font-semibold mb-3 text-slate-300">Agent Log (${log.totalEntries} entries):</h4>
+                            <div class="space-y-1 max-h-48 overflow-y-auto bg-slate-900 rounded-lg p-3 text-xs font-mono">
+                                ${log.entries.slice(-20).map(entry => `
+                                    <div class="flex gap-2 ${entry.type === 'error' ? 'text-red-400' : 'text-slate-400'}">
+                                        <span class="text-slate-600">${new Date(entry.timestamp).toLocaleTimeString()}</span>
+                                        <span class="text-indigo-400">[${entry.phase}]</span>
+                                        <span class="truncate">${entry.content?.substring(0, 100) || ''}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = '<p class="text-slate-500 text-sm">No agent log available</p>';
+                }
+            } catch (e) {
+                container.innerHTML = '<p class="text-red-400 text-sm">Error loading log</p>';
+            }
+        }
+
+        // Restart a failed build (no confirmation - user requested direct action)
+        async function restartBuild(buildId) {
+            // Find and disable all restart buttons for this build
+            const buttons = document.querySelectorAll(`button[onclick*="restartBuild('${buildId}')"]`);
+            const originalContents = [];
+
+            buttons.forEach((btn, i) => {
+                originalContents[i] = btn.innerHTML;
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+                btn.innerHTML = `
+                    <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    Starting Build...
+                `;
+            });
+
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'admin-restart-build', password: adminPassword, buildId })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    // Update button to show success
+                    buttons.forEach(btn => {
+                        btn.innerHTML = `
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Build Started!
+                        `;
+                        btn.classList.remove('from-orange-500', 'to-red-500');
+                        btn.classList.add('from-green-500', 'to-green-600');
+                    });
+
+                    // Refresh after short delay so user sees the success state
+                    setTimeout(() => {
+                        detailModal.classList.add('hidden');
+                        loadBuildHistory();
+                    }, 1500);
+                } else {
+                    // Re-enable buttons on error
+                    buttons.forEach((btn, i) => {
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                        btn.innerHTML = originalContents[i];
+                    });
+                    alert('Error: ' + (data.error || 'Failed to restart build'));
+                }
+            } catch (e) {
+                console.error('Error restarting build:', e);
+                // Re-enable buttons on error
+                buttons.forEach((btn, i) => {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    btn.innerHTML = originalContents[i];
+                });
+                alert('Connection error. Please try again.');
+            }
+        }
+
+        // View full build logs in a modal
+        async function viewBuildLogs(buildId) {
+            // Open modal with loading state
+            document.getElementById('modal-name').textContent = `Build Logs`;
+            document.getElementById('modal-email').textContent = buildId;
+            document.getElementById('modal-approve').style.display = 'none';
+            document.getElementById('modal-reject').style.display = 'none';
+            document.getElementById('review-notes').style.display = 'none';
+
+            const modalContent = document.getElementById('modal-content');
+            modalContent.innerHTML = `
+                <div class="flex items-center justify-center py-8">
+                    <svg class="w-6 h-6 animate-spin text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    <span class="ml-3">Loading logs...</span>
+                </div>
+            `;
+            detailModal.classList.remove('hidden');
+
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'admin-build-detail', password: adminPassword, buildId })
+                });
+                const data = await res.json();
+
+                if (data.success && data.build) {
+                    const build = data.build;
+                    const agentLog = build.agentLog;
+                    const entries = agentLog?.entries || [];
+
+                    // Filter to show errors, tool_use, and progress entries
+                    const importantEntries = entries.filter(e =>
+                        e.type === 'error' || e.type === 'tool_use' || e.type === 'progress' || e.type === 'action'
+                    );
+
+                    modalContent.innerHTML = `
+                        <div class="space-y-4">
+                            <!-- Build Summary -->
+                            <div class="grid grid-cols-3 gap-3">
+                                <div class="glass-card rounded-lg p-3">
+                                    <p class="text-xs text-slate-400">Status</p>
+                                    <p class="font-semibold capitalize ${build.status === 'failed' ? 'text-red-400' : build.status === 'completed' ? 'text-green-400' : 'text-yellow-400'}">${build.status}</p>
+                                </div>
+                                <div class="glass-card rounded-lg p-3">
+                                    <p class="text-xs text-slate-400">Total Log Entries</p>
+                                    <p class="font-semibold">${entries.length}</p>
+                                </div>
+                                <div class="glass-card rounded-lg p-3">
+                                    <p class="text-xs text-slate-400">Errors</p>
+                                    <p class="font-semibold text-red-400">${entries.filter(e => e.type === 'error').length}</p>
+                                </div>
+                            </div>
+
+                            <!-- Log Filters -->
+                            <div class="flex gap-2 flex-wrap">
+                                <button onclick="filterLogs('all')" class="log-filter-btn active px-3 py-1 text-xs rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">All (${entries.length})</button>
+                                <button onclick="filterLogs('error')" class="log-filter-btn px-3 py-1 text-xs rounded-lg bg-slate-700 text-red-400 hover:bg-red-500/20">Errors (${entries.filter(e => e.type === 'error').length})</button>
+                                <button onclick="filterLogs('tool_use')" class="log-filter-btn px-3 py-1 text-xs rounded-lg bg-slate-700 text-cyan-400 hover:bg-cyan-500/20">Tools (${entries.filter(e => e.type === 'tool_use').length})</button>
+                                <button onclick="filterLogs('progress')" class="log-filter-btn px-3 py-1 text-xs rounded-lg bg-slate-700 text-green-400 hover:bg-green-500/20">Progress (${entries.filter(e => e.type === 'progress').length})</button>
+                            </div>
+
+                            <!-- Full Log -->
+                            <div id="log-entries" class="max-h-96 overflow-y-auto bg-slate-900 rounded-lg p-4 text-xs font-mono space-y-1">
+                                ${entries.map(entry => `
+                                    <div class="log-entry flex gap-2 py-1 border-b border-slate-800 ${entry.type === 'error' ? 'text-red-400 bg-red-500/10' : entry.type === 'tool_use' ? 'text-cyan-400' : entry.type === 'progress' ? 'text-green-400' : 'text-slate-400'}" data-type="${entry.type}">
+                                        <span class="text-slate-600 whitespace-nowrap">${new Date(entry.timestamp).toLocaleTimeString()}</span>
+                                        <span class="text-indigo-400 whitespace-nowrap">[${entry.phase}]</span>
+                                        <span class="text-yellow-400 whitespace-nowrap">${entry.type}</span>
+                                        <span class="flex-1 break-all">${(entry.content || '').substring(0, 200)}${(entry.content || '').length > 200 ? '...' : ''}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+
+                            <!-- Download Link -->
+                            <div class="flex justify-between items-center pt-2 border-t border-slate-700">
+                                <p class="text-xs text-slate-500">Build ID: ${buildId}</p>
+                                <button onclick="downloadLogs('${buildId}')" class="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                    </svg>
+                                    Download Full Log
+                                </button>
+                            </div>
+                        </div>
+                    `;
+
+                    // Store entries for filtering
+                    window.currentLogEntries = entries;
+                } else {
+                    modalContent.innerHTML = `
+                        <div class="text-center py-8 text-red-400">
+                            <p>No logs available for this build</p>
+                            <p class="text-sm text-slate-500 mt-2">${data.error || 'Log file may not exist'}</p>
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                console.error('Error loading logs:', e);
+                modalContent.innerHTML = `
+                    <div class="text-center py-8 text-red-400">
+                        <p>Error loading logs</p>
+                        <p class="text-sm text-slate-500 mt-2">${e.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Filter log entries
+        function filterLogs(type) {
+            document.querySelectorAll('.log-filter-btn').forEach(btn => {
+                btn.classList.remove('active', 'bg-indigo-500/20', 'border', 'border-indigo-500/30');
+                btn.classList.add('bg-slate-700');
+            });
+            event.target.classList.add('active', 'bg-indigo-500/20', 'border', 'border-indigo-500/30');
+            event.target.classList.remove('bg-slate-700');
+
+            document.querySelectorAll('.log-entry').forEach(entry => {
+                if (type === 'all' || entry.dataset.type === type) {
+                    entry.style.display = 'flex';
+                } else {
+                    entry.style.display = 'none';
+                }
+            });
+        }
+
+        // Download logs as JSON
+        function downloadLogs(buildId) {
+            if (window.currentLogEntries) {
+                const blob = new Blob([JSON.stringify(window.currentLogEntries, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `build-log-${buildId}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        }
+
+        async function showBuildDetail(buildId) {
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'admin-build-detail', password: adminPassword, buildId })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const build = data.build;
+                    document.getElementById('modal-name').textContent = `Build: ${build.client?.name || 'Unknown'}`;
+                    document.getElementById('modal-email').textContent = buildId;
+
+                    const modalContent = document.getElementById('modal-content');
+                    modalContent.innerHTML = `
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="glass-card rounded-lg p-3">
+                                    <p class="text-xs text-slate-400">Status</p>
+                                    <p class="font-semibold capitalize">${build.status}</p>
+                                </div>
+                                <div class="glass-card rounded-lg p-3">
+                                    <p class="text-xs text-slate-400">Files Created</p>
+                                    <p class="font-semibold">${build.filesCreated?.length || 0}</p>
+                                </div>
+                            </div>
+                            ${build.mvpUrl ? `
+                                <div class="mvp-ready">
+                                    <p class="text-green-400 font-semibold mb-2">🚀 MVP Ready!</p>
+                                    <div class="mvp-url">${build.mvpUrl}</div>
+                                    <a href="${build.mvpUrl}" target="_blank" class="inline-block mt-2 px-4 py-2 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600">View MVP</a>
+                                </div>
+                            ` : ''}
+                            ${build.status === 'failed' ? `
+                                <div class="bg-red-500/20 border border-red-500/30 rounded-xl p-4">
+                                    <p class="text-red-400 font-semibold mb-2">❌ Build Failed</p>
+                                    <p class="text-sm text-slate-400 mb-4">The MVP build did not complete successfully. You can restart the build to try again.</p>
+                                    <button onclick="restartBuild('${buildId}')" class="px-6 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg font-semibold hover:opacity-90 transition inline-flex items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                        </svg>
+                                        Restart Build
+                                    </button>
+                                </div>
+                            ` : ''}
+                            ${build.agentLog?.entries?.length ? `
+                                <div class="border-t border-slate-700 pt-4">
+                                    <h4 class="font-semibold mb-3">Agent Log (${build.agentLog.totalEntries} entries):</h4>
+                                    <div class="space-y-2 max-h-64 overflow-y-auto bg-slate-900 rounded-lg p-3 text-xs font-mono">
+                                        ${build.agentLog.entries.slice(-20).map(entry => `
+                                            <div class="flex gap-2 ${entry.type === 'error' ? 'text-red-400' : 'text-slate-400'}">
+                                                <span class="text-slate-600">${new Date(entry.timestamp).toLocaleTimeString()}</span>
+                                                <span class="text-indigo-400">[${entry.phase}]</span>
+                                                <span class="truncate">${entry.content?.substring(0, 100)}</span>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+
+                    document.getElementById('modal-approve').style.display = 'none';
+                    document.getElementById('modal-reject').style.display = 'none';
+                    document.getElementById('review-notes').style.display = 'none';
+                    detailModal.classList.remove('hidden');
+                }
+            } catch (e) {
+                console.error('Error loading build detail:', e);
+            }
+        }
+    </script>
+
+    <!-- Chat Widget Script -->
+    <script src="js/chat-widget.js"></script>
+    <script>
+        // Initialize Chat Widget for Admin
+        const chatWidget = new ChatWidget({
+            title: 'AI Assistant',
+            subtitle: 'Admin Support',
+            welcomeMessage: `Hi! I'm your admin assistant. I can help you with:
+
+• **Reviewing applications** - Understanding applicant details
+• **Making decisions** - Guidance on approval criteria
+• **Managing the dashboard** - Navigation and features
+
+How can I help you today?`,
+            pageType: 'admin',
+            startOpen: true
+        });
+    </script>
+
+    <!-- Theme Selector Script -->
+    <script>
+    (function() {
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeDropdown = document.getElementById('theme-dropdown');
+        const themeOptions = document.querySelectorAll('.theme-option');
+        const currentThemeIcon = document.getElementById('current-theme-icon');
+        const currentThemeName = document.getElementById('current-theme-name');
+
+        const themeIcons = {
+            dark: '🌙',
+            midnight: '🌌',
+            dusk: '🌅',
+            light: '☀️'
+        };
+
+        const themeNames = {
+            dark: 'Dark',
+            midnight: 'Midnight',
+            dusk: 'Dusk',
+            light: 'Light'
+        };
+
+        // Update UI to show current theme
+        function updateThemeUI(theme) {
+            currentThemeIcon.textContent = themeIcons[theme] || '🌙';
+            currentThemeName.textContent = themeNames[theme] || 'Dark';
+
+            themeOptions.forEach(opt => {
+                opt.classList.toggle('active', opt.dataset.theme === theme);
+            });
+        }
+
+        // Toggle dropdown
+        themeToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            themeDropdown.classList.toggle('open');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', () => {
+            themeDropdown.classList.remove('open');
+        });
+
+        // Theme option selection
+        themeOptions.forEach(option => {
+            option.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const theme = option.dataset.theme;
+                if (window.ThemeManager) {
+                    window.ThemeManager.set(theme);
+                }
+                updateThemeUI(theme);
+                themeDropdown.classList.remove('open');
+
+                // Update nav tabs styling dynamically
+                updateNavTabStyles(theme);
+            });
+        });
+
+        // Update nav tab styles based on theme
+        function updateNavTabStyles(theme) {
+            const navTabs = document.querySelectorAll('.nav-tab:not(.active)');
+            navTabs.forEach(tab => {
+                if (theme === 'light') {
+                    tab.style.background = '#e2e8f0';
+                    tab.style.color = '#475569';
+                } else {
+                    tab.style.background = 'var(--bg-secondary)';
+                    tab.style.color = 'var(--text-secondary)';
+                }
+            });
+        }
+
+        // Initialize with current theme
+        if (window.ThemeManager) {
+            const currentTheme = window.ThemeManager.get();
+            updateThemeUI(currentTheme);
+        }
+
+        // Listen for theme changes from other sources
+        window.addEventListener('themechange', (e) => {
+            updateThemeUI(e.detail.theme);
+        });
+    })();
+    </script>
+</body>
+</html>

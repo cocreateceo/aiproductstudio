@@ -1,0 +1,22 @@
+Shri Hari Hari
+1. install WSL 
+2. install vs code..
+3. install claude cli
+4. launch vscode and add WSL extension
+
+4. launch ccli under wsl and open terminal and login to wsl user.(linux)
+
+
+5. push changes to github and publish ** 
+6. Intro audio / video.. 
+
+
+project notes:
+
+1. wordings changes.. --> Mukund
+2. UI site style and interaction design --> choose one..
+3. once site loaded, avatar speaks , interacts.. --> 
+greetings .. 
+4. after login intro video.. 
+5. when user interacts, then avatar comes back..
+

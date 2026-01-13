@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <title>AI-Powered Product Studio | Launch in 2 Weeks</title>
+    <meta name="description" content="Your AI co-founder. We build, you sell. Launch your product in 2 weeks with our 40/40/20 partnership model.">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: 'var(--primary)',
+                        secondary: 'var(--secondary)',
+                        accent: 'var(--accent)',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <!-- html2canvas for screenshots -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <!-- Centralized Configuration -->
+    <script src="js/config.js"></script>
+
+    <!-- Chat Widget -->
+    <link rel="stylesheet" href="css/chat-widget.css">
+
+    <style>
+        /* Theme CSS Variables */
+        :root {
+            --transition-speed: 0.4s;
+        }
+
+        /* Dark Theme (Default) */
+        [data-theme="dark"] {
+            --bg-primary: #020617;
+            --bg-secondary: #0f172a;
+            --bg-card: rgba(15, 23, 42, 0.7);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: rgba(99, 102, 241, 0.2);
+            --primary: #6366f1;
+            --secondary: #8b5cf6;
+            --accent: #06b6d4;
+            --nav-bg: rgba(2, 6, 23, 0.8);
+            --glow-color: rgba(99, 102, 241, 0.3);
+            --particle-opacity: 0.8;
+        }
+
+        /* Midnight Theme */
+        [data-theme="midnight"] {
+            --bg-primary: #0c0a1d;
+            --bg-secondary: #1a1533;
+            --bg-card: rgba(26, 21, 51, 0.8);
+            --text-primary: #e8e4f3;
+            --text-secondary: #a59fc4;
+            --text-muted: #7a73a0;
+            --border-color: rgba(167, 139, 250, 0.25);
+            --primary: #a78bfa;
+            --secondary: #c084fc;
+            --accent: #f472b6;
+            --nav-bg: rgba(12, 10, 29, 0.9);
+            --glow-color: rgba(167, 139, 250, 0.35);
+            --particle-opacity: 0.9;
+        }
+
+        /* Dusk Theme (In-between) */
+        [data-theme="dusk"] {
+            --bg-primary: #1e1b2e;
+            --bg-secondary: #2d2844;
+            --bg-card: rgba(45, 40, 68, 0.75);
+            --text-primary: #f5f3ff;
+            --text-secondary: #c4b5fd;
+            --text-muted: #a78bfa;
+            --border-color: rgba(251, 146, 60, 0.25);
+            --primary: #fb923c;
+            --secondary: #f97316;
+            --accent: #fbbf24;
+            --nav-bg: rgba(30, 27, 46, 0.9);
+            --glow-color: rgba(251, 146, 60, 0.3);
+            --particle-opacity: 0.85;
+        }
+
+        /* Light Theme */
+        [data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #e2e8f0;
+            --bg-card: rgba(255, 255, 255, 0.9);
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            --border-color: rgba(99, 102, 241, 0.15);
+            --primary: #4f46e5;
+            --secondary: #7c3aed;
+            --accent: #0891b2;
+            --nav-bg: rgba(248, 250, 252, 0.95);
+            --glow-color: rgba(79, 70, 229, 0.2);
+            --particle-opacity: 0.4;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            transition: background var(--transition-speed) ease, color var(--transition-speed) ease;
+        }
+
+        #hero-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            transition: opacity var(--transition-speed) ease;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .glass-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            transition: background var(--transition-speed) ease, border-color var(--transition-speed) ease;
+        }
+
+        .glow {
+            box-shadow: 0 0 60px var(--glow-color);
+        }
+
+        .section-reveal {
+            opacity: 0;
+            transform: translateY(60px);
+        }
+
+        .stat-number {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .partner-card {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .partner-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 25px 50px var(--glow-color);
+        }
+
+        .cta-button {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .cta-button:hover::before {
+            left: 100%;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px var(--glow-color);
+        }
+
+        .timeline-line {
+            background: linear-gradient(180deg, var(--primary), var(--accent));
+        }
+
+        .floating {
+            animation: floating 6s ease-in-out infinite;
+        }
+
+        @keyframes floating {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .pulse-glow {
+            animation: pulse-glow 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px var(--glow-color); }
+            50% { box-shadow: 0 0 40px var(--glow-color); }
+        }
+
+        /* Theme Switcher Styles */
+        .theme-switcher {
+            position: relative;
+        }
+
+        .theme-toggle-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 9999px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle-btn:hover {
+            border-color: var(--primary);
+            box-shadow: 0 0 20px var(--glow-color);
+        }
+
+        .theme-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 8px;
+            min-width: 180px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .theme-dropdown.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .theme-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-secondary);
+        }
+
+        .theme-option:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .theme-option.active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+
+        .theme-preview {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .theme-preview-dark {
+            background: linear-gradient(135deg, #020617 50%, #6366f1 50%);
+        }
+
+        .theme-preview-midnight {
+            background: linear-gradient(135deg, #0c0a1d 50%, #a78bfa 50%);
+        }
+
+        .theme-preview-dusk {
+            background: linear-gradient(135deg, #1e1b2e 50%, #fb923c 50%);
+        }
+
+        .theme-preview-light {
+            background: linear-gradient(135deg, #f8fafc 50%, #4f46e5 50%);
+        }
+
+        /* Text color utilities that respond to theme */
+        .text-theme-primary { color: var(--text-primary); }
+        .text-theme-secondary { color: var(--text-secondary); }
+        .text-theme-muted { color: var(--text-muted); }
+        .bg-theme-primary { background: var(--bg-primary); }
+        .bg-theme-secondary { background: var(--bg-secondary); }
+        .border-theme { border-color: var(--border-color); }
+
+        /* Light theme specific overrides */
+        [data-theme="light"] .glass-card {
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="light"] nav {
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="light"] .text-slate-400,
+        [data-theme="light"] .text-slate-500 {
+            color: var(--text-secondary);
+        }
+
+        [data-theme="light"] .text-slate-300 {
+            color: var(--text-primary);
+        }
+
+        [data-theme="light"] .border-slate-600,
+        [data-theme="light"] .border-slate-800,
+        [data-theme="light"] .border-slate-800\/50 {
+            border-color: var(--border-color);
+        }
+
+        /* Mobile theme switcher */
+        @media (max-width: 768px) {
+            .theme-dropdown {
+                right: -50px;
+            }
+        }
+
+        /* Chat widget theme variable overrides */
+        :root {
+            --chat-primary: var(--primary);
+            --chat-secondary: var(--secondary);
+            --chat-bg: var(--bg-secondary);
+            --chat-messages-bg: var(--bg-primary);
+            --chat-input-bg: var(--bg-card);
+            --chat-border: var(--border-color);
+            --chat-text-primary: var(--text-primary);
+            --chat-text-secondary: var(--text-secondary);
+            --chat-text-muted: var(--text-muted);
+            --chat-msg-assistant-bg: var(--bg-card);
+            --chat-msg-assistant-text: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+    <!-- Three.js Canvas -->
+    <canvas id="hero-canvas"></canvas>
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 glass-card border-b border-theme" style="z-index: 10000;">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                </div>
+                <span class="text-xl font-bold">AI Product Studio</span>
+            </div>
+            <div class="hidden md:flex items-center gap-8">
+                <a href="#problem" class="text-theme-secondary hover:text-theme-primary transition">Problem</a>
+                <a href="#solution" class="text-theme-secondary hover:text-theme-primary transition">Solution</a>
+                <a href="#partnership" class="text-theme-secondary hover:text-theme-primary transition">Partnership</a>
+                <a href="#portfolio" class="text-theme-secondary hover:text-theme-primary transition">Portfolio</a>
+            </div>
+            <div class="flex items-center gap-4">
+                <!-- Theme Switcher -->
+                <div class="theme-switcher">
+                    <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle theme">
+                        <svg class="w-5 h-5" id="theme-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                        </svg>
+                        <span class="hidden sm:inline text-sm font-medium" id="theme-label">Dark</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="theme-dropdown" id="theme-dropdown">
+                        <div class="theme-option active" data-theme="dark">
+                            <div class="theme-preview theme-preview-dark"></div>
+                            <span>Dark</span>
+                        </div>
+                        <div class="theme-option" data-theme="midnight">
+                            <div class="theme-preview theme-preview-midnight"></div>
+                            <span>Midnight</span>
+                        </div>
+                        <div class="theme-option" data-theme="dusk">
+                            <div class="theme-preview theme-preview-dusk"></div>
+                            <span>Dusk</span>
+                        </div>
+                        <div class="theme-option" data-theme="light">
+                            <div class="theme-preview theme-preview-light"></div>
+                            <span>Light</span>
+                        </div>
+                    </div>
+                </div>
+                <a href="apply.html" class="cta-button px-6 py-2.5 rounded-full text-white font-semibold hidden sm:block">
+                    Start Building
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="hero" class="relative min-h-screen flex items-center justify-center px-6">
+        <div class="relative z-10 text-center max-w-5xl mx-auto pt-20">
+            <div class="section-reveal">
+                <p class="text-accent font-semibold tracking-wider uppercase mb-6">Your AI Co-Founder Awaits</p>
+                <h1 class="text-5xl md:text-7xl font-bold mb-8 leading-tight">
+                    Your Product Launches<br>
+                    <span class="gradient-text">In 2 Weeks</span>
+                </h1>
+                <p class="text-xl md:text-2xl text-theme-secondary mb-12 max-w-3xl mx-auto leading-relaxed">
+                    AI-powered co-founder model — we accelerate your ideas to market.
+                    First draft review in 2 days. You bring the market & sales; we build the product.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="apply.html" class="cta-button px-8 py-4 rounded-full text-lg font-semibold text-white">
+                        Apply for Partnership
+                    </a>
+                    <a href="#solution" class="px-8 py-4 rounded-full text-lg font-semibold border border-theme hover:border-primary hover:bg-primary/10 transition">
+                        Learn How It Works
+                    </a>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="grid grid-cols-3 gap-8 mt-20 section-reveal">
+                <div class="text-center">
+                    <p class="text-4xl md:text-5xl font-bold stat-number">2</p>
+                    <p class="text-theme-secondary mt-2">Weeks to Launch</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-4xl md:text-5xl font-bold stat-number">40%</p>
+                    <p class="text-theme-secondary mt-2">Your Equity Share</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-4xl md:text-5xl font-bold stat-number">0</p>
+                    <p class="text-theme-secondary mt-2">Upfront Cost</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scroll Indicator -->
+        <div class="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-theme-muted">
+            <span class="text-sm">Scroll to explore</span>
+            <div class="w-6 h-10 border-2 border-theme rounded-full flex justify-center pt-2">
+                <div class="w-1.5 h-3 bg-primary rounded-full animate-bounce"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Problem Section -->
+    <section id="problem" class="relative py-32 px-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-20 section-reveal">
+                <p class="text-accent font-semibold tracking-wider uppercase mb-4">The Problem</p>
+                <h2 class="text-4xl md:text-5xl font-bold mb-6">
+                    Great Ideas Remain Ideas<br>
+                    <span class="gradient-text">When One Founder Does Everything</span>
+                </h2>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- Problem Card 1 -->
+                <div class="glass-card rounded-2xl p-8 section-reveal">
+                    <div class="w-14 h-14 rounded-xl bg-red-500/20 flex items-center justify-center mb-6">
+                        <svg class="w-7 h-7 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-4">Tech Founders</h3>
+                    <p class="text-theme-secondary text-lg leading-relaxed">
+                        Lack distribution and sales. Build amazing products but struggle with go-to-market strategy.
+                        The product sits unused while competitors capture the market.
+                    </p>
+                </div>
+
+                <!-- Problem Card 2 -->
+                <div class="glass-card rounded-2xl p-8 section-reveal">
+                    <div class="w-14 h-14 rounded-xl bg-orange-500/20 flex items-center justify-center mb-6">
+                        <svg class="w-7 h-7 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-4">Business Founders</h3>
+                    <p class="text-theme-secondary text-lg leading-relaxed">
+                        Lack "idea to market" speed. Have market insight and sales skills but without technical ability,
+                        months turn into years.
+                    </p>
+                </div>
+
+                <!-- Problem Card 3 -->
+                <div class="glass-card rounded-2xl p-8 md:col-span-2 section-reveal">
+                    <div class="w-14 h-14 rounded-xl bg-yellow-500/20 flex items-center justify-center mb-6">
+                        <svg class="w-7 h-7 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-4">Agencies Don't Share Risk</h3>
+                    <p class="text-theme-secondary text-lg leading-relaxed">
+                        Traditional agencies charge $50K-$200K upfront with no stake in your success.
+                        They get paid whether you succeed or fail. Incentives are completely misaligned.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Solution Section -->
+    <section id="solution" class="relative py-32 px-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-20 section-reveal">
+                <p class="text-accent font-semibold tracking-wider uppercase mb-4">The Solution</p>
+                <h2 class="text-4xl md:text-5xl font-bold mb-6">
+                    AI-Powered<br>
+                    <span class="gradient-text">Co-Founder Model</span>
+                </h2>
+                <p class="text-xl text-theme-secondary max-w-3xl mx-auto">
+                    This isn't outsourcing. We become your technical co-founder.
+                    We build your idea together and launch as equal partners.
+                </p>
+            </div>
+
+            <!-- Timeline -->
+            <div class="relative">
+                <div class="hidden md:block absolute left-1/2 top-0 bottom-0 w-1 timeline-line -translate-x-1/2 rounded-full"></div>
+
+                <!-- Step 1 -->
+                <div class="relative flex flex-col md:flex-row items-center gap-8 mb-16 section-reveal">
+                    <div class="md:w-1/2 md:text-right md:pr-12">
+                        <p class="text-accent font-semibold mb-2">Day 1-3</p>
+                        <h3 class="text-2xl font-bold mb-3">Discovery & Architecture</h3>
+                        <p class="text-theme-secondary">We dive deep into your vision, validate the market opportunity, and design the AI-first technical architecture.</p>
+                    </div>
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-2xl font-bold z-10 glow text-white">1</div>
+                    <div class="md:w-1/2 md:pl-12"></div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="relative flex flex-col md:flex-row items-center gap-8 mb-16 section-reveal">
+                    <div class="md:w-1/2 md:pr-12 md:order-1"></div>
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-2xl font-bold z-10 glow md:order-2 text-white">2</div>
+                    <div class="md:w-1/2 md:pl-12 md:order-3">
+                        <p class="text-accent font-semibold mb-2">Day 4-10</p>
+                        <h3 class="text-2xl font-bold mb-3">AI-Accelerated Build</h3>
+                        <p class="text-theme-secondary">Our AI-powered development process builds what used to take months in days. Daily updates, rapid iteration.</p>
+                    </div>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="relative flex flex-col md:flex-row items-center gap-8 mb-16 section-reveal">
+                    <div class="md:w-1/2 md:text-right md:pr-12">
+                        <p class="text-accent font-semibold mb-2">Day 11-14</p>
+                        <h3 class="text-2xl font-bold mb-3">Launch & Scale</h3>
+                        <p class="text-theme-secondary">Deploy to production, onboard first customers, and begin the growth phase. You sell, we support and scale.</p>
+                    </div>
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-2xl font-bold z-10 glow text-white">3</div>
+                    <div class="md:w-1/2 md:pl-12"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Partnership Model Section -->
+    <section id="partnership" class="relative py-32 px-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-20 section-reveal">
+                <p class="text-accent font-semibold tracking-wider uppercase mb-4">The Partnership</p>
+                <h2 class="text-4xl md:text-5xl font-bold mb-6">
+                    <span class="gradient-text">40 / 40 / 20</span><br>
+                    Equity Model
+                </h2>
+                <p class="text-xl text-theme-secondary max-w-3xl mx-auto">
+                    Perfect incentive alignment. We only win when you win.
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- Tech Founder Card -->
+                <div class="partner-card glass-card rounded-2xl p-8 text-center section-reveal">
+                    <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-secondary mx-auto mb-6 flex items-center justify-center pulse-glow">
+                        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                        </svg>
+                    </div>
+                    <p class="text-5xl font-bold gradient-text mb-4">40%</p>
+                    <h3 class="text-2xl font-bold mb-4">Tech Founder</h3>
+                    <p class="text-theme-secondary mb-6">That's us — AI Product Studio</p>
+                    <ul class="text-left text-theme-primary space-y-3">
+                        <li class="flex items-start gap-3">
+                            <svg class="w-5 h-5 text-accent mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>AI-first architecture & build</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <svg class="w-5 h-5 text-accent mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>Automation & hosting</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <svg class="w-5 h-5 text-accent mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>Continuous evolution & support</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Business Founder Card -->
+                <div class="partner-card glass-card rounded-2xl p-8 text-center section-reveal">
+                    <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-accent to-green-500 mx-auto mb-6 flex items-center justify-center pulse-glow">
+                        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                        </svg>
+                    </div>
+                    <p class="text-5xl font-bold gradient-text mb-4">40%</p>
+                    <h3 class="text-2xl font-bold mb-4">Business Founder</h3>
+                    <p class="text-theme-secondary mb-6">That's you — the visionary</p>
+                    <ul class="text-left text-theme-primary space-y-3">
+                        <li class="flex items-start gap-3">
+                            <svg class="w-5 h-5 text-accent mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>Market validation & positioning</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <svg class="w-5 h-5 text-accent mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>Sales & partnerships</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <svg class="w-5 h-5 text-accent mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>Revenue & growth strategy</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Operations Card -->
+                <div class="partner-card glass-card rounded-2xl p-8 text-center section-reveal">
+                    <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-orange-500 to-pink-500 mx-auto mb-6 flex items-center justify-center pulse-glow">
+                        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
+                    </div>
+                    <p class="text-5xl font-bold gradient-text mb-4">20%</p>
+                    <h3 class="text-2xl font-bold mb-4">Operations</h3>
+                    <p class="text-theme-secondary mb-6">Platform & governance</p>
+                    <ul class="text-left text-theme-primary space-y-3">
+                        <li class="flex items-start gap-3">
+                            <svg class="w-5 h-5 text-accent mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>Finance, legal & compliance</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <svg class="w-5 h-5 text-accent mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>Security & enterprise services</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <svg class="w-5 h-5 text-accent mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>Hosting expenses & advisory</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Why Win-Win Section -->
+    <section id="why" class="relative py-32 px-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="glass-card rounded-3xl p-12 md:p-16 section-reveal glow">
+                <div class="text-center mb-12">
+                    <h2 class="text-4xl md:text-5xl font-bold mb-6">
+                        Why This Is a<br>
+                        <span class="gradient-text">Win-Win</span>
+                    </h2>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="flex gap-4 section-reveal">
+                        <div class="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-2">AI Reduces Build Cycles</h3>
+                            <p class="text-theme-secondary">What used to take months now takes weeks. AI-powered development accelerates everything.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4 section-reveal">
+                        <div class="w-12 h-12 rounded-xl bg-accent/20 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-2">Marginal Cost to Scale</h3>
+                            <p class="text-theme-secondary">Our AI infrastructure means we can scale multiple products simultaneously at minimal incremental cost.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4 section-reveal">
+                        <div class="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-2">Perfect Incentive Alignment</h3>
+                            <p class="text-theme-secondary">We win together. No hourly billing, no misaligned incentives. Pure partnership.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4 section-reveal">
+                        <div class="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-2">Scale as Equals</h3>
+                            <p class="text-theme-secondary">You bring market & sales. We build the product. We grow together as true partners.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Portfolio Section -->
+    <section id="portfolio" class="relative py-32 px-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-20 section-reveal">
+                <p class="text-accent font-semibold tracking-wider uppercase mb-4">Portfolio</p>
+                <h2 class="text-4xl md:text-5xl font-bold mb-6">
+                    Products<br>
+                    <span class="gradient-text">In Flight</span>
+                </h2>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- Product 1 -->
+                <a href="https://10x.vedics.net" class="glass-card rounded-2xl overflow-hidden section-reveal group hover:scale-105 transition-transform duration-300 cursor-pointer">
+                    <div class="h-48 bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center">
+                        <svg class="w-20 h-20 text-white/50 group-hover:text-white/80 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                        </svg>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold mb-2">Personal Transformation</h3>
+                        <p class="text-theme-secondary">AI-powered personal growth and habit tracking platform.</p>
+                    </div>
+                </a>
+
+                <!-- Product 2 -->
+                <a href="https://d10mstgfo5cmvc.cloudfront.net" class="glass-card rounded-2xl overflow-hidden section-reveal group hover:scale-105 transition-transform duration-300 cursor-pointer">
+                    <div class="h-48 bg-gradient-to-br from-orange-500/30 to-yellow-500/30 flex items-center justify-center">
+                        <svg class="w-20 h-20 text-white/50 group-hover:text-white/80 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                        </svg>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold mb-2">Vedic Astrology</h3>
+                        <p class="text-theme-secondary">AI-enhanced astrological insights and guidance platform.</p>
+                    </div>
+                </a>
+
+                <!-- Product 3 -->
+                <a href="https://d2rglxopjj9hqx.cloudfront.net" class="glass-card rounded-2xl overflow-hidden section-reveal group hover:scale-105 transition-transform duration-300 cursor-pointer">
+                    <div class="h-48 bg-gradient-to-br from-green-500/30 to-emerald-500/30 flex items-center justify-center">
+                        <svg class="w-20 h-20 text-white/50 group-hover:text-white/80 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold mb-2">Career Builder</h3>
+                        <p class="text-theme-secondary">AI career coaching and professional development platform.</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section id="contact" class="relative py-32 px-6">
+        <div class="max-w-4xl mx-auto text-center section-reveal">
+            <h2 class="text-4xl md:text-6xl font-bold mb-8">
+                Ready to Build<br>
+                <span class="gradient-text">Something Great?</span>
+            </h2>
+            <p class="text-xl text-theme-secondary mb-12 max-w-2xl mx-auto">
+                Have a business idea and market access? Let's launch together.
+                Your product launch is scheduled in two weeks from signup.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="apply.html" class="cta-button px-10 py-5 rounded-full text-xl font-semibold text-white inline-flex items-center justify-center gap-3">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    Apply for Partnership
+                </a>
+            </div>
+            <p class="text-theme-muted mt-8">We review every application personally.</p>
+        </div>
+    </section>
+
+    <!-- Chat Widget Container -->
+    <div id="chat-widget-container"></div>
+
+    <!-- Footer -->
+    <footer class="border-t border-theme py-12 px-6">
+        <div class="max-w-6xl mx-auto">
+            <!-- Footer Bottom -->
+            <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <span class="font-bold">AI Product Studio</span>
+                </div>
+                <p class="text-theme-muted text-sm">
+                    &copy; 2025 Sunware Technologies. All rights reserved.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script>
+        // Theme Management
+        const themes = {
+            dark: {
+                icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>`,
+                label: 'Dark',
+                particleColors: { r1: 0.39, g1: 0.4, b1: 0.95, r2: 0.02, g2: 0.71, b2: 0.83 }
+            },
+            midnight: {
+                icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>`,
+                label: 'Midnight',
+                particleColors: { r1: 0.65, g1: 0.55, b1: 0.98, r2: 0.96, g2: 0.45, b2: 0.71 }
+            },
+            dusk: {
+                icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>`,
+                label: 'Dusk',
+                particleColors: { r1: 0.98, g1: 0.57, b1: 0.24, r2: 0.98, g2: 0.75, b2: 0.14 }
+            },
+            light: {
+                icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>`,
+                label: 'Light',
+                particleColors: { r1: 0.31, g1: 0.27, b1: 0.9, r2: 0.03, g2: 0.57, b2: 0.7 }
+            }
+        };
+
+        let currentTheme = localStorage.getItem('theme') || 'dark';
+
+        // Theme switcher elements
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeDropdown = document.getElementById('theme-dropdown');
+        const themeIcon = document.getElementById('theme-icon');
+        const themeLabel = document.getElementById('theme-label');
+        const themeOptions = document.querySelectorAll('.theme-option');
+
+        // Initialize theme
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            currentTheme = theme;
+            localStorage.setItem('theme', theme);
+
+            // Update icon and label
+            themeIcon.innerHTML = themes[theme].icon;
+            themeLabel.textContent = themes[theme].label;
+
+            // Update active state
+            themeOptions.forEach(option => {
+                option.classList.toggle('active', option.dataset.theme === theme);
+            });
+
+            // Update particles
+            updateParticleColors(themes[theme].particleColors);
+
+            // Update particle opacity
+            if (particlesMaterial) {
+                const opacity = getComputedStyle(document.documentElement).getPropertyValue('--particle-opacity');
+                particlesMaterial.opacity = parseFloat(opacity) || 0.8;
+            }
+        }
+
+        // Toggle dropdown
+        themeToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            themeDropdown.classList.toggle('active');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', () => {
+            themeDropdown.classList.remove('active');
+        });
+
+        // Theme option click
+        themeOptions.forEach(option => {
+            option.addEventListener('click', (e) => {
+                e.stopPropagation();
+                setTheme(option.dataset.theme);
+                themeDropdown.classList.remove('active');
+            });
+        });
+
+        // Three.js Particle System
+        const canvas = document.getElementById('hero-canvas');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+        // Create particles
+        const particlesGeometry = new THREE.BufferGeometry();
+        const particlesCount = 2000;
+        const posArray = new Float32Array(particlesCount * 3);
+        const colorsArray = new Float32Array(particlesCount * 3);
+
+        for (let i = 0; i < particlesCount * 3; i += 3) {
+            posArray[i] = (Math.random() - 0.5) * 10;
+            posArray[i + 1] = (Math.random() - 0.5) * 10;
+            posArray[i + 2] = (Math.random() - 0.5) * 10;
+
+            const t = Math.random();
+            colorsArray[i] = 0.39 + t * 0.02;
+            colorsArray[i + 1] = 0.4 + t * 0.31;
+            colorsArray[i + 2] = 0.95 - t * 0.12;
+        }
+
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colorsArray, 3));
+
+        const particlesMaterial = new THREE.PointsMaterial({
+            size: 0.02,
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.8,
+            blending: THREE.AdditiveBlending
+        });
+
+        const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+        scene.add(particlesMesh);
+
+        // Add connecting lines
+        const linesGeometry = new THREE.BufferGeometry();
+        const linePositions = [];
+        const lineColors = [];
+
+        for (let i = 0; i < 100; i++) {
+            const x1 = (Math.random() - 0.5) * 8;
+            const y1 = (Math.random() - 0.5) * 8;
+            const z1 = (Math.random() - 0.5) * 8;
+            const x2 = x1 + (Math.random() - 0.5) * 2;
+            const y2 = y1 + (Math.random() - 0.5) * 2;
+            const z2 = z1 + (Math.random() - 0.5) * 2;
+
+            linePositions.push(x1, y1, z1, x2, y2, z2);
+            lineColors.push(0.39, 0.4, 0.95, 0.02, 0.71, 0.83);
+        }
+
+        linesGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+        linesGeometry.setAttribute('color', new THREE.Float32BufferAttribute(lineColors, 3));
+
+        const linesMaterial = new THREE.LineBasicMaterial({
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.15,
+            blending: THREE.AdditiveBlending
+        });
+
+        const linesMesh = new THREE.LineSegments(linesGeometry, linesMaterial);
+        scene.add(linesMesh);
+
+        camera.position.z = 5;
+
+        // Update particle colors based on theme
+        function updateParticleColors(colors) {
+            const colorsAttr = particlesGeometry.getAttribute('color');
+            const lineColorsAttr = linesGeometry.getAttribute('color');
+
+            for (let i = 0; i < particlesCount * 3; i += 3) {
+                const t = Math.random();
+                colorsAttr.array[i] = colors.r1 + t * (colors.r2 - colors.r1);
+                colorsAttr.array[i + 1] = colors.g1 + t * (colors.g2 - colors.g1);
+                colorsAttr.array[i + 2] = colors.b1 + t * (colors.b2 - colors.b1);
+            }
+            colorsAttr.needsUpdate = true;
+
+            // Update line colors
+            for (let i = 0; i < lineColorsAttr.array.length; i += 6) {
+                lineColorsAttr.array[i] = colors.r1;
+                lineColorsAttr.array[i + 1] = colors.g1;
+                lineColorsAttr.array[i + 2] = colors.b1;
+                lineColorsAttr.array[i + 3] = colors.r2;
+                lineColorsAttr.array[i + 4] = colors.g2;
+                lineColorsAttr.array[i + 5] = colors.b2;
+            }
+            lineColorsAttr.needsUpdate = true;
+        }
+
+        // Mouse interaction
+        let mouseX = 0;
+        let mouseY = 0;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+            mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+        });
+
+        // Animation
+        function animate() {
+            requestAnimationFrame(animate);
+
+            particlesMesh.rotation.x += 0.0003;
+            particlesMesh.rotation.y += 0.0005;
+
+            linesMesh.rotation.x += 0.0002;
+            linesMesh.rotation.y += 0.0003;
+
+            camera.position.x += (mouseX * 0.5 - camera.position.x) * 0.02;
+            camera.position.y += (mouseY * 0.5 - camera.position.y) * 0.02;
+            camera.lookAt(scene.position);
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // Resize handler
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Initialize theme on load
+        setTheme(currentTheme);
+
+        // GSAP Scroll Animations
+        gsap.registerPlugin(ScrollTrigger);
+
+        gsap.utils.toArray('.section-reveal').forEach((elem, i) => {
+            gsap.to(elem, {
+                opacity: 1,
+                y: 0,
+                duration: 1,
+                ease: 'power3.out',
+                scrollTrigger: {
+                    trigger: elem,
+                    start: 'top 85%',
+                    toggleActions: 'play none none reverse'
+                },
+                delay: i % 3 * 0.1
+            });
+        });
+
+        gsap.to('#hero-canvas', {
+            opacity: 0.3,
+            scrollTrigger: {
+                trigger: '#problem',
+                start: 'top center',
+                end: 'top top',
+                scrub: true
+            }
+        });
+
+        ScrollTrigger.create({
+            start: 100,
+            onEnter: () => document.querySelector('nav').style.background = 'var(--nav-bg)',
+            onLeaveBack: () => document.querySelector('nav').style.background = ''
+        });
+
+    </script>
+
+    <!-- Chat Widget -->
+    <script src="js/chat-widget.js"></script>
+    <script>
+        // Initialize Chat Widget for Landing Page
+        const chatWidget = new ChatWidget({
+            title: 'AI Product Studio',
+            subtitle: 'Online - Ready to help',
+            welcomeMessage: `Hi there! 👋 Welcome to AI Product Studio!
+
+I'm here to answer any questions about our partnership model. We help business founders launch AI-powered products in just 2 weeks.
+
+What would you like to know?`,
+            pageType: 'landing',
+            startOpen: true
+        });
+    </script>
+</body>
+</html>

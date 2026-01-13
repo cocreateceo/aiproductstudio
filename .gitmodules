@@ -1,0 +1,9 @@
+[submodule "projects/career-builder"]
+	path = projects/career-builder
+	url = https://github.com/GopiSunware/Career-Builder.git
+[submodule "projects/vedic-astro"]
+	path = projects/vedic-astro
+	url = https://github.com/GopiSunware/Vedic_Astro.git
+[submodule "projects/vedic-transform/vedic-transform"]
+	path = projects/vedic-transform/vedic-transform
+	url = https://github.com/GopiSunware/vedic-transformation.git

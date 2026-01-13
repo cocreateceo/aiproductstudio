@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Design Examples - AI Product Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #020617;
+            color: #f1f5f9;
+        }
+
+        /* Animated Gradient Background */
+        .animated-gradient-bg {
+            background: linear-gradient(-45deg, #020617, #1e1b4b, #1e293b, #312e81);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Glass Morphism */
+        .glass-card {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(99, 102, 241, 0.15);
+        }
+
+        .glass-card-premium {
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(30px) saturate(180%);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            box-shadow:
+                0 8px 32px 0 rgba(99, 102, 241, 0.2),
+                inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card-premium:hover {
+            transform: translateY(-8px) scale(1.02);
+            border-color: rgba(139, 92, 246, 0.6);
+            box-shadow:
+                0 20px 60px 0 rgba(99, 102, 241, 0.4),
+                inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
+        }
+
+        /* Gradient Text */
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f857a6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .gradient-text-animate {
+            background: linear-gradient(270deg, #667eea, #764ba2, #f857a6, #667eea);
+            background-size: 400% 400%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientText 8s ease infinite;
+        }
+
+        @keyframes gradientText {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        /* Glow Effects */
+        .text-glow {
+            text-shadow:
+                0 0 10px rgba(99, 102, 241, 0.5),
+                0 0 20px rgba(99, 102, 241, 0.3),
+                0 0 30px rgba(99, 102, 241, 0.2);
+        }
+
+        .card-glow {
+            box-shadow:
+                0 0 20px rgba(99, 102, 241, 0.3),
+                0 0 40px rgba(139, 92, 246, 0.2),
+                0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Animated Border */
+        .animated-border {
+            position: relative;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(20px);
+        }
+
+        .animated-border::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            background: linear-gradient(45deg, #667eea, #764ba2, #f857a6, #667eea);
+            background-size: 400% 400%;
+            border-radius: inherit;
+            z-index: -1;
+            animation: borderFlow 8s linear infinite;
+            opacity: 0.6;
+        }
+
+        @keyframes borderFlow {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        /* Premium Button */
+        .btn-premium {
+            position: relative;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            padding: 1rem 2.5rem;
+            border-radius: 9999px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-premium::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn-premium:hover::before {
+            left: 100%;
+        }
+
+        .btn-premium:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 8px 30px rgba(99, 102, 241, 0.6);
+        }
+
+        /* Magnetic Button Effect */
+        .btn-magnetic {
+            position: relative;
+            background: linear-gradient(135deg, #f857a6 0%, #ff5858 100%);
+            padding: 1rem 2.5rem;
+            border-radius: 9999px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* 3D Card Tilt */
+        .card-3d {
+            transform-style: preserve-3d;
+            transition: transform 0.3s ease;
+        }
+
+        .card-3d:hover {
+            transform: perspective(1000px) rotateX(5deg) rotateY(5deg);
+        }
+
+        /* Shimmer Effect */
+        .shimmer {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .shimmer::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        /* Neural Network Background */
+        .neural-bg {
+            background-image:
+                radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(248, 87, 166, 0.1) 0%, transparent 50%);
+        }
+
+        /* Typing Animation */
+        .typing-text {
+            border-right: 3px solid #667eea;
+            animation: blink 0.7s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { border-color: transparent; }
+            50% { border-color: #667eea; }
+        }
+
+        /* Pulse Animation */
+        .pulse-glow {
+            animation: pulseGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 40px rgba(99, 102, 241, 0.8);
+            }
+        }
+
+        /* Holographic Effect */
+        .holographic {
+            background: linear-gradient(135deg,
+                rgba(99, 102, 241, 0.2) 0%,
+                rgba(139, 92, 246, 0.2) 25%,
+                rgba(248, 87, 166, 0.2) 50%,
+                rgba(139, 92, 246, 0.2) 75%,
+                rgba(99, 102, 241, 0.2) 100%);
+            background-size: 200% 200%;
+            animation: holographicShift 4s ease infinite;
+        }
+
+        @keyframes holographicShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        /* Stats Counter */
+        .stat-number {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 4rem;
+        }
+
+        /* Premium Navigation */
+        .nav-premium {
+            background: rgba(2, 6, 23, 0.8);
+            backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        /* Floating Animation */
+        .float {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        /* Matrix Effect (subtle) */
+        .matrix-bg {
+            background-image:
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(99, 102, 241, 0.03) 2px, rgba(99, 102, 241, 0.03) 4px),
+                repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(99, 102, 241, 0.03) 2px, rgba(99, 102, 241, 0.03) 4px);
+        }
+
+        /* Section Divider */
+        .section-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.5), transparent);
+            margin: 4rem 0;
+        }
+    </style>
+</head>
+<body class="animated-gradient-bg">
+
+    <!-- Header -->
+    <div class="nav-premium fixed top-0 left-0 right-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <h1 class="text-2xl font-bold gradient-text-animate">Premium Design Examples</h1>
+                <a href="index.html" class="text-sm text-gray-400 hover:text-white transition">← Back to Main Site</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="pt-24 px-6 pb-20">
+        <div class="max-w-7xl mx-auto">
+
+            <!-- Intro -->
+            <div class="text-center mb-20">
+                <h2 class="text-5xl md:text-7xl font-bold mb-6 text-glow">
+                    Premium UI
+                    <span class="gradient-text-animate block">Examples & Previews</span>
+                </h2>
+                <p class="text-xl text-gray-400 max-w-3xl mx-auto">
+                    See live examples of each enhancement. Hover, click, and interact to experience the premium feel.
+                </p>
+            </div>
+
+            <!-- Example 1: Typography & Text Effects -->
+            <section class="mb-32">
+                <h3 class="text-3xl font-bold mb-8 flex items-center gap-3">
+                    <span class="text-5xl">✨</span>
+                    Typography & Text Effects
+                </h3>
+                <div class="grid md:grid-cols-2 gap-8">
+                    <!-- Before -->
+                    <div class="glass-card p-8 rounded-2xl">
+                        <div class="text-sm text-gray-500 mb-4">BEFORE</div>
+                        <h4 class="text-4xl font-bold mb-4">Your Product Launches In 2 Weeks</h4>
+                        <p class="text-gray-400 text-lg">Standard text without special effects</p>
+                    </div>
+                    <!-- After -->
+                    <div class="glass-card-premium p-8 rounded-2xl shimmer">
+                        <div class="text-sm text-purple-400 mb-4">AFTER</div>
+                        <h4 class="text-4xl font-bold mb-4 text-glow">
+                            Your Product Launches
+                            <span class="gradient-text-animate block">In 2 Weeks</span>
+                        </h4>
+                        <p class="text-gray-300 text-lg">Animated gradient + glow effects</p>
+                    </div>
+                </div>
+            </section>
+
+            <div class="section-divider"></div>
+
+            <!-- Example 2: Card Designs -->
+            <section class="mb-32">
+                <h3 class="text-3xl font-bold mb-8 flex items-center gap-3">
+                    <span class="text-5xl">🎴</span>
+                    Card & Component Styles
+                </h3>
+                <div class="grid md:grid-cols-3 gap-8">
+                    <!-- Basic Card -->
+                    <div class="glass-card p-8 rounded-2xl">
+                        <div class="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center mb-4">
+                            <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                        </div>
+                        <h4 class="text-xl font-bold mb-2">Basic Card</h4>
+                        <p class="text-gray-400">Standard glass effect with simple hover</p>
+                    </div>
+
+                    <!-- Premium Card -->
+                    <div class="glass-card-premium p-8 rounded-2xl card-3d">
+                        <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mb-4">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                        </div>
+                        <h4 class="text-xl font-bold mb-2 gradient-text">Premium Card</h4>
+                        <p class="text-gray-300">Enhanced glass + 3D tilt on hover</p>
+                    </div>
+
+                    <!-- Animated Border Card -->
+                    <div class="animated-border p-8 rounded-2xl">
+                        <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center mb-4">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                        </div>
+                        <h4 class="text-xl font-bold mb-2">Animated Border</h4>
+                        <p class="text-gray-300">Flowing gradient border animation</p>
+                    </div>
+                </div>
+            </section>
+
+            <div class="section-divider"></div>
+
+            <!-- Example 3: Button Styles -->
+            <section class="mb-32">
+                <h3 class="text-3xl font-bold mb-8 flex items-center gap-3">
+                    <span class="text-5xl">🎯</span>
+                    Button & CTA Designs
+                </h3>
+                <div class="grid md:grid-cols-2 gap-12">
+                    <!-- Before -->
+                    <div class="glass-card p-8 rounded-2xl">
+                        <div class="text-sm text-gray-500 mb-6">BEFORE</div>
+                        <button class="bg-blue-600 text-white px-8 py-3 rounded-full font-semibold hover:bg-blue-700 transition">
+                            Apply for Partnership
+                        </button>
+                        <p class="text-gray-500 text-sm mt-4">Standard button</p>
+                    </div>
+
+                    <!-- After -->
+                    <div class="glass-card-premium p-8 rounded-2xl">
+                        <div class="text-sm text-purple-400 mb-6">AFTER</div>
+                        <button class="btn-premium">
+                            Apply for Partnership
+                        </button>
+                        <p class="text-gray-400 text-sm mt-4">Shimmer effect + shadow glow</p>
+
+                        <div class="mt-6">
+                            <button class="btn-magnetic">
+                                Get Started Now
+                            </button>
+                            <p class="text-gray-400 text-sm mt-2">Alternative gradient style</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="section-divider"></div>
+
+            <!-- Example 4: Stats & Numbers -->
+            <section class="mb-32">
+                <h3 class="text-3xl font-bold mb-8 flex items-center gap-3">
+                    <span class="text-5xl">📊</span>
+                    Stats & Metrics Display
+                </h3>
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="glass-card-premium p-8 rounded-2xl text-center card-glow pulse-glow">
+                        <p class="stat-number gradient-text-animate">2</p>
+                        <p class="text-gray-300 mt-2 text-lg">Weeks to Launch</p>
+                    </div>
+                    <div class="glass-card-premium p-8 rounded-2xl text-center card-glow pulse-glow">
+                        <p class="stat-number gradient-text-animate">40%</p>
+                        <p class="text-gray-300 mt-2 text-lg">Your Equity Share</p>
+                    </div>
+                    <div class="glass-card-premium p-8 rounded-2xl text-center card-glow pulse-glow">
+                        <p class="stat-number gradient-text-animate">$0</p>
+                        <p class="text-gray-300 mt-2 text-lg">Upfront Cost</p>
+                    </div>
+                </div>
+                <p class="text-center text-gray-400 mt-6">With animated counters, gradients & pulse glow</p>
+            </section>
+
+            <div class="section-divider"></div>
+
+            <!-- Example 5: Hero Section Styles -->
+            <section class="mb-32">
+                <h3 class="text-3xl font-bold mb-8 flex items-center gap-3">
+                    <span class="text-5xl">🚀</span>
+                    Hero Section Enhancements
+                </h3>
+
+                <!-- Mini Hero Example -->
+                <div class="neural-bg matrix-bg glass-card-premium rounded-3xl p-16 text-center relative overflow-hidden">
+                    <div class="relative z-10">
+                        <p class="text-purple-400 font-semibold tracking-wider uppercase mb-4">Your AI Co-Founder Awaits</p>
+                        <h2 class="text-5xl md:text-6xl font-bold mb-6 text-glow">
+                            Your Product Launches
+                            <span class="gradient-text-animate block mt-2">In 2 Weeks</span>
+                        </h2>
+                        <p class="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+                            AI-powered co-founder model — we accelerate your ideas to market.
+                        </p>
+                        <div class="flex gap-4 justify-center">
+                            <button class="btn-premium">Apply for Partnership</button>
+                            <button class="glass-card-premium px-8 py-3 rounded-full font-semibold">Learn More</button>
+                        </div>
+                    </div>
+
+                    <!-- Floating Elements -->
+                    <div class="absolute top-10 left-10 w-20 h-20 bg-purple-500/20 rounded-full blur-3xl float"></div>
+                    <div class="absolute bottom-10 right-10 w-32 h-32 bg-pink-500/20 rounded-full blur-3xl float" style="animation-delay: -3s;"></div>
+                </div>
+                <p class="text-center text-gray-400 mt-6">Neural background + floating elements + enhanced typography</p>
+            </section>
+
+            <div class="section-divider"></div>
+
+            <!-- Example 6: Portfolio Cards -->
+            <section class="mb-32">
+                <h3 class="text-3xl font-bold mb-8 flex items-center gap-3">
+                    <span class="text-5xl">💼</span>
+                    Portfolio Card Styles
+                </h3>
+                <div class="grid md:grid-cols-3 gap-8">
+                    <a href="#" class="glass-card-premium rounded-2xl overflow-hidden group shimmer">
+                        <div class="h-48 bg-gradient-to-br from-purple-500/30 to-pink-500/30 flex items-center justify-center holographic">
+                            <svg class="w-20 h-20 text-white/70 group-hover:text-white transition-all group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                            </svg>
+                        </div>
+                        <div class="p-6">
+                            <h4 class="text-xl font-bold mb-2 gradient-text">Vedic Transform</h4>
+                            <p class="text-gray-400 text-sm mb-4">AI-powered personal growth platform</p>
+                            <div class="flex gap-2 flex-wrap">
+                                <span class="px-2 py-1 bg-purple-500/20 rounded-full text-xs text-purple-300">Next.js</span>
+                                <span class="px-2 py-1 bg-pink-500/20 rounded-full text-xs text-pink-300">AI</span>
+                                <span class="px-2 py-1 bg-blue-500/20 rounded-full text-xs text-blue-300">Live</span>
+                            </div>
+                        </div>
+                    </a>
+
+                    <a href="#" class="glass-card-premium rounded-2xl overflow-hidden group shimmer">
+                        <div class="h-48 bg-gradient-to-br from-orange-500/30 to-yellow-500/30 flex items-center justify-center holographic">
+                            <svg class="w-20 h-20 text-white/70 group-hover:text-white transition-all group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                            </svg>
+                        </div>
+                        <div class="p-6">
+                            <h4 class="text-xl font-bold mb-2 gradient-text">Vedic Astro</h4>
+                            <p class="text-gray-400 text-sm mb-4">AI-enhanced astrological insights</p>
+                            <div class="flex gap-2 flex-wrap">
+                                <span class="px-2 py-1 bg-orange-500/20 rounded-full text-xs text-orange-300">HTML</span>
+                                <span class="px-2 py-1 bg-yellow-500/20 rounded-full text-xs text-yellow-300">AI</span>
+                                <span class="px-2 py-1 bg-blue-500/20 rounded-full text-xs text-blue-300">Live</span>
+                            </div>
+                        </div>
+                    </a>
+
+                    <a href="#" class="glass-card-premium rounded-2xl overflow-hidden group shimmer">
+                        <div class="h-48 bg-gradient-to-br from-green-500/30 to-emerald-500/30 flex items-center justify-center holographic">
+                            <svg class="w-20 h-20 text-white/70 group-hover:text-white transition-all group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                            </svg>
+                        </div>
+                        <div class="p-6">
+                            <h4 class="text-xl font-bold mb-2 gradient-text">Career Builder</h4>
+                            <p class="text-gray-400 text-sm mb-4">AI career coaching platform</p>
+                            <div class="flex gap-2 flex-wrap">
+                                <span class="px-2 py-1 bg-green-500/20 rounded-full text-xs text-green-300">React</span>
+                                <span class="px-2 py-1 bg-emerald-500/20 rounded-full text-xs text-emerald-300">AI</span>
+                                <span class="px-2 py-1 bg-blue-500/20 rounded-full text-xs text-blue-300">Live</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <p class="text-center text-gray-400 mt-6">Holographic background + tech badges + enhanced hover states</p>
+            </section>
+
+            <div class="section-divider"></div>
+
+            <!-- Comparison Summary -->
+            <section class="mb-32">
+                <div class="glass-card-premium p-12 rounded-3xl text-center">
+                    <h3 class="text-4xl font-bold mb-6 gradient-text-animate">
+                        Ready to Transform Your Site?
+                    </h3>
+                    <p class="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
+                        These are just examples of what's possible. We can implement any combination of these effects
+                        to create a truly premium, modern AI-focused experience.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                        <button class="btn-premium">
+                            Yes, Apply All Changes
+                        </button>
+                        <button class="glass-card-premium px-8 py-3 rounded-full font-semibold">
+                            Choose Specific Items
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="nav-premium py-8 text-center">
+        <p class="text-gray-400">Premium Design Demo - AI Product Studio</p>
+    </footer>
+
+</body>
+</html>

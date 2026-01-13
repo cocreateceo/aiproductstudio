@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Powered Product Studio | Terminal</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollToPlugin.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* Theme Variables */
+        [data-theme="dark"] {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-terminal: #0a0e14;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --accent: #58a6ff;
+            --green: #3fb950;
+            --yellow: #d29922;
+            --red: #f85149;
+            --purple: #a371f7;
+            --cyan: #39c5cf;
+            --nav-bg: rgba(13, 17, 23, 0.9);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        [data-theme="midnight"] {
+            --bg-primary: #0f0a1e;
+            --bg-secondary: #1a1332;
+            --bg-terminal: #0a0714;
+            --text-primary: #e0d6f5;
+            --text-secondary: #9d8ec2;
+            --accent: #a855f7;
+            --green: #22c55e;
+            --yellow: #eab308;
+            --red: #ef4444;
+            --purple: #c084fc;
+            --cyan: #67e8f9;
+            --nav-bg: rgba(15, 10, 30, 0.9);
+            --border: rgba(168, 85, 247, 0.2);
+        }
+
+        [data-theme="dusk"] {
+            --bg-primary: #1a0a0a;
+            --bg-secondary: #2d1515;
+            --bg-terminal: #140808;
+            --text-primary: #ffe6e6;
+            --text-secondary: #c29d9d;
+            --accent: #f43f5e;
+            --green: #4ade80;
+            --yellow: #fbbf24;
+            --red: #fb7185;
+            --purple: #e879f9;
+            --cyan: #22d3ee;
+            --nav-bg: rgba(26, 10, 10, 0.9);
+            --border: rgba(244, 63, 94, 0.2);
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f6f8fa;
+            --bg-secondary: #ffffff;
+            --bg-terminal: #24292f;
+            --text-primary: #24292f;
+            --text-secondary: #57606a;
+            --accent: #0969da;
+            --green: #1a7f37;
+            --yellow: #9a6700;
+            --red: #cf222e;
+            --purple: #8250df;
+            --cyan: #0969da;
+            --nav-bg: rgba(246, 248, 250, 0.95);
+            --border: rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            transition: background-color 0.5s ease, color 0.5s ease;
+        }
+
+        /* Matrix Rain Background */
+        #matrix-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.07;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 1rem 2rem;
+            background: var(--nav-bg);
+            backdrop-filter: blur(20px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            transition: all 0.3s ease;
+        }
+
+        .logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--green);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .logo-cursor {
+            display: inline-block;
+            width: 8px;
+            height: 16px;
+            background: var(--green);
+            animation: blink 1s step-end infinite;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .nav-link {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--accent);
+        }
+
+        .nav-link::before {
+            content: '>';
+            color: var(--green);
+            margin-right: 0.25rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .nav-link:hover::before {
+            opacity: 1;
+        }
+
+        /* Theme Switcher */
+        .theme-switcher {
+            position: relative;
+        }
+
+        .theme-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-terminal);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .theme-btn:hover {
+            border-color: var(--accent);
+        }
+
+        .theme-dropdown {
+            position: absolute;
+            top: calc(100% + 0.5rem);
+            right: 0;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.5rem;
+            min-width: 150px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .theme-dropdown.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .theme-option {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 0.75rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-primary);
+        }
+
+        .theme-option:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .theme-option.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .theme-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+        }
+
+        /* Main Container */
+        .main-container {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 6rem 2rem 2rem;
+        }
+
+        /* Terminal Window */
+        .terminal-window {
+            background: var(--bg-terminal);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            margin-bottom: 2rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .terminal-header {
+            background: var(--bg-secondary);
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .terminal-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .dot-red { background: var(--red); }
+        .dot-yellow { background: var(--yellow); }
+        .dot-green { background: var(--green); }
+
+        .terminal-title {
+            flex: 1;
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .terminal-body {
+            padding: 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            line-height: 1.8;
+            min-height: 350px;
+        }
+
+        .terminal-line {
+            margin-bottom: 0.5rem;
+            opacity: 0;
+        }
+
+        .terminal-line.visible { opacity: 1; }
+
+        .prompt { color: var(--green); }
+        .command { color: var(--cyan); }
+        .output { color: var(--text-secondary); padding-left: 1rem; }
+        .highlight { color: var(--accent); }
+        .success { color: var(--green); }
+        .warning { color: var(--yellow); }
+        .error { color: var(--red); }
+        .purple { color: var(--purple); }
+
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 18px;
+            background: var(--green);
+            animation: blink 1s step-end infinite;
+            vertical-align: middle;
+            margin-left: 4px;
+        }
+
+        @keyframes blink { 50% { opacity: 0; } }
+
+        .ascii-art {
+            color: var(--accent);
+            font-size: 0.65rem;
+            line-height: 1.2;
+            white-space: pre;
+            margin: 1rem 0;
+        }
+
+        /* Hero Stats */
+        .hero-stats {
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+
+        .hero-stat {
+            text-align: center;
+            padding: 1.5rem;
+            background: var(--bg-terminal);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            min-width: 140px;
+        }
+
+        .hero-stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .hero-stat-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-top: 0.25rem;
+        }
+
+        /* Section */
+        .section {
+            margin: 4rem 0;
+        }
+
+        .section-header {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+
+        .section-title::before {
+            content: '# ';
+            color: var(--green);
+        }
+
+        .section-desc {
+            color: var(--text-secondary);
+        }
+
+        /* Section Grid */
+        .section-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .section-card {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .section-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(88, 166, 255, 0.1);
+        }
+
+        .card-header {
+            background: var(--bg-terminal);
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .icon-blue { background: rgba(88, 166, 255, 0.2); }
+        .icon-green { background: rgba(63, 185, 80, 0.2); }
+        .icon-purple { background: rgba(163, 113, 247, 0.2); }
+        .icon-yellow { background: rgba(210, 153, 34, 0.2); }
+        .icon-red { background: rgba(248, 81, 73, 0.2); }
+
+        .card-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        /* Code Block */
+        .code-block {
+            background: var(--bg-terminal);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+
+        .code-comment { color: var(--text-secondary); }
+        .code-key { color: var(--purple); }
+        .code-value { color: var(--green); }
+        .code-number { color: var(--yellow); }
+
+        /* Progress Bar */
+        .progress-container { margin: 1rem 0; }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--bg-terminal);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 1s ease;
+        }
+
+        .progress-blue { background: var(--accent); }
+        .progress-green { background: var(--green); }
+        .progress-purple { background: var(--purple); }
+
+        /* Problem List */
+        .problem-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .problem-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .problem-x {
+            color: var(--red);
+            font-weight: bold;
+        }
+
+        /* Timeline */
+        .timeline-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .timeline-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .timeline-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent);
+            flex-shrink: 0;
+        }
+
+        .timeline-text { flex: 1; }
+        .timeline-days { color: var(--text-secondary); font-size: 0.8rem; }
+
+        /* CTA Section */
+        .cta-section {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin: 3rem 0;
+        }
+
+        .cta-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .cta-desc {
+            color: var(--text-secondary);
+            max-width: 500px;
+            margin: 0 auto 2rem;
+        }
+
+        .cta-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(88, 166, 255, 0.3);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .section-grid { grid-template-columns: 1fr; }
+            .hero-stats { gap: 1rem; }
+            .hero-stat { min-width: 100px; padding: 1rem; }
+            .ascii-art { font-size: 0.4rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Matrix Rain Canvas -->
+    <canvas id="matrix-canvas"></canvas>
+
+    <!-- Navigation -->
+    <nav>
+        <div class="logo">
+            ~/ai-studio<span class="logo-cursor"></span>
+        </div>
+        <div class="nav-links">
+            <a href="#" class="nav-link" data-section="problem">problem</a>
+            <a href="#" class="nav-link" data-section="solution">solution</a>
+            <a href="#" class="nav-link" data-section="partnership">partnership</a>
+            <a href="#" class="nav-link" data-section="portfolio">portfolio</a>
+            <div class="theme-switcher">
+                <button class="theme-btn">
+                    <span class="theme-icon">$</span>
+                    <span class="theme-name">dark</span>
+                </button>
+                <div class="theme-dropdown">
+                    <div class="theme-option active" data-theme="dark">
+                        <div class="theme-swatch" style="background: #0d1117;"></div>
+                        <span>dark</span>
+                    </div>
+                    <div class="theme-option" data-theme="midnight">
+                        <div class="theme-swatch" style="background: #0f0a1e;"></div>
+                        <span>midnight</span>
+                    </div>
+                    <div class="theme-option" data-theme="dusk">
+                        <div class="theme-swatch" style="background: #1a0a0a;"></div>
+                        <span>dusk</span>
+                    </div>
+                    <div class="theme-option" data-theme="light">
+                        <div class="theme-swatch" style="background: #f6f8fa;"></div>
+                        <span>light</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <!-- Main Terminal -->
+        <div class="terminal-window">
+            <div class="terminal-header">
+                <div class="terminal-dot dot-red"></div>
+                <div class="terminal-dot dot-yellow"></div>
+                <div class="terminal-dot dot-green"></div>
+                <div class="terminal-title">ai-product-studio — bash — 80×24</div>
+            </div>
+            <div class="terminal-body" id="mainTerminal">
+                <div class="ascii-art">
+    _    ___   ____  _             _ _
+   / \  |_ _| / ___|| |_ _   _  __| (_) ___
+  / _ \  | |  \___ \| __| | | |/ _` | |/ _ \
+ / ___ \ | |   ___) | |_| |_| | (_| | | (_) |
+/_/   \_\___| |____/ \__|\__,_|\__,_|_|\___/
+                </div>
+                <div class="terminal-line" data-delay="500">
+                    <span class="prompt">➜</span> <span class="command">./init-studio.sh</span>
+                </div>
+                <div class="terminal-line" data-delay="1000">
+                    <span class="output">[<span class="success">✓</span>] Loading AI Product Studio v2.0...</span>
+                </div>
+                <div class="terminal-line" data-delay="1500">
+                    <span class="output">[<span class="success">✓</span>] Initializing partnership model: <span class="highlight">40/40/20</span></span>
+                </div>
+                <div class="terminal-line" data-delay="2000">
+                    <span class="output">[<span class="success">✓</span>] Launch timeline set: <span class="highlight">14 days</span></span>
+                </div>
+                <div class="terminal-line" data-delay="2500">
+                    <span class="output">[<span class="success">✓</span>] Upfront cost: <span class="highlight">$0</span></span>
+                </div>
+                <div class="terminal-line" data-delay="3000">
+                    <span class="output">[<span class="success">✓</span>] Products loaded: <span class="purple">3 active</span></span>
+                </div>
+                <div class="terminal-line" data-delay="3500">
+                    <span class="output"></span>
+                </div>
+                <div class="terminal-line" data-delay="4000">
+                    <span class="prompt">➜</span> <span class="command">studio --status</span>
+                </div>
+                <div class="terminal-line" data-delay="4500">
+                    <span class="output">Studio is <span class="success">READY</span>. Awaiting your vision.</span>
+                </div>
+                <div class="terminal-line" data-delay="5000">
+                    <span class="prompt">➜</span> <span class="cursor"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hero Stats -->
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <div class="hero-stat-value">2 Weeks</div>
+                <div class="hero-stat-label">To Launch</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-value">40%</div>
+                <div class="hero-stat-label">Your Equity</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-value">$0</div>
+                <div class="hero-stat-label">Upfront Cost</div>
+            </div>
+        </div>
+
+        <!-- Problem Section -->
+        <section class="section" id="problem">
+            <div class="section-header">
+                <h2 class="section-title">The Problem</h2>
+                <p class="section-desc">Most product ideas never see the light of day. Here's why.</p>
+            </div>
+            <div class="section-grid">
+                <div class="section-card">
+                    <div class="card-header">
+                        <div class="card-icon icon-red">💀</div>
+                        <div class="card-title">error.log</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="code-block">
+                            <span class="code-comment">// Why ideas fail</span><br>
+                            <span class="error">ERROR:</span> <span class="code-value">"Too expensive"</span><br>
+                            <span class="error">ERROR:</span> <span class="code-value">"Takes months/years"</span><br>
+                            <span class="error">ERROR:</span> <span class="code-value">"High technical barrier"</span><br>
+                            <span class="error">ERROR:</span> <span class="code-value">"No market validation"</span>
+                        </div>
+                        <div class="problem-list">
+                            <div class="problem-item"><span class="problem-x">[✗]</span> 90% of startups fail</div>
+                            <div class="problem-item"><span class="problem-x">[✗]</span> $50K+ typical MVP cost</div>
+                            <div class="problem-item"><span class="problem-x">[✗]</span> 3-6 months to build</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="section-card">
+                    <div class="card-header">
+                        <div class="card-icon icon-yellow">⚠️</div>
+                        <div class="card-title">warnings.txt</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="code-block">
+                            <span class="code-comment"># Traditional Development</span><br><br>
+                            <span class="warning">WARN:</span> Slow iteration cycles<br>
+                            <span class="warning">WARN:</span> Misaligned incentives<br>
+                            <span class="warning">WARN:</span> No ongoing support<br>
+                            <span class="warning">WARN:</span> Technical debt piles up
+                        </div>
+                        <p style="color: var(--text-secondary); margin-top: 1rem; font-size: 0.9rem;">
+                            By the time you launch, the market has moved on.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Solution Section -->
+        <section class="section" id="solution">
+            <div class="section-header">
+                <h2 class="section-title">The Solution</h2>
+                <p class="section-desc">Our AI-powered process changes everything.</p>
+            </div>
+            <div class="section-grid">
+                <div class="section-card">
+                    <div class="card-header">
+                        <div class="card-icon icon-green">🚀</div>
+                        <div class="card-title">launch.sh</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="code-block">
+                            <span class="code-comment">#!/bin/bash</span><br>
+                            <span class="code-comment"># 2-Week Launch Promise</span><br><br>
+                            <span class="code-key">TIMELINE</span>=<span class="code-number">14</span> <span class="code-comment"># days</span><br>
+                            <span class="code-key">UPFRONT</span>=<span class="code-number">0</span> <span class="code-comment"># $$$</span><br>
+                            <span class="code-key">AI_NATIVE</span>=<span class="code-value">true</span><br><br>
+                            <span class="success">echo "Ready to ship! 🚀"</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="section-card">
+                    <div class="card-header">
+                        <div class="card-icon icon-purple">⏱️</div>
+                        <div class="card-title">timeline.json</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="timeline-list">
+                            <div class="timeline-item">
+                                <div class="timeline-dot"></div>
+                                <span class="timeline-text">Discovery & Strategy</span>
+                                <span class="timeline-days">Day 1-3</span>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="timeline-dot"></div>
+                                <span class="timeline-text">Design & Prototype</span>
+                                <span class="timeline-days">Day 4-7</span>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="timeline-dot"></div>
+                                <span class="timeline-text">AI Development</span>
+                                <span class="timeline-days">Day 8-12</span>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="timeline-dot"></div>
+                                <span class="timeline-text">Launch & Deploy</span>
+                                <span class="timeline-days">Day 13-14</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Partnership Section -->
+        <section class="section" id="partnership">
+            <div class="section-header">
+                <h2 class="section-title">The Partnership</h2>
+                <p class="section-desc">A revolutionary model that aligns everyone's incentives.</p>
+            </div>
+            <div class="section-grid">
+                <div class="section-card">
+                    <div class="card-header">
+                        <div class="card-icon icon-blue">🤝</div>
+                        <div class="card-title">partnership.config</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="code-block">
+                            <span class="code-comment">// The 40/40/20 Model</span><br>
+                            {<br>
+                            &nbsp;&nbsp;<span class="code-key">"founder"</span>: <span class="code-number">40</span>,<br>
+                            &nbsp;&nbsp;<span class="code-key">"studio"</span>: <span class="code-number">40</span>,<br>
+                            &nbsp;&nbsp;<span class="code-key">"early_users"</span>: <span class="code-number">20</span><br>
+                            }
+                        </div>
+                        <div class="progress-container">
+                            <div class="progress-label">
+                                <span>You (Founder)</span>
+                                <span class="highlight">40%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill progress-blue" style="width: 40%"></div>
+                            </div>
+                        </div>
+                        <div class="progress-container">
+                            <div class="progress-label">
+                                <span>Us (Studio)</span>
+                                <span class="success">40%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill progress-green" style="width: 40%"></div>
+                            </div>
+                        </div>
+                        <div class="progress-container">
+                            <div class="progress-label">
+                                <span>Early Users</span>
+                                <span class="purple">20%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill progress-purple" style="width: 20%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="section-card">
+                    <div class="card-header">
+                        <div class="card-icon icon-green">✨</div>
+                        <div class="card-title">winwin.md</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="code-block">
+                            <span class="code-comment"># Why Win-Win?</span><br><br>
+                            <span class="code-key">YOU_GET</span>:<br>
+                            &nbsp;&nbsp;- 40% equity<br>
+                            &nbsp;&nbsp;- Live product in 2 weeks<br>
+                            &nbsp;&nbsp;- Ongoing support<br><br>
+                            <span class="code-key">WE_GET</span>:<br>
+                            &nbsp;&nbsp;- 40% equity<br>
+                            &nbsp;&nbsp;- Aligned incentives<br>
+                            &nbsp;&nbsp;- Portfolio growth<br><br>
+                            <span class="code-key">USERS_GET</span>:<br>
+                            &nbsp;&nbsp;- 20% pool<br>
+                            &nbsp;&nbsp;- Ownership stake<br><br>
+                            <span class="success">RISK: $0 upfront</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Portfolio Section -->
+        <section class="section" id="portfolio">
+            <div class="section-header">
+                <h2 class="section-title">Products in Flight</h2>
+                <p class="section-desc">Current partnerships in active development.</p>
+            </div>
+            <div class="section-grid">
+                <div class="section-card">
+                    <div class="card-header">
+                        <div class="card-icon icon-blue">🧠</div>
+                        <div class="card-title">transformation.ai</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="code-block">
+                            <span class="code-comment">// Personal Transformation AI</span><br>
+                            <span class="code-key">type</span>: <span class="code-value">"AI Life Coach"</span><br>
+                            <span class="code-key">status</span>: <span class="success">"in_development"</span><br>
+                            <span class="code-key">features</span>: [<span class="code-value">"adaptive learning"</span>]
+                        </div>
+                    </div>
+                </div>
+                <div class="section-card">
+                    <div class="card-header">
+                        <div class="card-icon icon-purple">⭐</div>
+                        <div class="card-title">vedic.platform</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="code-block">
+                            <span class="code-comment">// Vedic Astrology Platform</span><br>
+                            <span class="code-key">type</span>: <span class="code-value">"AI Astrology"</span><br>
+                            <span class="code-key">status</span>: <span class="success">"in_development"</span><br>
+                            <span class="code-key">features</span>: [<span class="code-value">"personalized insights"</span>]
+                        </div>
+                    </div>
+                </div>
+                <div class="section-card">
+                    <div class="card-header">
+                        <div class="card-icon icon-green">💼</div>
+                        <div class="card-title">career.builder</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="code-block">
+                            <span class="code-comment">// AI Career Builder</span><br>
+                            <span class="code-key">type</span>: <span class="code-value">"Career AI"</span><br>
+                            <span class="code-key">status</span>: <span class="success">"in_development"</span><br>
+                            <span class="code-key">features</span>: [<span class="code-value">"resume optimization"</span>]
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <div class="cta-section">
+            <h2 class="cta-title">$ ./apply-for-partnership.sh</h2>
+            <p class="cta-desc">Ready to build your AI product? Let's turn your vision into reality in just 2 weeks.</p>
+            <a href="mailto:contact@sunwaretech.com" class="cta-button">
+                <span>></span> Apply for Partnership
+            </a>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>© 2024 AI-Powered Product Studio</p>
+            <p style="margin-top: 0.5rem;">
+                <a href="mailto:contact@sunwaretech.com">contact@sunwaretech.com</a>
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
+
+        // Theme Management
+        const themes = {
+            dark: { icon: '$', name: 'dark' },
+            midnight: { icon: '~', name: 'midnight' },
+            dusk: { icon: '#', name: 'dusk' },
+            light: { icon: '%', name: 'light' }
+        };
+
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            document.querySelector('.theme-icon').textContent = themes[theme].icon;
+            document.querySelector('.theme-name').textContent = themes[theme].name;
+            document.querySelectorAll('.theme-option').forEach(opt => {
+                opt.classList.toggle('active', opt.dataset.theme === theme);
+            });
+        }
+
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        setTheme(savedTheme);
+
+        const themeBtn = document.querySelector('.theme-btn');
+        const themeDropdown = document.querySelector('.theme-dropdown');
+
+        themeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            themeDropdown.classList.toggle('active');
+        });
+
+        document.addEventListener('click', () => {
+            themeDropdown.classList.remove('active');
+        });
+
+        document.querySelectorAll('.theme-option').forEach(option => {
+            option.addEventListener('click', (e) => {
+                e.stopPropagation();
+                setTheme(option.dataset.theme);
+                themeDropdown.classList.remove('active');
+            });
+        });
+
+        // Navigation scroll
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const section = link.dataset.section;
+                gsap.to(window, { duration: 1, scrollTo: `#${section}`, ease: 'power2.inOut' });
+            });
+        });
+
+        // Matrix Rain Effect
+        const canvas = document.getElementById('matrix-canvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const chars = 'アイウエオカキクケコサシスセソ0123456789ABCDEF<>/{}[]';
+        const charArray = chars.split('');
+        const fontSize = 14;
+        const columns = canvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(13, 17, 23, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--green');
+            ctx.font = fontSize + 'px JetBrains Mono';
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = charArray[Math.floor(Math.random() * charArray.length)];
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        setInterval(drawMatrix, 50);
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // Terminal typing animation
+        const terminalLines = document.querySelectorAll('.terminal-line');
+        terminalLines.forEach(line => {
+            const delay = parseInt(line.dataset.delay) || 0;
+            setTimeout(() => {
+                line.classList.add('visible');
+            }, delay);
+        });
+
+        // GSAP Animations
+        gsap.from('.hero-stat', {
+            opacity: 0,
+            y: 30,
+            duration: 0.8,
+            stagger: 0.15,
+            delay: 5.5
+        });
+
+        gsap.utils.toArray('.section-card').forEach(card => {
+            gsap.from(card, {
+                opacity: 0,
+                y: 40,
+                duration: 0.8,
+                scrollTrigger: {
+                    trigger: card,
+                    start: "top 85%",
+                    toggleActions: "play none none reverse"
+                }
+            });
+        });
+
+        gsap.from('.progress-fill', {
+            width: 0,
+            duration: 1.5,
+            stagger: 0.2,
+            ease: "power2.out",
+            scrollTrigger: {
+                trigger: '.progress-container',
+                start: "top 80%"
+            }
+        });
+
+        gsap.from('.cta-section', {
+            opacity: 0,
+            y: 50,
+            duration: 1,
+            scrollTrigger: {
+                trigger: '.cta-section',
+                start: "top 80%"
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "ai-product-studio-chat",
+  "version": "1.0.0",
+  "description": "Chat backend for AI Product Studio landing page",
+  "type": "module",
+  "main": "index.mjs",
+  "scripts": {
+    "build": "npm install && zip -r function.zip . -x '*.git*' -x 'deploy.sh' -x '*.md'",
+    "deploy": "bash deploy.sh"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.52.0",
+    "@aws-sdk/client-s3": "^3.962.0",
+    "@aws-sdk/client-ses": "^3.962.0",
+    "openai": "^6.15.0"
+  }
+}

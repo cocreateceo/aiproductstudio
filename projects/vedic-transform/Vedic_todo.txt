@@ -1,0 +1,43 @@
+Shri Hari Hari
+1. install WSL 
+2. install vs code..
+3. install claude cli
+4. launch vscode and add WSL extension
+
+4. launch ccli under wsl and open terminal and login to wsl user.(linux)
+
+
+5. push changes to github and publish **   completed..
+
+6. Intro audio / video.. 
+
+--> google analytics, site visitors..
+
+1st Jan: 
+1,2,34
+1. short intro audio /video (you tube embed) (before login) link, make it configurable --> https://www.youtube.com/@vedic-s  
+2. user will register --> learn/measure/track.. --> send email with complimentry pdf ..(this pdf will be underr instruction folder, make it configurable. )
+how to send email with attachment ..
+
+2a. manifestation group end of year / end of month 
+(list of todo for them to complete)
+ 
+(free manifestation registration) link at home page.. (this comes as step 10, but users wants to early connect)
+(send meet invite) 
+
+
+3. after login --> shows module.. start module 1. --> video link 
+4. 5am module video show (this walk them thru 1st class) -- auto play.
+5. app should come along... + sync with desktop 
+
+
+project notes:
+todo: Gopi : animation and agent driven site and admin site and email ..
+
+1. wordings changes.. --> Mukund
+2. UI site style and interaction design --> choose one..
+3. once site loaded, avatar speaks , interacts.. --> 
+greetings .. 
+4. after login intro video.. 
+5. when user interacts, then avatar comes back..
+
