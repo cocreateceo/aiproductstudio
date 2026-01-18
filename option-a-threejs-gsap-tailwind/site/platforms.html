@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <title>Platforms | AI Product Studio</title>
+    <meta name="description" content="Our technology platforms and frameworks that power rapid AI product development.">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { theme: { extend: { colors: { primary: 'var(--primary)', secondary: 'var(--secondary)', accent: 'var(--accent)' } } } }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="js/config.js"></script>
+    <link rel="stylesheet" href="css/chat-widget.css">
+
+    <style>
+        :root { --transition-speed: 0.4s; }
+        [data-theme="dark"] { --bg-primary: #020617; --bg-secondary: #0f172a; --bg-card: rgba(15, 23, 42, 0.7); --text-primary: #f1f5f9; --text-secondary: #94a3b8; --text-muted: #64748b; --border-color: rgba(99, 102, 241, 0.2); --primary: #6366f1; --secondary: #8b5cf6; --accent: #06b6d4; --nav-bg: rgba(2, 6, 23, 0.8); --glow-color: rgba(99, 102, 241, 0.3); }
+        [data-theme="light"] { --bg-primary: #f8fafc; --bg-secondary: #e2e8f0; --bg-card: rgba(255, 255, 255, 0.9); --text-primary: #0f172a; --text-secondary: #475569; --text-muted: #64748b; --border-color: rgba(99, 102, 241, 0.15); --primary: #4f46e5; --secondary: #7c3aed; --accent: #0891b2; --nav-bg: rgba(248, 250, 252, 0.95); --glow-color: rgba(79, 70, 229, 0.2); }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg-primary); color: var(--text-primary); overflow-x: hidden; }
+        .glass-card { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-color); }
+        .gradient-text { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .hero-bg { background: linear-gradient(135deg, rgba(2,6,23,0.85) 0%, rgba(15,23,42,0.9) 100%), url('https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1920&q=80') center/cover no-repeat; }
+        [data-theme="light"] .hero-bg { background: linear-gradient(135deg, rgba(248,250,252,0.92) 0%, rgba(226,232,240,0.94) 100%), url('https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1920&q=80') center/cover no-repeat; }
+        .section-reveal { opacity: 0; transform: translateY(40px); }
+        .cta-button { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); box-shadow: 0 4px 20px var(--glow-color); transition: all 0.3s ease; }
+        .cta-button:hover { transform: translateY(-2px); box-shadow: 0 8px 30px var(--glow-color); }
+        .nav-link-new { display: inline-flex; align-items: center; padding: 0.5rem 1rem; font-size: 0.8125rem; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; transition: color 0.2s ease; white-space: nowrap; background: none; border: none; cursor: pointer; }
+        .nav-link-new:hover { color: var(--text-primary); }
+        .nav-cta-btn { display: inline-flex; align-items: center; padding: 0.5rem 1.25rem; font-size: 0.8125rem; font-weight: 600; color: white; text-transform: uppercase; letter-spacing: 0.05em; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); border-radius: 2px; transition: all 0.2s ease; }
+        .nav-dropdown-new { position: absolute; top: 100%; left: 0; min-width: 200px; background: rgba(15, 15, 20, 0.98); border: 1px solid rgba(255, 255, 255, 0.08); padding: 0.75rem 0; opacity: 0; visibility: hidden; transform: translateY(8px); transition: all 0.2s ease; z-index: 9999; }
+        .nav-item:hover .nav-dropdown-new { opacity: 1; visibility: visible; transform: translateY(0); }
+        .nav-dropdown-new a { display: block; padding: 0.625rem 1.25rem; font-size: 0.875rem; color: rgba(255, 255, 255, 0.7); transition: all 0.15s ease; }
+        .nav-dropdown-new a:hover { color: white; background: rgba(255, 255, 255, 0.05); }
+        .platform-card { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-color); border-radius: 1.5rem; padding: 2.5rem; transition: all 0.3s ease; }
+        .platform-card:hover { transform: translateY(-8px); box-shadow: 0 20px 50px var(--glow-color); }
+        .tech-badge { display: inline-flex; align-items: center; padding: 0.375rem 0.75rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 9999px; font-size: 0.75rem; font-weight: 500; }
+    </style>
+</head>
+<body>
+    <nav class="fixed top-0 left-0 right-0 glass-card border-b border-theme" style="z-index: 10000;">
+        <div class="max-w-7xl mx-auto flex items-center justify-between h-16 px-6 lg:px-10">
+            <a href="index.html" class="flex items-center gap-3 shrink-0">
+                <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                </div>
+                <span class="text-lg font-bold tracking-tight hidden sm:block">AI Product Studio</span>
+            </a>
+            <div class="hidden lg:flex items-center gap-1">
+                <div class="nav-item relative">
+                    <button class="nav-link-new">Who We Are <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button>
+                    <div class="nav-dropdown-new"><a href="who-we-are.html">Who We Are</a><a href="partners.html">Partners</a><a href="leadership.html">Leadership</a><a href="culture.html">Culture</a><a href="careers.html">Careers</a></div>
+                </div>
+                <div class="nav-item relative">
+                    <button class="nav-link-new">What We Do <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button>
+                    <div class="nav-dropdown-new"><a href="what-we-do.html">Overview</a><a href="ai.html">AI Solutions</a><a href="product.html">Product Development</a><a href="platforms.html">Platforms</a></div>
+                </div>
+                <div class="nav-item relative">
+                    <button class="nav-link-new">Industries <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button>
+                    <div class="nav-dropdown-new"><a href="industries/healthcare.html">Healthcare</a><a href="industries/financial-services.html">Financial Services</a><a href="industries/retail.html">Retail</a><a href="industries/manufacturing.html">Manufacturing</a></div>
+                </div>
+                <div class="nav-item relative">
+                    <button class="nav-link-new">Insights <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button>
+                    <div class="nav-dropdown-new"><a href="insights.html">All Insights</a><a href="blogs.html">Blog</a><a href="success-stories.html">Success Stories</a></div>
+                </div>
+                <a href="careers.html" class="nav-link-new">Careers</a>
+                <a href="contact.html" class="nav-cta-btn">Contact</a>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero-bg min-h-[70vh] flex items-center justify-center px-6 pt-20">
+        <div class="max-w-5xl mx-auto text-center section-reveal">
+            <p class="text-accent font-semibold tracking-wider uppercase mb-4">Our Platforms</p>
+            <h1 class="text-4xl md:text-6xl font-bold mb-6 leading-tight">
+                Technology That <span class="gradient-text">Accelerates</span>
+            </h1>
+            <p class="text-xl text-theme-secondary max-w-3xl mx-auto leading-relaxed">
+                Proprietary platforms and frameworks that enable us to build AI products faster than anyone else.
+            </p>
+        </div>
+    </section>
+
+    <section class="py-24 px-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="grid lg:grid-cols-2 gap-8">
+                <div class="platform-card section-reveal">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center mb-6">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-3">AI Studio Platform</h3>
+                    <p class="text-theme-secondary mb-6">Our flagship development platform that integrates AI code generation, design systems, and deployment automation into one seamless workflow.</p>
+                    <div class="flex flex-wrap gap-2 mb-6">
+                        <span class="tech-badge">React</span>
+                        <span class="tech-badge">Next.js</span>
+                        <span class="tech-badge">TypeScript</span>
+                        <span class="tech-badge">GPT-4</span>
+                        <span class="tech-badge">Claude</span>
+                    </div>
+                    <ul class="space-y-2 text-theme-secondary">
+                        <li class="flex items-center gap-2"><svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> AI-powered code generation</li>
+                        <li class="flex items-center gap-2"><svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Real-time collaboration</li>
+                        <li class="flex items-center gap-2"><svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> One-click deployments</li>
+                    </ul>
+                </div>
+
+                <div class="platform-card section-reveal">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-secondary to-accent flex items-center justify-center mb-6">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-3">Data Intelligence Engine</h3>
+                    <p class="text-theme-secondary mb-6">A powerful data processing and analytics platform that transforms raw data into actionable insights using advanced ML models.</p>
+                    <div class="flex flex-wrap gap-2 mb-6">
+                        <span class="tech-badge">Python</span>
+                        <span class="tech-badge">TensorFlow</span>
+                        <span class="tech-badge">Spark</span>
+                        <span class="tech-badge">Snowflake</span>
+                    </div>
+                    <ul class="space-y-2 text-theme-secondary">
+                        <li class="flex items-center gap-2"><svg class="w-4 h-4 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Real-time data pipelines</li>
+                        <li class="flex items-center gap-2"><svg class="w-4 h-4 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Custom ML model training</li>
+                        <li class="flex items-center gap-2"><svg class="w-4 h-4 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Automated reporting</li>
+                    </ul>
+                </div>
+
+                <div class="platform-card section-reveal">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent to-primary flex items-center justify-center mb-6">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-3">Conversational AI Framework</h3>
+                    <p class="text-theme-secondary mb-6">Build intelligent chatbots and virtual assistants that understand context and deliver human-like conversations.</p>
+                    <div class="flex flex-wrap gap-2 mb-6">
+                        <span class="tech-badge">LangChain</span>
+                        <span class="tech-badge">Vector DB</span>
+                        <span class="tech-badge">RAG</span>
+                        <span class="tech-badge">Fine-tuning</span>
+                    </div>
+                    <ul class="space-y-2 text-theme-secondary">
+                        <li class="flex items-center gap-2"><svg class="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Multi-turn conversations</li>
+                        <li class="flex items-center gap-2"><svg class="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Knowledge base integration</li>
+                        <li class="flex items-center gap-2"><svg class="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Sentiment analysis</li>
+                    </ul>
+                </div>
+
+                <div class="platform-card section-reveal">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center mb-6">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-3">Design System Kit</h3>
+                    <p class="text-theme-secondary mb-6">A comprehensive design system with pre-built components, patterns, and templates that ensure consistency and speed.</p>
+                    <div class="flex flex-wrap gap-2 mb-6">
+                        <span class="tech-badge">Figma</span>
+                        <span class="tech-badge">Tailwind</span>
+                        <span class="tech-badge">Storybook</span>
+                        <span class="tech-badge">Framer</span>
+                    </div>
+                    <ul class="space-y-2 text-theme-secondary">
+                        <li class="flex items-center gap-2"><svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> 200+ UI components</li>
+                        <li class="flex items-center gap-2"><svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Dark/light themes</li>
+                        <li class="flex items-center gap-2"><svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Responsive by default</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-24 px-6" style="background: var(--bg-secondary);">
+        <div class="max-w-4xl mx-auto text-center section-reveal">
+            <h2 class="text-3xl md:text-4xl font-bold mb-6">Ready to Leverage Our Platforms?</h2>
+            <p class="text-xl text-theme-secondary mb-8">Let's discuss how our technology can accelerate your product development.</p>
+            <a href="contact.html" class="cta-button inline-block px-8 py-4 rounded-full text-lg font-semibold text-white">Get Started</a>
+        </div>
+    </section>
+
+    <footer class="py-12 px-6 border-t border-theme">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                </div>
+                <span class="font-semibold">AI Product Studio</span>
+            </div>
+            <p class="text-theme-secondary text-sm">&copy; 2024 AI Product Studio. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/chat-widget.js"></script>
+    <script>
+        const chatWidget = new ChatWidget({ title: 'AI Product Studio', subtitle: 'Online', welcomeMessage: 'Interested in our platforms? I can help!', pageType: 'platforms' });
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.utils.toArray('.section-reveal').forEach((elem) => {
+            const isHero = elem.closest('section')?.classList.contains('hero-bg');
+            if (isHero) { gsap.to(elem, { opacity: 1, y: 0, duration: 1, ease: 'power3.out', delay: 0.3 }); }
+            else { gsap.to(elem, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', scrollTrigger: { trigger: elem, start: 'top 85%' } }); }
+        });
+        document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'dark');
+    </script>
+</body>
+</html>

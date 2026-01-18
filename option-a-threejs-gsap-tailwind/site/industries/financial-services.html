@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <title>Financial Services | AI Product Studio</title>
+    <meta name="description" content="AI-powered solutions for banking, fintech, and financial services.">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { theme: { extend: { colors: { primary: 'var(--primary)', secondary: 'var(--secondary)', accent: 'var(--accent)' } } } }</script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="../js/config.js"></script>
+    <link rel="stylesheet" href="../css/chat-widget.css">
+
+    <style>
+        :root { --transition-speed: 0.4s; }
+        [data-theme="dark"] { --bg-primary: #020617; --bg-secondary: #0f172a; --bg-card: rgba(15, 23, 42, 0.7); --text-primary: #f1f5f9; --text-secondary: #94a3b8; --text-muted: #64748b; --border-color: rgba(99, 102, 241, 0.2); --primary: #6366f1; --secondary: #8b5cf6; --accent: #06b6d4; --glow-color: rgba(99, 102, 241, 0.3); }
+        [data-theme="light"] { --bg-primary: #f8fafc; --bg-secondary: #e2e8f0; --bg-card: rgba(255, 255, 255, 0.9); --text-primary: #0f172a; --text-secondary: #475569; --text-muted: #64748b; --border-color: rgba(99, 102, 241, 0.15); --primary: #4f46e5; --secondary: #7c3aed; --accent: #0891b2; --glow-color: rgba(79, 70, 229, 0.2); }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg-primary); color: var(--text-primary); overflow-x: hidden; }
+        .glass-card { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-color); }
+        .gradient-text { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .hero-bg { background: linear-gradient(135deg, rgba(2,6,23,0.8) 0%, rgba(15,23,42,0.85) 100%), url('https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=1920&q=80') center/cover no-repeat; }
+        [data-theme="light"] .hero-bg { background: linear-gradient(135deg, rgba(248,250,252,0.88) 0%, rgba(226,232,240,0.9) 100%), url('https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=1920&q=80') center/cover no-repeat; }
+        .section-reveal { opacity: 0; transform: translateY(40px); }
+        .cta-button { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); box-shadow: 0 4px 20px var(--glow-color); transition: all 0.3s ease; }
+        .cta-button:hover { transform: translateY(-2px); box-shadow: 0 8px 30px var(--glow-color); }
+        .nav-link-new { display: inline-flex; align-items: center; padding: 0.5rem 1rem; font-size: 0.8125rem; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; transition: color 0.2s ease; white-space: nowrap; background: none; border: none; cursor: pointer; }
+        .nav-link-new:hover { color: var(--text-primary); }
+        .nav-cta-btn { display: inline-flex; align-items: center; padding: 0.5rem 1.25rem; font-size: 0.8125rem; font-weight: 600; color: white; text-transform: uppercase; letter-spacing: 0.05em; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); border-radius: 2px; }
+        .nav-dropdown-new { position: absolute; top: 100%; left: 0; min-width: 200px; background: rgba(15, 15, 20, 0.98); border: 1px solid rgba(255, 255, 255, 0.08); padding: 0.75rem 0; opacity: 0; visibility: hidden; transform: translateY(8px); transition: all 0.2s ease; z-index: 9999; }
+        .nav-item:hover .nav-dropdown-new { opacity: 1; visibility: visible; transform: translateY(0); }
+        .nav-dropdown-new a { display: block; padding: 0.625rem 1.25rem; font-size: 0.875rem; color: rgba(255, 255, 255, 0.7); transition: all 0.15s ease; }
+        .nav-dropdown-new a:hover { color: white; background: rgba(255, 255, 255, 0.05); }
+        .solution-card { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-color); border-radius: 1rem; padding: 2rem; transition: all 0.3s ease; }
+        .solution-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px var(--glow-color); border-color: var(--primary); }
+        .stat-card { background: linear-gradient(135deg, var(--primary), var(--secondary)); border-radius: 1rem; padding: 2rem; text-align: center; color: white; }
+    </style>
+</head>
+<body>
+    <nav class="fixed top-0 left-0 right-0 glass-card border-b border-theme" style="z-index: 10000;">
+        <div class="max-w-7xl mx-auto flex items-center justify-between h-16 px-6 lg:px-10">
+            <a href="../index.html" class="flex items-center gap-3 shrink-0">
+                <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                </div>
+                <span class="text-lg font-bold tracking-tight hidden sm:block">AI Product Studio</span>
+            </a>
+            <div class="hidden lg:flex items-center gap-1">
+                <div class="nav-item relative"><button class="nav-link-new">Who We Are <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button><div class="nav-dropdown-new"><a href="../who-we-are.html">Who We Are</a><a href="../careers.html">Careers</a></div></div>
+                <div class="nav-item relative"><button class="nav-link-new">What We Do <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button><div class="nav-dropdown-new"><a href="../what-we-do.html">Overview</a><a href="../ai.html">AI Solutions</a></div></div>
+                <div class="nav-item relative"><button class="nav-link-new">Industries <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button><div class="nav-dropdown-new"><a href="healthcare.html">Healthcare</a><a href="financial-services.html">Financial Services</a><a href="retail.html">Retail</a><a href="manufacturing.html">Manufacturing</a></div></div>
+                <a href="../insights.html" class="nav-link-new">Insights</a>
+                <a href="../careers.html" class="nav-link-new">Careers</a>
+                <a href="../apply.html" class="nav-cta-btn">Contact</a>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero-bg min-h-[70vh] flex items-center justify-center px-6 pt-20">
+        <div class="max-w-5xl mx-auto text-center section-reveal">
+            <p class="text-accent font-semibold tracking-wider uppercase mb-4">Financial Services</p>
+            <h1 class="text-4xl md:text-6xl font-bold mb-6 leading-tight">AI for <span class="gradient-text">Smarter Finance</span></h1>
+            <p class="text-xl text-theme-secondary max-w-3xl mx-auto leading-relaxed">Transforming banking, fintech, and financial services with intelligent automation, fraud detection, and personalized experiences.</p>
+        </div>
+    </section>
+
+    <section class="py-16 px-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="grid md:grid-cols-4 gap-6">
+                <div class="stat-card section-reveal"><p class="text-4xl font-bold mb-2">60%</p><p class="text-white/80 text-sm">Fraud Reduction</p></div>
+                <div class="stat-card section-reveal"><p class="text-4xl font-bold mb-2">40%</p><p class="text-white/80 text-sm">Faster Processing</p></div>
+                <div class="stat-card section-reveal"><p class="text-4xl font-bold mb-2">99.9%</p><p class="text-white/80 text-sm">Compliance Rate</p></div>
+                <div class="stat-card section-reveal"><p class="text-4xl font-bold mb-2">$5M+</p><p class="text-white/80 text-sm">Cost Savings</p></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-24 px-6" style="background: var(--bg-secondary);">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-16 section-reveal">
+                <p class="text-accent font-semibold tracking-wider uppercase mb-4">Solutions</p>
+                <h2 class="text-3xl md:text-4xl font-bold">Financial AI Applications</h2>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="solution-card section-reveal">
+                    <div class="w-14 h-14 rounded-xl bg-green-500/20 flex items-center justify-center mb-6"><svg class="w-7 h-7 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg></div>
+                    <h3 class="text-xl font-bold mb-3">Fraud Detection</h3>
+                    <p class="text-theme-secondary">Real-time ML models that identify suspicious transactions and prevent fraud before it happens.</p>
+                </div>
+                <div class="solution-card section-reveal">
+                    <div class="w-14 h-14 rounded-xl bg-blue-500/20 flex items-center justify-center mb-6"><svg class="w-7 h-7 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg></div>
+                    <h3 class="text-xl font-bold mb-3">Risk Assessment</h3>
+                    <p class="text-theme-secondary">AI-powered credit scoring and risk analysis for better lending decisions.</p>
+                </div>
+                <div class="solution-card section-reveal">
+                    <div class="w-14 h-14 rounded-xl bg-purple-500/20 flex items-center justify-center mb-6"><svg class="w-7 h-7 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg></div>
+                    <h3 class="text-xl font-bold mb-3">Virtual Assistants</h3>
+                    <p class="text-theme-secondary">24/7 AI chatbots for customer service, account inquiries, and financial advice.</p>
+                </div>
+                <div class="solution-card section-reveal">
+                    <div class="w-14 h-14 rounded-xl bg-yellow-500/20 flex items-center justify-center mb-6"><svg class="w-7 h-7 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
+                    <h3 class="text-xl font-bold mb-3">Document Processing</h3>
+                    <p class="text-theme-secondary">Automated extraction and processing of financial documents, contracts, and forms.</p>
+                </div>
+                <div class="solution-card section-reveal">
+                    <div class="w-14 h-14 rounded-xl bg-red-500/20 flex items-center justify-center mb-6"><svg class="w-7 h-7 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+                    <h3 class="text-xl font-bold mb-3">Algorithmic Trading</h3>
+                    <p class="text-theme-secondary">ML models for market prediction, portfolio optimization, and automated trading.</p>
+                </div>
+                <div class="solution-card section-reveal">
+                    <div class="w-14 h-14 rounded-xl bg-cyan-500/20 flex items-center justify-center mb-6"><svg class="w-7 h-7 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg></div>
+                    <h3 class="text-xl font-bold mb-3">Compliance Automation</h3>
+                    <p class="text-theme-secondary">AI-driven regulatory compliance monitoring and reporting automation.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-24 px-6">
+        <div class="max-w-4xl mx-auto text-center section-reveal">
+            <h2 class="text-3xl md:text-4xl font-bold mb-6">Ready to Transform Your Financial Services?</h2>
+            <p class="text-xl text-theme-secondary mb-8">Let's discuss how AI can modernize your operations.</p>
+            <a href="../apply.html" class="cta-button inline-block px-8 py-4 rounded-full text-lg font-semibold text-white">Start Your Project</a>
+        </div>
+    </section>
+
+    <footer class="py-12 px-6 border-t border-theme">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center"><svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div><span class="font-semibold">AI Product Studio</span></div>
+            <p class="text-theme-secondary text-sm">© 2024 AI Product Studio. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="../js/chat-widget.js"></script>
+    <script>
+        const chatWidget = new ChatWidget({ title: 'AI Product Studio', subtitle: 'Online - Ready to help', welcomeMessage: 'Interested in financial services AI? Ask me anything!', pageType: 'financial' });
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.utils.toArray('.section-reveal').forEach((elem) => {
+            const isHero = elem.closest('section')?.classList.contains('hero-bg');
+            if (isHero) { gsap.to(elem, { opacity: 1, y: 0, duration: 1, ease: 'power3.out', delay: 0.3 }); }
+            else { gsap.to(elem, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', scrollTrigger: { trigger: elem, start: 'top 85%' } }); }
+        });
+        document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'dark');
+    </script>
+</body>
+</html>

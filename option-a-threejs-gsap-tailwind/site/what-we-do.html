@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <title>What We Do | AI Product Studio</title>
+    <meta name="description" content="We build AI-powered products in 2 weeks. Learn about our services and partnership model.">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { primary: 'var(--primary)', secondary: 'var(--secondary)', accent: 'var(--accent)' } } }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="js/config.js"></script>
+    <link rel="stylesheet" href="css/chat-widget.css">
+
+    <style>
+        :root { --transition-speed: 0.4s; }
+        [data-theme="dark"] {
+            --bg-primary: #020617; --bg-secondary: #0f172a; --bg-card: rgba(15, 23, 42, 0.7);
+            --text-primary: #f1f5f9; --text-secondary: #94a3b8; --text-muted: #64748b;
+            --border-color: rgba(99, 102, 241, 0.2); --primary: #6366f1; --secondary: #8b5cf6;
+            --accent: #06b6d4; --nav-bg: rgba(2, 6, 23, 0.8); --glow-color: rgba(99, 102, 241, 0.3);
+        }
+        [data-theme="light"] {
+            --bg-primary: #f8fafc; --bg-secondary: #e2e8f0; --bg-card: rgba(255, 255, 255, 0.9);
+            --text-primary: #0f172a; --text-secondary: #475569; --text-muted: #64748b;
+            --border-color: rgba(99, 102, 241, 0.15); --primary: #4f46e5; --secondary: #7c3aed;
+            --accent: #0891b2; --nav-bg: rgba(248, 250, 252, 0.95); --glow-color: rgba(79, 70, 229, 0.2);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg-primary); color: var(--text-primary); overflow-x: hidden; }
+        .glass-card { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-color); }
+        .gradient-text { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .hero-bg {
+            background: linear-gradient(135deg, rgba(2,6,23,0.8) 0%, rgba(15,23,42,0.85) 100%),
+                        url('https://images.unsplash.com/photo-1551434678-e076c223a692?w=1920&q=80') center/cover no-repeat;
+        }
+        [data-theme="light"] .hero-bg {
+            background: linear-gradient(135deg, rgba(248,250,252,0.88) 0%, rgba(226,232,240,0.9) 100%),
+                        url('https://images.unsplash.com/photo-1551434678-e076c223a692?w=1920&q=80') center/cover no-repeat;
+        }
+        .section-reveal { opacity: 0; transform: translateY(40px); }
+        .cta-button { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); box-shadow: 0 4px 20px var(--glow-color); transition: all 0.3s ease; }
+        .cta-button:hover { transform: translateY(-2px); box-shadow: 0 8px 30px var(--glow-color); }
+        .nav-link-new { display: inline-flex; align-items: center; padding: 0.5rem 1rem; font-size: 0.8125rem; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; transition: color 0.2s ease; white-space: nowrap; background: none; border: none; cursor: pointer; }
+        .nav-link-new:hover { color: var(--text-primary); }
+        .nav-cta-btn { display: inline-flex; align-items: center; padding: 0.5rem 1.25rem; font-size: 0.8125rem; font-weight: 600; color: white; text-transform: uppercase; letter-spacing: 0.05em; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); border-radius: 2px; transition: all 0.2s ease; }
+        .nav-dropdown-new { position: absolute; top: 100%; left: 0; min-width: 200px; background: rgba(15, 15, 20, 0.98); border: 1px solid rgba(255, 255, 255, 0.08); padding: 0.75rem 0; opacity: 0; visibility: hidden; transform: translateY(8px); transition: all 0.2s ease; z-index: 9999; }
+        .nav-item:hover .nav-dropdown-new { opacity: 1; visibility: visible; transform: translateY(0); }
+        .nav-dropdown-new a { display: block; padding: 0.625rem 1.25rem; font-size: 0.875rem; color: rgba(255, 255, 255, 0.7); transition: all 0.15s ease; }
+        .nav-dropdown-new a:hover { color: white; background: rgba(255, 255, 255, 0.05); }
+        .service-card { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-color); border-radius: 1rem; padding: 2rem; transition: all 0.3s ease; height: 100%; }
+        .service-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px var(--glow-color); border-color: var(--primary); }
+        .process-step { display: flex; align-items: flex-start; gap: 1.5rem; }
+        .process-number { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--secondary)); display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 glass-card border-b border-theme" style="z-index: 10000;">
+        <div class="max-w-7xl mx-auto flex items-center justify-between h-16 px-6 lg:px-10">
+            <a href="index.html" class="flex items-center gap-3 shrink-0">
+                <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                </div>
+                <span class="text-lg font-bold tracking-tight hidden sm:block">AI Product Studio</span>
+            </a>
+            <div class="hidden lg:flex items-center gap-1">
+                <div class="nav-item relative">
+                    <button class="nav-link-new">Who We Are <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button>
+                    <div class="nav-dropdown-new"><a href="who-we-are.html">Who We Are</a><a href="partners.html">Partners</a><a href="leadership.html">Leadership</a><a href="careers.html">Careers</a></div>
+                </div>
+                <div class="nav-item relative">
+                    <button class="nav-link-new">What We Do <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button>
+                    <div class="nav-dropdown-new"><a href="what-we-do.html">Overview</a><a href="ai.html">AI Solutions</a><a href="product.html">Product Development</a><a href="platforms.html">Platforms</a></div>
+                </div>
+                <div class="nav-item relative">
+                    <button class="nav-link-new">Industries <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button>
+                    <div class="nav-dropdown-new"><a href="industries/healthcare.html">Healthcare</a><a href="industries/financial-services.html">Financial Services</a><a href="industries/retail.html">Retail</a><a href="industries/manufacturing.html">Manufacturing</a></div>
+                </div>
+                <div class="nav-item relative">
+                    <button class="nav-link-new">Insights <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button>
+                    <div class="nav-dropdown-new"><a href="insights.html">All Insights</a><a href="blogs.html">Blog</a><a href="success-stories.html">Success Stories</a></div>
+                </div>
+                <a href="careers.html" class="nav-link-new">Careers</a>
+                <a href="apply.html" class="nav-cta-btn">Contact</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-bg min-h-[70vh] flex items-center justify-center px-6 pt-20">
+        <div class="max-w-5xl mx-auto text-center section-reveal">
+            <p class="text-accent font-semibold tracking-wider uppercase mb-4">What We Do</p>
+            <h1 class="text-4xl md:text-6xl font-bold mb-6 leading-tight">
+                We Build <span class="gradient-text">AI Products</span>
+            </h1>
+            <p class="text-xl text-theme-secondary max-w-3xl mx-auto leading-relaxed">
+                From idea to launch in 2 weeks. We're your AI co-founder, handling the technology while you focus on market and sales.
+            </p>
+        </div>
+    </section>
+
+    <!-- Services -->
+    <section class="py-24 px-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-16 section-reveal">
+                <p class="text-accent font-semibold tracking-wider uppercase mb-4">Our Services</p>
+                <h2 class="text-3xl md:text-4xl font-bold">End-to-End Product Development</h2>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="service-card section-reveal">
+                    <div class="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mb-6">
+                        <svg class="w-7 h-7 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Ideation & Strategy</h3>
+                    <p class="text-theme-secondary">We help validate your idea, define the MVP scope, and create a roadmap for success.</p>
+                </div>
+                <div class="service-card section-reveal">
+                    <div class="w-14 h-14 rounded-xl bg-secondary/20 flex items-center justify-center mb-6">
+                        <svg class="w-7 h-7 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">AI Development</h3>
+                    <p class="text-theme-secondary">Custom AI solutions using the latest models - GPT-4, Claude, computer vision, and more.</p>
+                </div>
+                <div class="service-card section-reveal">
+                    <div class="w-14 h-14 rounded-xl bg-accent/20 flex items-center justify-center mb-6">
+                        <svg class="w-7 h-7 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/></svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">UI/UX Design</h3>
+                    <p class="text-theme-secondary">Beautiful, intuitive interfaces that delight users and drive engagement.</p>
+                </div>
+                <div class="service-card section-reveal">
+                    <div class="w-14 h-14 rounded-xl bg-green-500/20 flex items-center justify-center mb-6">
+                        <svg class="w-7 h-7 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/></svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Cloud Infrastructure</h3>
+                    <p class="text-theme-secondary">Scalable, secure deployments on AWS, GCP, or Azure with CI/CD pipelines.</p>
+                </div>
+                <div class="service-card section-reveal">
+                    <div class="w-14 h-14 rounded-xl bg-orange-500/20 flex items-center justify-center mb-6">
+                        <svg class="w-7 h-7 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Rapid Prototyping</h3>
+                    <p class="text-theme-secondary">First working draft in 2 days, complete MVP in 2 weeks.</p>
+                </div>
+                <div class="service-card section-reveal">
+                    <div class="w-14 h-14 rounded-xl bg-pink-500/20 flex items-center justify-center mb-6">
+                        <svg class="w-7 h-7 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Ongoing Support</h3>
+                    <p class="text-theme-secondary">Post-launch maintenance, updates, and scaling support.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Process -->
+    <section class="py-24 px-6" style="background: var(--bg-secondary);">
+        <div class="max-w-4xl mx-auto">
+            <div class="text-center mb-16 section-reveal">
+                <p class="text-accent font-semibold tracking-wider uppercase mb-4">Our Process</p>
+                <h2 class="text-3xl md:text-4xl font-bold">From Idea to Launch</h2>
+            </div>
+            <div class="space-y-12">
+                <div class="process-step section-reveal">
+                    <div class="process-number">1</div>
+                    <div>
+                        <h3 class="text-xl font-bold mb-2">Discovery Call</h3>
+                        <p class="text-theme-secondary">We learn about your idea, market opportunity, and goals. Together, we define the MVP scope.</p>
+                    </div>
+                </div>
+                <div class="process-step section-reveal">
+                    <div class="process-number">2</div>
+                    <div>
+                        <h3 class="text-xl font-bold mb-2">First Draft (Day 2)</h3>
+                        <p class="text-theme-secondary">You receive a working prototype to review. We iterate based on your feedback.</p>
+                    </div>
+                </div>
+                <div class="process-step section-reveal">
+                    <div class="process-number">3</div>
+                    <div>
+                        <h3 class="text-xl font-bold mb-2">Development Sprint</h3>
+                        <p class="text-theme-secondary">Our AI-powered development process builds out the full product with daily updates.</p>
+                    </div>
+                </div>
+                <div class="process-step section-reveal">
+                    <div class="process-number">4</div>
+                    <div>
+                        <h3 class="text-xl font-bold mb-2">Launch (Week 2)</h3>
+                        <p class="text-theme-secondary">Your product goes live. We handle deployment, monitoring, and initial user onboarding.</p>
+                    </div>
+                </div>
+                <div class="process-step section-reveal">
+                    <div class="process-number">5</div>
+                    <div>
+                        <h3 class="text-xl font-bold mb-2">Scale & Iterate</h3>
+                        <p class="text-theme-secondary">As partners, we continue to improve the product based on user feedback and market response.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Partnership Model -->
+    <section class="py-24 px-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="grid md:grid-cols-2 gap-16 items-center">
+                <div class="section-reveal">
+                    <p class="text-accent font-semibold tracking-wider uppercase mb-4">Partnership Model</p>
+                    <h2 class="text-3xl md:text-4xl font-bold mb-6">The <span class="gradient-text">40/40/20</span> Split</h2>
+                    <p class="text-lg text-theme-secondary mb-6 leading-relaxed">
+                        We're not vendors or contractors. We're co-founders. Our unique equity model ensures everyone is aligned for success.
+                    </p>
+                    <ul class="space-y-4">
+                        <li class="flex items-start gap-3">
+                            <svg class="w-6 h-6 text-primary mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <div><strong>40% You</strong> - Market expertise, sales, customer relationships</div>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <svg class="w-6 h-6 text-secondary mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <div><strong>40% Us</strong> - Technology, AI, development, infrastructure</div>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <svg class="w-6 h-6 text-accent mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <div><strong>20% Operations</strong> - Reserved for future team members and operations</div>
+                        </li>
+                    </ul>
+                </div>
+                <div class="section-reveal">
+                    <div class="glass-card rounded-2xl p-8 text-center">
+                        <p class="text-6xl font-bold gradient-text mb-4">$0</p>
+                        <p class="text-xl font-semibold mb-2">Upfront Cost</p>
+                        <p class="text-theme-secondary">We invest our time and expertise. You invest yours. Together, we build something great.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="py-24 px-6" style="background: var(--bg-secondary);">
+        <div class="max-w-4xl mx-auto text-center section-reveal">
+            <h2 class="text-3xl md:text-4xl font-bold mb-6">Ready to Build Together?</h2>
+            <p class="text-xl text-theme-secondary mb-8">Apply for partnership and let's turn your idea into reality.</p>
+            <a href="apply.html" class="cta-button inline-block px-8 py-4 rounded-full text-lg font-semibold text-white">Apply for Partnership</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 px-6 border-t border-theme">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                </div>
+                <span class="font-semibold">AI Product Studio</span>
+            </div>
+            <p class="text-theme-secondary text-sm">&copy; 2024 AI Product Studio. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/chat-widget.js"></script>
+    <script>
+        const chatWidget = new ChatWidget({ title: 'AI Product Studio', subtitle: 'Online - Ready to help', welcomeMessage: 'Want to learn more about how we work? Ask me anything!', pageType: 'services' });
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.utils.toArray('.section-reveal').forEach((elem, i) => {
+            const isHero = elem.closest('section')?.classList.contains('hero-bg');
+            if (isHero) { gsap.to(elem, { opacity: 1, y: 0, duration: 1, ease: 'power3.out', delay: 0.3 }); }
+            else { gsap.to(elem, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', scrollTrigger: { trigger: elem, start: 'top 85%' } }); }
+        });
+        const theme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+    </script>
+</body>
+</html>

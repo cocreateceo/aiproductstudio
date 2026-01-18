@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <title>Careers | AI Product Studio</title>
+    <meta name="description" content="Join our team of innovators building the future of AI-powered products.">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { primary: 'var(--primary)', secondary: 'var(--secondary)', accent: 'var(--accent)' } } }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="js/config.js"></script>
+    <link rel="stylesheet" href="css/chat-widget.css">
+
+    <style>
+        :root { --transition-speed: 0.4s; }
+        [data-theme="dark"] {
+            --bg-primary: #020617; --bg-secondary: #0f172a; --bg-card: rgba(15, 23, 42, 0.7);
+            --text-primary: #f1f5f9; --text-secondary: #94a3b8; --text-muted: #64748b;
+            --border-color: rgba(99, 102, 241, 0.2); --primary: #6366f1; --secondary: #8b5cf6;
+            --accent: #06b6d4; --nav-bg: rgba(2, 6, 23, 0.8); --glow-color: rgba(99, 102, 241, 0.3);
+        }
+        [data-theme="light"] {
+            --bg-primary: #f8fafc; --bg-secondary: #e2e8f0; --bg-card: rgba(255, 255, 255, 0.9);
+            --text-primary: #0f172a; --text-secondary: #475569; --text-muted: #64748b;
+            --border-color: rgba(99, 102, 241, 0.15); --primary: #4f46e5; --secondary: #7c3aed;
+            --accent: #0891b2; --nav-bg: rgba(248, 250, 252, 0.95); --glow-color: rgba(79, 70, 229, 0.2);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg-primary); color: var(--text-primary); overflow-x: hidden; }
+        .glass-card { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-color); }
+        .gradient-text { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .hero-bg {
+            background: linear-gradient(135deg, rgba(2,6,23,0.8) 0%, rgba(15,23,42,0.85) 100%),
+                        url('https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=1920&q=80') center/cover no-repeat;
+        }
+        [data-theme="light"] .hero-bg {
+            background: linear-gradient(135deg, rgba(248,250,252,0.88) 0%, rgba(226,232,240,0.9) 100%),
+                        url('https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=1920&q=80') center/cover no-repeat;
+        }
+        .section-reveal { opacity: 0; transform: translateY(40px); }
+        .cta-button { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); box-shadow: 0 4px 20px var(--glow-color); transition: all 0.3s ease; }
+        .cta-button:hover { transform: translateY(-2px); box-shadow: 0 8px 30px var(--glow-color); }
+        .nav-link-new { display: inline-flex; align-items: center; padding: 0.5rem 1rem; font-size: 0.8125rem; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; transition: color 0.2s ease; white-space: nowrap; background: none; border: none; cursor: pointer; }
+        .nav-link-new:hover { color: var(--text-primary); }
+        .nav-cta-btn { display: inline-flex; align-items: center; padding: 0.5rem 1.25rem; font-size: 0.8125rem; font-weight: 600; color: white; text-transform: uppercase; letter-spacing: 0.05em; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); border-radius: 2px; transition: all 0.2s ease; }
+        .nav-dropdown-new { position: absolute; top: 100%; left: 0; min-width: 200px; background: rgba(15, 15, 20, 0.98); border: 1px solid rgba(255, 255, 255, 0.08); padding: 0.75rem 0; opacity: 0; visibility: hidden; transform: translateY(8px); transition: all 0.2s ease; z-index: 9999; }
+        .nav-item:hover .nav-dropdown-new { opacity: 1; visibility: visible; transform: translateY(0); }
+        .nav-dropdown-new a { display: block; padding: 0.625rem 1.25rem; font-size: 0.875rem; color: rgba(255, 255, 255, 0.7); transition: all 0.15s ease; }
+        .nav-dropdown-new a:hover { color: white; background: rgba(255, 255, 255, 0.05); }
+        .job-card { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-color); border-radius: 1rem; padding: 1.5rem 2rem; transition: all 0.3s ease; display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+        .job-card:hover { transform: translateX(8px); border-color: var(--primary); box-shadow: 0 8px 30px var(--glow-color); }
+        .perk-card { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-color); border-radius: 1rem; padding: 2rem; text-align: center; transition: all 0.3s ease; }
+        .perk-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px var(--glow-color); }
+        .location-badge { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0.75rem; background: var(--primary); color: white; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 glass-card border-b border-theme" style="z-index: 10000;">
+        <div class="max-w-7xl mx-auto flex items-center justify-between h-16 px-6 lg:px-10">
+            <a href="index.html" class="flex items-center gap-3 shrink-0">
+                <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                </div>
+                <span class="text-lg font-bold tracking-tight hidden sm:block">AI Product Studio</span>
+            </a>
+            <div class="hidden lg:flex items-center gap-1">
+                <div class="nav-item relative">
+                    <button class="nav-link-new">Who We Are <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button>
+                    <div class="nav-dropdown-new"><a href="who-we-are.html">Who We Are</a><a href="partners.html">Partners</a><a href="leadership.html">Leadership</a><a href="careers.html">Careers</a></div>
+                </div>
+                <div class="nav-item relative">
+                    <button class="nav-link-new">What We Do <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button>
+                    <div class="nav-dropdown-new"><a href="what-we-do.html">Overview</a><a href="ai.html">AI Solutions</a><a href="product.html">Product Development</a><a href="platforms.html">Platforms</a></div>
+                </div>
+                <div class="nav-item relative">
+                    <button class="nav-link-new">Industries <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button>
+                    <div class="nav-dropdown-new"><a href="industries/healthcare.html">Healthcare</a><a href="industries/financial-services.html">Financial Services</a><a href="industries/retail.html">Retail</a><a href="industries/manufacturing.html">Manufacturing</a></div>
+                </div>
+                <div class="nav-item relative">
+                    <button class="nav-link-new">Insights <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button>
+                    <div class="nav-dropdown-new"><a href="insights.html">All Insights</a><a href="blogs.html">Blog</a><a href="success-stories.html">Success Stories</a></div>
+                </div>
+                <a href="careers.html" class="nav-link-new">Careers</a>
+                <a href="apply.html" class="nav-cta-btn">Contact</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-bg min-h-[70vh] flex items-center justify-center px-6 pt-20">
+        <div class="max-w-5xl mx-auto text-center section-reveal">
+            <p class="text-accent font-semibold tracking-wider uppercase mb-4">Careers</p>
+            <h1 class="text-4xl md:text-6xl font-bold mb-6 leading-tight">
+                Build the <span class="gradient-text">Future of AI</span>
+            </h1>
+            <p class="text-xl text-theme-secondary max-w-3xl mx-auto leading-relaxed">
+                Join a team of passionate innovators creating AI-powered products that transform industries.
+            </p>
+        </div>
+    </section>
+
+    <!-- Why Join Us -->
+    <section class="py-24 px-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-16 section-reveal">
+                <p class="text-accent font-semibold tracking-wider uppercase mb-4">Why Join Us</p>
+                <h2 class="text-3xl md:text-4xl font-bold">More Than Just a Job</h2>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="perk-card section-reveal">
+                    <div class="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mb-4 mx-auto">
+                        <svg class="w-7 h-7 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2">Competitive Pay</h3>
+                    <p class="text-theme-secondary text-sm">Top-tier compensation with equity options</p>
+                </div>
+                <div class="perk-card section-reveal">
+                    <div class="w-14 h-14 rounded-xl bg-secondary/20 flex items-center justify-center mb-4 mx-auto">
+                        <svg class="w-7 h-7 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2">Remote First</h3>
+                    <p class="text-theme-secondary text-sm">Work from anywhere in the world</p>
+                </div>
+                <div class="perk-card section-reveal">
+                    <div class="w-14 h-14 rounded-xl bg-accent/20 flex items-center justify-center mb-4 mx-auto">
+                        <svg class="w-7 h-7 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2">Cutting Edge</h3>
+                    <p class="text-theme-secondary text-sm">Work with the latest AI technologies</p>
+                </div>
+                <div class="perk-card section-reveal">
+                    <div class="w-14 h-14 rounded-xl bg-green-500/20 flex items-center justify-center mb-4 mx-auto">
+                        <svg class="w-7 h-7 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2">Learning Budget</h3>
+                    <p class="text-theme-secondary text-sm">Annual budget for courses & conferences</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Open Positions -->
+    <section class="py-24 px-6" style="background: var(--bg-secondary);">
+        <div class="max-w-4xl mx-auto">
+            <div class="text-center mb-16 section-reveal">
+                <p class="text-accent font-semibold tracking-wider uppercase mb-4">Open Positions</p>
+                <h2 class="text-3xl md:text-4xl font-bold">Join Our Team</h2>
+            </div>
+            <div class="space-y-4">
+                <div class="job-card section-reveal">
+                    <div>
+                        <h3 class="text-lg font-bold mb-1">Senior AI Engineer</h3>
+                        <p class="text-theme-secondary text-sm">Build and deploy cutting-edge AI models</p>
+                        <div class="flex gap-2 mt-2">
+                            <span class="location-badge"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>Remote</span>
+                        </div>
+                    </div>
+                    <a href="apply.html" class="cta-button px-6 py-2 rounded-full text-white font-semibold text-sm shrink-0">Apply</a>
+                </div>
+                <div class="job-card section-reveal">
+                    <div>
+                        <h3 class="text-lg font-bold mb-1">Full Stack Developer</h3>
+                        <p class="text-theme-secondary text-sm">Create beautiful, performant web applications</p>
+                        <div class="flex gap-2 mt-2">
+                            <span class="location-badge"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>Remote</span>
+                        </div>
+                    </div>
+                    <a href="apply.html" class="cta-button px-6 py-2 rounded-full text-white font-semibold text-sm shrink-0">Apply</a>
+                </div>
+                <div class="job-card section-reveal">
+                    <div>
+                        <h3 class="text-lg font-bold mb-1">Product Designer</h3>
+                        <p class="text-theme-secondary text-sm">Design intuitive AI-powered experiences</p>
+                        <div class="flex gap-2 mt-2">
+                            <span class="location-badge"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>Remote</span>
+                        </div>
+                    </div>
+                    <a href="apply.html" class="cta-button px-6 py-2 rounded-full text-white font-semibold text-sm shrink-0">Apply</a>
+                </div>
+                <div class="job-card section-reveal">
+                    <div>
+                        <h3 class="text-lg font-bold mb-1">Business Development</h3>
+                        <p class="text-theme-secondary text-sm">Drive partnerships and growth</p>
+                        <div class="flex gap-2 mt-2">
+                            <span class="location-badge"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>Hybrid</span>
+                        </div>
+                    </div>
+                    <a href="apply.html" class="cta-button px-6 py-2 rounded-full text-white font-semibold text-sm shrink-0">Apply</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="py-24 px-6">
+        <div class="max-w-4xl mx-auto text-center section-reveal">
+            <h2 class="text-3xl md:text-4xl font-bold mb-6">Don't See Your Role?</h2>
+            <p class="text-xl text-theme-secondary mb-8">We're always looking for talented people. Send us your resume!</p>
+            <a href="apply.html" class="cta-button inline-block px-8 py-4 rounded-full text-lg font-semibold text-white">Get in Touch</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 px-6 border-t border-theme">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                </div>
+                <span class="font-semibold">AI Product Studio</span>
+            </div>
+            <p class="text-theme-secondary text-sm">&copy; 2024 AI Product Studio. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/chat-widget.js"></script>
+    <script>
+        const chatWidget = new ChatWidget({ title: 'AI Product Studio', subtitle: 'Online - Ready to help', welcomeMessage: 'Interested in joining our team? Ask me about open positions!', pageType: 'careers' });
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.utils.toArray('.section-reveal').forEach((elem, i) => {
+            const isHero = elem.closest('section')?.classList.contains('hero-bg');
+            if (isHero) { gsap.to(elem, { opacity: 1, y: 0, duration: 1, ease: 'power3.out', delay: 0.3 }); }
+            else { gsap.to(elem, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', scrollTrigger: { trigger: elem, start: 'top 85%' } }); }
+        });
+        const theme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+    </script>
+</body>
+</html>

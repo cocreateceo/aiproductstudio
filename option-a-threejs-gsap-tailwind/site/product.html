@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <title>Product Development | AI Product Studio</title>
+    <meta name="description" content="End-to-end product development services powered by AI. From concept to launch in 2 weeks.">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { theme: { extend: { colors: { primary: 'var(--primary)', secondary: 'var(--secondary)', accent: 'var(--accent)' } } } }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="js/config.js"></script>
+    <link rel="stylesheet" href="css/chat-widget.css">
+
+    <style>
+        :root { --transition-speed: 0.4s; }
+        [data-theme="dark"] { --bg-primary: #020617; --bg-secondary: #0f172a; --bg-card: rgba(15, 23, 42, 0.7); --text-primary: #f1f5f9; --text-secondary: #94a3b8; --text-muted: #64748b; --border-color: rgba(99, 102, 241, 0.2); --primary: #6366f1; --secondary: #8b5cf6; --accent: #06b6d4; --nav-bg: rgba(2, 6, 23, 0.8); --glow-color: rgba(99, 102, 241, 0.3); }
+        [data-theme="light"] { --bg-primary: #f8fafc; --bg-secondary: #e2e8f0; --bg-card: rgba(255, 255, 255, 0.9); --text-primary: #0f172a; --text-secondary: #475569; --text-muted: #64748b; --border-color: rgba(99, 102, 241, 0.15); --primary: #4f46e5; --secondary: #7c3aed; --accent: #0891b2; --nav-bg: rgba(248, 250, 252, 0.95); --glow-color: rgba(79, 70, 229, 0.2); }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg-primary); color: var(--text-primary); overflow-x: hidden; }
+        .glass-card { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-color); }
+        .gradient-text { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .hero-bg { background: linear-gradient(135deg, rgba(2,6,23,0.8) 0%, rgba(15,23,42,0.85) 100%), url('https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1920&q=80') center/cover no-repeat; }
+        [data-theme="light"] .hero-bg { background: linear-gradient(135deg, rgba(248,250,252,0.9) 0%, rgba(226,232,240,0.92) 100%), url('https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1920&q=80') center/cover no-repeat; }
+        .section-reveal { opacity: 0; transform: translateY(40px); }
+        .cta-button { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); box-shadow: 0 4px 20px var(--glow-color); transition: all 0.3s ease; }
+        .cta-button:hover { transform: translateY(-2px); box-shadow: 0 8px 30px var(--glow-color); }
+        .nav-link-new { display: inline-flex; align-items: center; padding: 0.5rem 1rem; font-size: 0.8125rem; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; transition: color 0.2s ease; white-space: nowrap; background: none; border: none; cursor: pointer; }
+        .nav-link-new:hover { color: var(--text-primary); }
+        .nav-cta-btn { display: inline-flex; align-items: center; padding: 0.5rem 1.25rem; font-size: 0.8125rem; font-weight: 600; color: white; text-transform: uppercase; letter-spacing: 0.05em; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); border-radius: 2px; transition: all 0.2s ease; }
+        .nav-dropdown-new { position: absolute; top: 100%; left: 0; min-width: 200px; background: rgba(15, 15, 20, 0.98); border: 1px solid rgba(255, 255, 255, 0.08); padding: 0.75rem 0; opacity: 0; visibility: hidden; transform: translateY(8px); transition: all 0.2s ease; z-index: 9999; }
+        .nav-item:hover .nav-dropdown-new { opacity: 1; visibility: visible; transform: translateY(0); }
+        .nav-dropdown-new a { display: block; padding: 0.625rem 1.25rem; font-size: 0.875rem; color: rgba(255, 255, 255, 0.7); transition: all 0.15s ease; }
+        .nav-dropdown-new a:hover { color: white; background: rgba(255, 255, 255, 0.05); }
+        .service-card { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-color); border-radius: 1rem; padding: 2rem; transition: all 0.3s ease; }
+        .service-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px var(--glow-color); }
+        .process-step { position: relative; padding-left: 3rem; }
+        .process-step::before { content: attr(data-step); position: absolute; left: 0; top: 0; width: 2rem; height: 2rem; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.875rem; }
+    </style>
+</head>
+<body>
+    <nav class="fixed top-0 left-0 right-0 glass-card border-b border-theme" style="z-index: 10000;">
+        <div class="max-w-7xl mx-auto flex items-center justify-between h-16 px-6 lg:px-10">
+            <a href="index.html" class="flex items-center gap-3 shrink-0">
+                <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                </div>
+                <span class="text-lg font-bold tracking-tight hidden sm:block">AI Product Studio</span>
+            </a>
+            <div class="hidden lg:flex items-center gap-1">
+                <div class="nav-item relative">
+                    <button class="nav-link-new">Who We Are <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button>
+                    <div class="nav-dropdown-new"><a href="who-we-are.html">Who We Are</a><a href="partners.html">Partners</a><a href="leadership.html">Leadership</a><a href="culture.html">Culture</a><a href="careers.html">Careers</a></div>
+                </div>
+                <div class="nav-item relative">
+                    <button class="nav-link-new">What We Do <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button>
+                    <div class="nav-dropdown-new"><a href="what-we-do.html">Overview</a><a href="ai.html">AI Solutions</a><a href="product.html">Product Development</a><a href="platforms.html">Platforms</a></div>
+                </div>
+                <div class="nav-item relative">
+                    <button class="nav-link-new">Industries <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button>
+                    <div class="nav-dropdown-new"><a href="industries/healthcare.html">Healthcare</a><a href="industries/financial-services.html">Financial Services</a><a href="industries/retail.html">Retail</a><a href="industries/manufacturing.html">Manufacturing</a></div>
+                </div>
+                <div class="nav-item relative">
+                    <button class="nav-link-new">Insights <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button>
+                    <div class="nav-dropdown-new"><a href="insights.html">All Insights</a><a href="blogs.html">Blog</a><a href="success-stories.html">Success Stories</a></div>
+                </div>
+                <a href="careers.html" class="nav-link-new">Careers</a>
+                <a href="contact.html" class="nav-cta-btn">Contact</a>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero-bg min-h-[70vh] flex items-center justify-center px-6 pt-20">
+        <div class="max-w-5xl mx-auto text-center section-reveal">
+            <p class="text-accent font-semibold tracking-wider uppercase mb-4">Product Development</p>
+            <h1 class="text-4xl md:text-6xl font-bold mb-6 leading-tight">
+                From Idea to <span class="gradient-text">Launch</span> in 2 Weeks
+            </h1>
+            <p class="text-xl text-theme-secondary max-w-3xl mx-auto leading-relaxed">
+                End-to-end product development powered by AI. We handle everything from design to deployment.
+            </p>
+        </div>
+    </section>
+
+    <section class="py-24 px-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-16 section-reveal">
+                <p class="text-accent font-semibold tracking-wider uppercase mb-4">Our Services</p>
+                <h2 class="text-3xl md:text-4xl font-bold">Full-Stack Product Development</h2>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="service-card section-reveal">
+                    <div class="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mb-6">
+                        <svg class="w-7 h-7 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Product Strategy</h3>
+                    <p class="text-theme-secondary">Market research, competitive analysis, and product roadmap development to ensure market fit.</p>
+                </div>
+                <div class="service-card section-reveal">
+                    <div class="w-14 h-14 rounded-xl bg-secondary/20 flex items-center justify-center mb-6">
+                        <svg class="w-7 h-7 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">UI/UX Design</h3>
+                    <p class="text-theme-secondary">Beautiful, intuitive interfaces designed for conversion and user engagement.</p>
+                </div>
+                <div class="service-card section-reveal">
+                    <div class="w-14 h-14 rounded-xl bg-accent/20 flex items-center justify-center mb-6">
+                        <svg class="w-7 h-7 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Development</h3>
+                    <p class="text-theme-secondary">Full-stack development using modern technologies and AI-powered tools.</p>
+                </div>
+                <div class="service-card section-reveal">
+                    <div class="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mb-6">
+                        <svg class="w-7 h-7 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">QA & Testing</h3>
+                    <p class="text-theme-secondary">Comprehensive testing including automated tests, security audits, and performance optimization.</p>
+                </div>
+                <div class="service-card section-reveal">
+                    <div class="w-14 h-14 rounded-xl bg-secondary/20 flex items-center justify-center mb-6">
+                        <svg class="w-7 h-7 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Deployment</h3>
+                    <p class="text-theme-secondary">Cloud deployment with CI/CD pipelines, monitoring, and scalable infrastructure.</p>
+                </div>
+                <div class="service-card section-reveal">
+                    <div class="w-14 h-14 rounded-xl bg-accent/20 flex items-center justify-center mb-6">
+                        <svg class="w-7 h-7 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Growth Support</h3>
+                    <p class="text-theme-secondary">Post-launch analytics, iteration support, and growth optimization strategies.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-24 px-6" style="background: var(--bg-secondary);">
+        <div class="max-w-6xl mx-auto">
+            <div class="grid md:grid-cols-2 gap-16 items-center">
+                <div class="section-reveal">
+                    <p class="text-accent font-semibold tracking-wider uppercase mb-4">Our Process</p>
+                    <h2 class="text-3xl md:text-4xl font-bold mb-8">How We Build Products</h2>
+                    <div class="space-y-8">
+                        <div class="process-step section-reveal" data-step="1">
+                            <h3 class="text-lg font-bold mb-2">Discovery & Strategy</h3>
+                            <p class="text-theme-secondary">We dive deep into your vision, market, and users to create a winning strategy.</p>
+                        </div>
+                        <div class="process-step section-reveal" data-step="2">
+                            <h3 class="text-lg font-bold mb-2">Design Sprint</h3>
+                            <p class="text-theme-secondary">Rapid prototyping and user testing to validate concepts before development.</p>
+                        </div>
+                        <div class="process-step section-reveal" data-step="3">
+                            <h3 class="text-lg font-bold mb-2">AI-Powered Build</h3>
+                            <p class="text-theme-secondary">Our AI-augmented development process delivers production-ready code fast.</p>
+                        </div>
+                        <div class="process-step section-reveal" data-step="4">
+                            <h3 class="text-lg font-bold mb-2">Launch & Iterate</h3>
+                            <p class="text-theme-secondary">Deploy to production and continuously improve based on real user data.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="section-reveal">
+                    <div class="glass-card rounded-2xl p-8">
+                        <h3 class="text-2xl font-bold mb-6 text-center">Why 2 Weeks?</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-start gap-4">
+                                <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                                    <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                </div>
+                                <p class="text-theme-secondary">AI-powered code generation accelerates development 10x</p>
+                            </div>
+                            <div class="flex items-start gap-4">
+                                <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                                    <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                </div>
+                                <p class="text-theme-secondary">Pre-built component libraries and design systems</p>
+                            </div>
+                            <div class="flex items-start gap-4">
+                                <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                                    <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                </div>
+                                <p class="text-theme-secondary">Dedicated team working exclusively on your project</p>
+                            </div>
+                            <div class="flex items-start gap-4">
+                                <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                                    <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                </div>
+                                <p class="text-theme-secondary">Automated testing and deployment pipelines</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-24 px-6">
+        <div class="max-w-4xl mx-auto text-center section-reveal">
+            <h2 class="text-3xl md:text-4xl font-bold mb-6">Ready to Build Your Product?</h2>
+            <p class="text-xl text-theme-secondary mb-8">Let's turn your idea into reality. Schedule a free consultation today.</p>
+            <a href="contact.html" class="cta-button inline-block px-8 py-4 rounded-full text-lg font-semibold text-white">Start Your Project</a>
+        </div>
+    </section>
+
+    <footer class="py-12 px-6 border-t border-theme">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                </div>
+                <span class="font-semibold">AI Product Studio</span>
+            </div>
+            <p class="text-theme-secondary text-sm">&copy; 2024 AI Product Studio. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/chat-widget.js"></script>
+    <script>
+        const chatWidget = new ChatWidget({ title: 'AI Product Studio', subtitle: 'Online', welcomeMessage: 'Ready to build your product? Let\'s chat!', pageType: 'product' });
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.utils.toArray('.section-reveal').forEach((elem) => {
+            const isHero = elem.closest('section')?.classList.contains('hero-bg');
+            if (isHero) { gsap.to(elem, { opacity: 1, y: 0, duration: 1, ease: 'power3.out', delay: 0.3 }); }
+            else { gsap.to(elem, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', scrollTrigger: { trigger: elem, start: 'top 85%' } }); }
+        });
+        document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'dark');
+    </script>
+</body>
+</html>

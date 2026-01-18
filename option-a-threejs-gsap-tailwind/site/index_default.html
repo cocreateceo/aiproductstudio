@@ -51,7 +51,6 @@
         /* Theme CSS Variables */
         :root {
             --transition-speed: 0.4s;
-            --nav-height: 80px;
         }
 
         /* Dark Theme (Default) */
@@ -246,17 +245,19 @@
         .theme-toggle-btn {
             display: flex;
             align-items: center;
-            gap: 6px;
-            padding: 0.5rem 0.75rem;
-            background: transparent;
-            border: none;
-            color: var(--text-secondary);
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 9999px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
             cursor: pointer;
-            transition: color 0.2s ease;
+            transition: all 0.3s ease;
         }
 
         .theme-toggle-btn:hover {
-            color: var(--text-primary);
+            border-color: var(--primary);
+            box-shadow: 0 0 20px var(--glow-color);
         }
 
         .theme-dropdown {
@@ -677,23 +678,15 @@
             letter-spacing: -0.02em;
         }
 
-        [data-theme="light"] nav .text-xl {
-            background: none;
-            -webkit-background-clip: border-box;
-            -webkit-text-fill-color: var(--text-primary);
-            color: var(--text-primary);
-        }
-
         /* Nav Links Enhanced */
-        nav .nav-link {
+        nav a[href^="#"] {
             position: relative;
             font-weight: 500;
             padding: 0.5rem 0;
             transition: all 0.3s ease;
-            font-size: 0.95rem;
         }
 
-        nav .nav-link::after {
+        nav a[href^="#"]::after {
             content: '';
             position: absolute;
             bottom: 0;
@@ -705,441 +698,24 @@
             transition: transform 0.3s ease;
         }
 
-        nav .nav-link:hover {
+        nav a[href^="#"]:hover {
             color: var(--primary) !important;
             text-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
         }
 
-        nav .nav-link:hover::after {
+        nav a[href^="#"]:hover::after {
             transform: translateX(-50%) scaleX(1);
         }
 
         /* Active Nav Link */
-        nav .nav-link.active {
+        nav a[href^="#"].active {
             color: var(--primary) !important;
             font-weight: 600;
         }
 
-        nav .nav-link.active::after {
+        nav a[href^="#"].active::after {
             transform: translateX(-50%) scaleX(1);
             background: linear-gradient(90deg, var(--primary), var(--accent), var(--primary));
-        }
-
-        /* Dropdown Navigation */
-        .nav-item {
-            position: relative;
-        }
-
-        .nav-dropdown {
-            position: absolute;
-            top: calc(100% + 12px);
-            left: 0;
-            min-width: 260px;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            box-shadow: 0 20px 45px rgba(2, 6, 23, 0.4);
-            backdrop-filter: blur(22px);
-            border-radius: 16px;
-            padding: 16px 18px;
-            opacity: 0;
-            transform: translateY(12px);
-            pointer-events: none;
-            transition: all 0.25s ease;
-            z-index: 9999;
-        }
-
-        .nav-item:hover .nav-dropdown,
-        .nav-item:focus-within .nav-dropdown {
-            opacity: 1;
-            transform: translateY(0);
-            pointer-events: auto;
-        }
-
-        .nav-dropdown a {
-            display: block;
-            padding: 8px 6px;
-            border-radius: 10px;
-            color: var(--text-secondary);
-            transition: all 0.2s ease;
-        }
-
-        .nav-dropdown a:hover {
-            color: var(--text-primary);
-            background: rgba(99, 102, 241, 0.12);
-        }
-
-        .nav-dropdown .dropdown-title {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.16em;
-            color: var(--text-muted);
-            font-weight: 600;
-            margin: 4px 6px 10px;
-        }
-
-        .nav-dropdown.nav-mega {
-            min-width: 560px;
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 16px 28px;
-        }
-
-        .nav-mega-column {
-            min-width: 220px;
-        }
-
-        .nav-mega-column a {
-            font-size: 0.95rem;
-        }
-
-        nav .nav-inner {
-            padding-right: var(--chat-offset, 0px);
-            transition: padding-right 0.3s ease;
-        }
-
-        /* ============================================ */
-        /* NEW PERFICIENT-STYLE NAVIGATION */
-        /* ============================================ */
-
-        .nav-main {
-            right: 0;
-            transition: right 0.3s ease;
-        }
-
-        /* Dynamic adjustment for chat widget */
-        .nav-main.chat-open {
-            right: var(--chat-sidebar-width, 380px);
-        }
-
-        /* Nav Link - Clean Perficient Style */
-        .nav-link-new {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.5rem 1rem;
-            font-size: 0.8125rem;
-            font-weight: 500;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            transition: color 0.2s ease;
-            white-space: nowrap;
-            background: none;
-            border: none;
-            cursor: pointer;
-        }
-
-        .nav-link-new:hover {
-            color: var(--text-primary);
-        }
-
-        /* Contact CTA Button */
-        .nav-cta-btn {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.5rem 1.25rem;
-            font-size: 0.8125rem;
-            font-weight: 600;
-            color: white;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-            border-radius: 2px;
-            transition: all 0.2s ease;
-            white-space: nowrap;
-        }
-
-        .nav-cta-btn:hover {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            transform: translateY(-1px);
-        }
-
-        /* Search Button */
-        .nav-search-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 2.25rem;
-            height: 2.25rem;
-            color: var(--text-secondary);
-            background: none;
-            border: none;
-            cursor: pointer;
-            transition: color 0.2s ease;
-        }
-
-        .nav-search-btn:hover {
-            color: var(--text-primary);
-        }
-
-        /* Search Overlay */
-        .search-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(8px);
-            z-index: 20000;
-            display: flex;
-            align-items: flex-start;
-            justify-content: center;
-            padding-top: 10vh;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-        }
-        .search-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-        .search-modal {
-            width: 90%;
-            max-width: 600px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 1rem;
-            overflow: hidden;
-            transform: translateY(-20px);
-            transition: transform 0.3s ease;
-        }
-        .search-overlay.active .search-modal {
-            transform: translateY(0);
-        }
-        .search-header {
-            display: flex;
-            align-items: center;
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid var(--border-color);
-            gap: 1rem;
-        }
-        .search-input-wrapper {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        .search-input-wrapper input {
-            flex: 1;
-            background: transparent;
-            border: none;
-            outline: none;
-            font-size: 1.125rem;
-            color: var(--text-primary);
-        }
-        .search-input-wrapper input::placeholder {
-            color: var(--text-muted);
-        }
-        .search-close-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 2.5rem;
-            height: 2.5rem;
-            border-radius: 0.5rem;
-            background: transparent;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        .search-close-btn:hover {
-            background: var(--bg-card);
-            color: var(--text-primary);
-        }
-        .search-results {
-            padding: 1rem 1.5rem;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        .search-hint {
-            color: var(--text-muted);
-            text-align: center;
-            padding: 2rem 0;
-        }
-        .search-result-item {
-            display: block;
-            padding: 0.875rem 1rem;
-            border-radius: 0.5rem;
-            color: var(--text-primary);
-            text-decoration: none;
-            transition: all 0.2s ease;
-            margin-bottom: 0.5rem;
-        }
-        .search-result-item:hover {
-            background: var(--bg-card);
-        }
-        .search-result-item .result-title {
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-        }
-        .search-result-item .result-desc {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-        }
-        .no-results {
-            text-align: center;
-            color: var(--text-muted);
-            padding: 2rem 0;
-        }
-
-        /* New Dropdown Styles */
-        .nav-dropdown-new {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            min-width: 200px;
-            background: rgba(15, 15, 20, 0.98);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            padding: 0.75rem 0;
-            opacity: 0;
-            visibility: hidden;
-            transform: translateY(8px);
-            transition: all 0.2s ease;
-            z-index: 9999;
-        }
-
-        .nav-item:hover .nav-dropdown-new {
-            opacity: 1;
-            visibility: visible;
-            transform: translateY(0);
-        }
-
-        .nav-dropdown-new a {
-            display: block;
-            padding: 0.625rem 1.25rem;
-            font-size: 0.875rem;
-            color: rgba(255, 255, 255, 0.7);
-            transition: all 0.15s ease;
-        }
-
-        .nav-dropdown-new a:hover {
-            color: white;
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .nav-dropdown-label {
-            display: block;
-            padding: 0.5rem 1.25rem 0.75rem;
-            font-size: 0.6875rem;
-            font-weight: 600;
-            color: rgba(255, 255, 255, 0.4);
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-        }
-
-        /* Mega Dropdown */
-        .nav-dropdown-mega {
-            min-width: 480px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0;
-        }
-
-        .nav-mega-col {
-            padding: 0.5rem 0;
-        }
-
-        .nav-mega-col:first-child {
-            border-right: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        /* Mobile Menu */
-        .mobile-menu {
-            display: none;
-            background: var(--bg-secondary);
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease;
-        }
-
-        .mobile-menu.open {
-            display: block;
-            max-height: 500px;
-        }
-
-        .mobile-nav-btn {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 100%;
-            padding: 0.875rem 0;
-            font-size: 0.9375rem;
-            font-weight: 500;
-            color: var(--text-primary);
-            background: none;
-            border: none;
-            cursor: pointer;
-            text-align: left;
-        }
-
-        .mobile-nav-btn.active svg {
-            transform: rotate(180deg);
-        }
-
-        .mobile-dropdown {
-            display: none;
-            padding-left: 1rem;
-            padding-bottom: 0.5rem;
-        }
-
-        .mobile-dropdown.open {
-            display: block;
-        }
-
-        .mobile-dropdown a {
-            display: block;
-            padding: 0.625rem 0;
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-        }
-
-        .mobile-dropdown a:hover {
-            color: var(--text-primary);
-        }
-
-        .mobile-nav-link {
-            display: block;
-            padding: 0.875rem 0;
-            font-size: 0.9375rem;
-            font-weight: 500;
-            color: var(--text-primary);
-        }
-
-        .mobile-nav-cta {
-            display: block;
-            margin-top: 1rem;
-            padding: 0.875rem 1.5rem;
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: white;
-            text-align: center;
-            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-            border-radius: 4px;
-        }
-
-        /* Light theme nav adjustments */
-        [data-theme="light"] .nav-dropdown-new {
-            background: rgba(255, 255, 255, 0.98);
-            border-color: rgba(0, 0, 0, 0.08);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-        }
-
-        [data-theme="light"] .nav-dropdown-new a {
-            color: rgba(0, 0, 0, 0.6);
-        }
-
-        [data-theme="light"] .nav-dropdown-new a:hover {
-            color: rgba(0, 0, 0, 0.9);
-            background: rgba(0, 0, 0, 0.04);
-        }
-
-        [data-theme="light"] .nav-dropdown-label {
-            color: rgba(0, 0, 0, 0.4);
-        }
-
-        [data-theme="light"] .nav-mega-col:first-child {
-            border-color: rgba(0, 0, 0, 0.08);
         }
 
         /* Start Building Button Enhanced */
@@ -1720,85 +1296,33 @@
     <canvas id="hero-canvas"></canvas>
 
     <!-- Navigation -->
-    <nav class="fixed top-0 left-0 glass-card border-b border-theme nav-main" style="z-index: 10000;">
-        <div class="nav-inner flex items-center justify-between h-16 px-6 lg:px-10">
-            <!-- Logo -->
-            <a href="index.html" class="flex items-center gap-3 shrink-0">
-                <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <nav class="fixed top-0 left-0 right-0 glass-card border-b border-theme" style="z-index: 10000;">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                     </svg>
                 </div>
-                <span class="text-lg font-bold tracking-tight hidden sm:block">AI Product Studio</span>
-            </a>
-
-            <!-- Desktop Navigation - Right Aligned -->
-            <div class="hidden lg:flex items-center gap-1">
-                <div class="nav-item">
-                    <button class="nav-link-new" type="button">
-                        Who We Are
-                        <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                        </svg>
-                    </button>
-                    <div class="nav-dropdown-new">
-                        <a href="who-we-are.html">Who We Are</a>
-                        <a href="partners.html">Partners</a>
-                        <a href="leadership.html">Leadership</a>
-                        <a href="culture.html">Culture</a>
-                        <a href="careers.html">Careers</a>
-                    </div>
-                </div>
-                <div class="nav-item">
-                    <button class="nav-link-new" type="button">
-                        What We Do
-                        <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                        </svg>
-                    </button>
-                    <div class="nav-dropdown-new">
-                        <a href="what-we-do.html">Overview</a>
-                        <a href="ai.html">AI Solutions</a>
-                        <a href="product.html">Product Development</a>
-                        <a href="platforms.html">Platforms</a>
-                    </div>
-                </div>
-                <div class="nav-item">
-                    <button class="nav-link-new" type="button">
-                        Industries
-                        <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                        </svg>
-                    </button>
-                    <div class="nav-dropdown-new">
-                        <a href="industries/healthcare.html">Healthcare</a>
-                        <a href="industries/financial-services.html">Financial Services</a>
-                        <a href="industries/retail.html">Retail</a>
-                        <a href="industries/manufacturing.html">Manufacturing</a>
-                    </div>
-                </div>
-                <div class="nav-item">
-                    <button class="nav-link-new" type="button">
-                        Insights
-                        <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                        </svg>
-                    </button>
-                    <div class="nav-dropdown-new">
-                        <a href="insights.html">All Insights</a>
-                        <a href="blogs.html">Blog</a>
-                        <a href="success-stories.html">Success Stories</a>
-                    </div>
-                </div>
-                <a href="careers.html" class="nav-link-new">Careers</a>
-
+                <span class="text-xl font-bold">AI Product Studio</span>
+            </div>
+            <div class="hidden md:flex items-center gap-8">
+                <a href="#problem" class="text-theme-secondary hover:text-theme-primary transition">Problem</a>
+                <a href="#solution" class="text-theme-secondary hover:text-theme-primary transition">Solution</a>
+                <a href="#partnership" class="text-theme-secondary hover:text-theme-primary transition">Partnership</a>
+                <a href="#portfolio" class="text-theme-secondary hover:text-theme-primary transition">Portfolio</a>
+            </div>
+            <div class="flex items-center gap-4">
                 <!-- Theme Switcher -->
                 <div class="theme-switcher">
                     <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle theme">
-                        <svg class="w-4 h-4" id="theme-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5" id="theme-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
                         </svg>
-                        <span class="text-xs font-medium uppercase tracking-wide" id="theme-label">Dark</span>
+                        <span class="hidden sm:inline text-sm font-medium" id="theme-label">Dark</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
                     </button>
                     <div class="theme-dropdown" id="theme-dropdown">
                         <div class="theme-option active" data-theme="dark">
@@ -1819,84 +1343,9 @@
                         </div>
                     </div>
                 </div>
-
-                <a href="contact.html" class="nav-cta-btn">Contact</a>
-                <button class="nav-search-btn" aria-label="Search">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
-                </button>
-            </div>
-
-            <!-- Mobile Menu Button -->
-            <button class="lg:hidden flex items-center justify-center w-10 h-10 rounded-lg hover:bg-white/10 transition" id="mobile-menu-btn" aria-label="Open menu">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-                </svg>
-            </button>
-        </div>
-
-        <!-- Mobile Menu -->
-        <div class="lg:hidden mobile-menu" id="mobile-menu">
-            <div class="px-6 py-4 space-y-1 border-t border-theme">
-                <div class="mobile-nav-item">
-                    <button class="mobile-nav-btn" data-dropdown="mobile-who">
-                        Who We Are
-                        <svg class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                        </svg>
-                    </button>
-                    <div class="mobile-dropdown" id="mobile-who">
-                        <a href="who-we-are.html">Who We Are</a>
-                        <a href="partners.html">Partners</a>
-                        <a href="leadership.html">Leadership</a>
-                        <a href="culture.html">Culture</a>
-                        <a href="careers.html">Careers</a>
-                    </div>
-                </div>
-                <div class="mobile-nav-item">
-                    <button class="mobile-nav-btn" data-dropdown="mobile-what">
-                        What We Do
-                        <svg class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                        </svg>
-                    </button>
-                    <div class="mobile-dropdown" id="mobile-what">
-                        <a href="what-we-do.html">Overview</a>
-                        <a href="ai.html">AI Solutions</a>
-                        <a href="product.html">Product Development</a>
-                        <a href="platforms.html">Platforms</a>
-                    </div>
-                </div>
-                <div class="mobile-nav-item">
-                    <button class="mobile-nav-btn" data-dropdown="mobile-industries">
-                        Industries
-                        <svg class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                        </svg>
-                    </button>
-                    <div class="mobile-dropdown" id="mobile-industries">
-                        <a href="industries/healthcare.html">Healthcare</a>
-                        <a href="industries/financial-services.html">Financial Services</a>
-                        <a href="industries/retail.html">Retail</a>
-                        <a href="industries/manufacturing.html">Manufacturing</a>
-                    </div>
-                </div>
-                <div class="mobile-nav-item">
-                    <button class="mobile-nav-btn" data-dropdown="mobile-insights">
-                        Insights
-                        <svg class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                        </svg>
-                    </button>
-                    <div class="mobile-dropdown" id="mobile-insights">
-                        <a href="insights.html">All Insights</a>
-                        <a href="blogs.html">Blog</a>
-                        <a href="success-stories.html">Success Stories</a>
-                    </div>
-                </div>
-                <a href="careers.html" class="mobile-nav-link">Careers</a>
-                <a href="contact.html" class="mobile-nav-cta">Contact Us</a>
+                <a href="apply.html" class="cta-button px-6 py-2.5 rounded-full text-white font-semibold hidden sm:block">
+                    Start Building
+                </a>
             </div>
         </div>
     </nav>
@@ -2573,22 +2022,7 @@
         // GSAP Scroll Animations
         gsap.registerPlugin(ScrollTrigger);
 
-        // Immediate animation for hero section (visible on page load)
-        gsap.utils.toArray('#hero .section-reveal').forEach((elem, i) => {
-            gsap.to(elem, {
-                opacity: 1,
-                y: 0,
-                duration: 1.2,
-                ease: 'power3.out',
-                delay: 0.3 + (i * 0.2)
-            });
-        });
-
-        // Scroll-triggered animations for other sections
         gsap.utils.toArray('.section-reveal').forEach((elem, i) => {
-            // Skip hero elements (already animated above)
-            if (elem.closest('#hero')) return;
-
             gsap.to(elem, {
                 opacity: 1,
                 y: 0,
@@ -2630,17 +2064,6 @@
         `;
         document.head.appendChild(style);
 
-        const syncNavHeight = () => {
-            const nav = document.querySelector('nav');
-            if (!nav) {
-                return;
-            }
-            document.documentElement.style.setProperty('--nav-height', `${nav.offsetHeight}px`);
-        };
-
-        window.addEventListener('resize', syncNavHeight);
-        syncNavHeight();
-
         window.addEventListener('scroll', () => {
             const nav = document.querySelector('nav');
             const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
@@ -2654,7 +2077,7 @@
 
         // Active Nav Link based on scroll position
         const sections = document.querySelectorAll('section[id]');
-        const navLinks = document.querySelectorAll('nav a[data-scroll=\"true\"]');
+        const navLinks = document.querySelectorAll('nav a[href^="#"]');
 
         function setActiveNavLink() {
             let currentSection = '';
@@ -2697,117 +2120,7 @@
             });
         });
 
-        // ============================================
-        // MOBILE MENU FUNCTIONALITY
-        // ============================================
-
-        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
-        const mobileMenu = document.getElementById('mobile-menu');
-        const mobileNavBtns = document.querySelectorAll('.mobile-nav-btn');
-
-        // Toggle mobile menu
-        if (mobileMenuBtn && mobileMenu) {
-            mobileMenuBtn.addEventListener('click', () => {
-                mobileMenu.classList.toggle('open');
-                // Toggle hamburger to X
-                const icon = mobileMenuBtn.querySelector('svg');
-                if (mobileMenu.classList.contains('open')) {
-                    icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>';
-                } else {
-                    icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>';
-                }
-            });
-        }
-
-        // Toggle mobile dropdowns
-        mobileNavBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const dropdownId = btn.getAttribute('data-dropdown');
-                const dropdown = document.getElementById(dropdownId);
-
-                // Close other dropdowns
-                document.querySelectorAll('.mobile-dropdown.open').forEach(d => {
-                    if (d.id !== dropdownId) {
-                        d.classList.remove('open');
-                        const otherBtn = document.querySelector(`[data-dropdown="${d.id}"]`);
-                        if (otherBtn) otherBtn.classList.remove('active');
-                    }
-                });
-
-                // Toggle current
-                if (dropdown) {
-                    dropdown.classList.toggle('open');
-                    btn.classList.toggle('active');
-                }
-            });
-        });
-
-        // ============================================
-        // NAV + CHAT WIDGET INTEGRATION
-        // ============================================
-
-        // Watch for chat widget state changes
-        function updateNavForChat() {
-            const nav = document.querySelector('.nav-main');
-            const chatSidebar = document.querySelector('.chat-sidebar');
-
-            if (nav && chatSidebar) {
-                const isOpen = chatSidebar.classList.contains('open');
-                const sidebarWidth = chatSidebar.offsetWidth || 380;
-
-                if (isOpen) {
-                    nav.style.right = sidebarWidth + 'px';
-                    document.documentElement.style.setProperty('--chat-sidebar-width', sidebarWidth + 'px');
-                } else {
-                    nav.style.right = '0';
-                }
-            }
-        }
-
-        // Create observer to watch for chat sidebar class changes
-        const chatObserver = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                    updateNavForChat();
-                }
-            });
-        });
-
-        // Start observing once chat widget is loaded
-        setTimeout(() => {
-            const chatSidebar = document.querySelector('.chat-sidebar');
-            if (chatSidebar) {
-                chatObserver.observe(chatSidebar, { attributes: true });
-                updateNavForChat(); // Initial check
-            }
-        }, 500);
-
-        // Also listen for window resize
-        window.addEventListener('resize', updateNavForChat);
-
     </script>
-
-    <!-- Search Overlay -->
-    <div id="search-overlay" class="search-overlay">
-        <div class="search-modal">
-            <div class="search-header">
-                <div class="search-input-wrapper">
-                    <svg class="w-5 h-5 text-theme-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
-                    <input type="text" id="search-input" placeholder="Search pages..." autocomplete="off">
-                </div>
-                <button id="search-close" class="search-close-btn" aria-label="Close search">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>
-            </div>
-            <div class="search-results" id="search-results">
-                <p class="search-hint">Start typing to search...</p>
-            </div>
-        </div>
-    </div>
 
     <!-- Chat Widget -->
     <script src="js/chat-widget.js"></script>
@@ -2823,83 +2136,6 @@ I'm here to answer any questions about our partnership model. We help business f
 What would you like to know?`,
             pageType: 'landing',
             startOpen: true
-        });
-
-        // Search Functionality
-        const searchPages = [
-            { title: 'Home', desc: 'AI Product Studio - Launch your product in 2 weeks', url: 'index.html' },
-            { title: 'Who We Are', desc: 'Learn about AI Product Studio and our mission', url: 'who-we-are.html' },
-            { title: 'Partners', desc: 'Our technology partners and alliances', url: 'partners.html' },
-            { title: 'Leadership', desc: 'Meet our executive team', url: 'leadership.html' },
-            { title: 'Culture', desc: 'Our values and what makes us unique', url: 'culture.html' },
-            { title: 'Careers', desc: 'Join our team and build the future', url: 'careers.html' },
-            { title: 'What We Do', desc: 'Overview of our services', url: 'what-we-do.html' },
-            { title: 'AI Solutions', desc: 'Custom AI and machine learning solutions', url: 'ai.html' },
-            { title: 'Product Development', desc: 'End-to-end product development services', url: 'product.html' },
-            { title: 'Platforms', desc: 'Our technology platforms and frameworks', url: 'platforms.html' },
-            { title: 'Healthcare', desc: 'AI solutions for healthcare industry', url: 'industries/healthcare.html' },
-            { title: 'Financial Services', desc: 'AI solutions for financial industry', url: 'industries/financial-services.html' },
-            { title: 'Retail', desc: 'AI solutions for retail industry', url: 'industries/retail.html' },
-            { title: 'Manufacturing', desc: 'AI solutions for manufacturing', url: 'industries/manufacturing.html' },
-            { title: 'Insights', desc: 'Articles and thought leadership', url: 'insights.html' },
-            { title: 'Blog', desc: 'Latest articles and tutorials', url: 'blogs.html' },
-            { title: 'Success Stories', desc: 'Case studies and client results', url: 'success-stories.html' },
-            { title: 'Contact', desc: 'Get in touch with us', url: 'contact.html' },
-        ];
-
-        const searchOverlay = document.getElementById('search-overlay');
-        const searchInput = document.getElementById('search-input');
-        const searchResults = document.getElementById('search-results');
-        const searchBtn = document.querySelector('.nav-search-btn');
-        const searchClose = document.getElementById('search-close');
-
-        function openSearch() {
-            searchOverlay.classList.add('active');
-            searchInput.focus();
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeSearch() {
-            searchOverlay.classList.remove('active');
-            searchInput.value = '';
-            searchResults.innerHTML = '<p class="search-hint">Start typing to search...</p>';
-            document.body.style.overflow = '';
-        }
-
-        function performSearch(query) {
-            if (!query.trim()) {
-                searchResults.innerHTML = '<p class="search-hint">Start typing to search...</p>';
-                return;
-            }
-            const lowerQuery = query.toLowerCase();
-            const results = searchPages.filter(page =>
-                page.title.toLowerCase().includes(lowerQuery) ||
-                page.desc.toLowerCase().includes(lowerQuery)
-            );
-            if (results.length === 0) {
-                searchResults.innerHTML = '<p class="no-results">No results found</p>';
-            } else {
-                searchResults.innerHTML = results.map(page => `
-                    <a href="${page.url}" class="search-result-item">
-                        <div class="result-title">${page.title}</div>
-                        <div class="result-desc">${page.desc}</div>
-                    </a>
-                `).join('');
-            }
-        }
-
-        if (searchBtn) searchBtn.addEventListener('click', openSearch);
-        if (searchClose) searchClose.addEventListener('click', closeSearch);
-        if (searchOverlay) searchOverlay.addEventListener('click', (e) => {
-            if (e.target === searchOverlay) closeSearch();
-        });
-        if (searchInput) searchInput.addEventListener('input', (e) => performSearch(e.target.value));
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && searchOverlay.classList.contains('active')) closeSearch();
-            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-                e.preventDefault();
-                openSearch();
-            }
         });
     </script>
 </body>

@@ -60,6 +60,8 @@ class ChatWidget {
         this.bindElements();
         this.bindEvents();
         this.initVoice();
+        this.updateLayoutOffset();
+        window.addEventListener('resize', () => this.updateLayoutOffset());
 
         // Show welcome message
         setTimeout(() => {
@@ -233,6 +235,7 @@ class ChatWidget {
             const diff = startX - e.clientX;
             const newWidth = Math.min(600, Math.max(300, startWidth + diff));
             this.elements.sidebar.style.width = newWidth + 'px';
+            this.updateLayoutOffset();
         });
 
         document.addEventListener('mouseup', () => {
@@ -241,6 +244,7 @@ class ChatWidget {
                 this.elements.resizeHandle.classList.remove('dragging');
                 document.body.style.cursor = '';
                 document.body.style.userSelect = '';
+                this.updateLayoutOffset();
             }
         });
     }
@@ -360,6 +364,7 @@ class ChatWidget {
         this.state.isOpen = !this.state.isOpen;
         this.elements.sidebar.classList.toggle('open', this.state.isOpen);
         this.elements.toggle.classList.toggle('hidden', this.state.isOpen);
+        this.updateLayoutOffset();
         if (this.state.isOpen) {
             this.elements.input.focus();
         }
@@ -371,6 +376,13 @@ class ChatWidget {
 
     close() {
         if (this.state.isOpen) this.toggle();
+    }
+
+    updateLayoutOffset() {
+        const sidebar = this.elements.sidebar;
+        if (!sidebar) return;
+        const offset = this.state.isOpen ? sidebar.offsetWidth : 0;
+        document.documentElement.style.setProperty('--chat-offset', `${offset}px`);
     }
 
     clearChat() {

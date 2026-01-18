@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <title>Blog | AI Product Studio</title>
+    <meta name="description" content="Latest articles, tutorials, and insights on AI, product development, and technology trends.">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { theme: { extend: { colors: { primary: 'var(--primary)', secondary: 'var(--secondary)', accent: 'var(--accent)' } } } }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="js/config.js"></script>
+    <link rel="stylesheet" href="css/chat-widget.css">
+
+    <style>
+        :root { --transition-speed: 0.4s; }
+        [data-theme="dark"] { --bg-primary: #020617; --bg-secondary: #0f172a; --bg-card: rgba(15, 23, 42, 0.7); --text-primary: #f1f5f9; --text-secondary: #94a3b8; --text-muted: #64748b; --border-color: rgba(99, 102, 241, 0.2); --primary: #6366f1; --secondary: #8b5cf6; --accent: #06b6d4; --nav-bg: rgba(2, 6, 23, 0.8); --glow-color: rgba(99, 102, 241, 0.3); }
+        [data-theme="light"] { --bg-primary: #f8fafc; --bg-secondary: #e2e8f0; --bg-card: rgba(255, 255, 255, 0.9); --text-primary: #0f172a; --text-secondary: #475569; --text-muted: #64748b; --border-color: rgba(99, 102, 241, 0.15); --primary: #4f46e5; --secondary: #7c3aed; --accent: #0891b2; --nav-bg: rgba(248, 250, 252, 0.95); --glow-color: rgba(79, 70, 229, 0.2); }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg-primary); color: var(--text-primary); overflow-x: hidden; }
+        .glass-card { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-color); }
+        .gradient-text { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .hero-bg { background: linear-gradient(135deg, rgba(2,6,23,0.85) 0%, rgba(15,23,42,0.9) 100%), url('https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=1920&q=80') center/cover no-repeat; }
+        [data-theme="light"] .hero-bg { background: linear-gradient(135deg, rgba(248,250,252,0.92) 0%, rgba(226,232,240,0.94) 100%), url('https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=1920&q=80') center/cover no-repeat; }
+        .section-reveal { opacity: 0; transform: translateY(40px); }
+        .nav-link-new { display: inline-flex; align-items: center; padding: 0.5rem 1rem; font-size: 0.8125rem; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; transition: color 0.2s ease; white-space: nowrap; background: none; border: none; cursor: pointer; }
+        .nav-link-new:hover { color: var(--text-primary); }
+        .nav-cta-btn { display: inline-flex; align-items: center; padding: 0.5rem 1.25rem; font-size: 0.8125rem; font-weight: 600; color: white; text-transform: uppercase; letter-spacing: 0.05em; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); border-radius: 2px; transition: all 0.2s ease; }
+        .nav-dropdown-new { position: absolute; top: 100%; left: 0; min-width: 200px; background: rgba(15, 15, 20, 0.98); border: 1px solid rgba(255, 255, 255, 0.08); padding: 0.75rem 0; opacity: 0; visibility: hidden; transform: translateY(8px); transition: all 0.2s ease; z-index: 9999; }
+        .nav-item:hover .nav-dropdown-new { opacity: 1; visibility: visible; transform: translateY(0); }
+        .nav-dropdown-new a { display: block; padding: 0.625rem 1.25rem; font-size: 0.875rem; color: rgba(255, 255, 255, 0.7); transition: all 0.15s ease; }
+        .nav-dropdown-new a:hover { color: white; background: rgba(255, 255, 255, 0.05); }
+        .blog-card { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-color); border-radius: 1rem; overflow: hidden; transition: all 0.3s ease; }
+        .blog-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px var(--glow-color); }
+        .blog-img { width: 100%; height: 200px; object-fit: cover; transition: transform 0.3s ease; }
+        .blog-card:hover .blog-img { transform: scale(1.05); }
+        .category-badge { display: inline-flex; align-items: center; padding: 0.25rem 0.75rem; background: var(--primary); color: white; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; }
+        .featured-card { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-color); border-radius: 1.5rem; overflow: hidden; transition: all 0.3s ease; }
+        .featured-card:hover { box-shadow: 0 20px 50px var(--glow-color); }
+    </style>
+</head>
+<body>
+    <nav class="fixed top-0 left-0 right-0 glass-card border-b border-theme" style="z-index: 10000;">
+        <div class="max-w-7xl mx-auto flex items-center justify-between h-16 px-6 lg:px-10">
+            <a href="index.html" class="flex items-center gap-3 shrink-0">
+                <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                </div>
+                <span class="text-lg font-bold tracking-tight hidden sm:block">AI Product Studio</span>
+            </a>
+            <div class="hidden lg:flex items-center gap-1">
+                <div class="nav-item relative">
+                    <button class="nav-link-new">Who We Are <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button>
+                    <div class="nav-dropdown-new"><a href="who-we-are.html">Who We Are</a><a href="partners.html">Partners</a><a href="leadership.html">Leadership</a><a href="culture.html">Culture</a><a href="careers.html">Careers</a></div>
+                </div>
+                <div class="nav-item relative">
+                    <button class="nav-link-new">What We Do <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button>
+                    <div class="nav-dropdown-new"><a href="what-we-do.html">Overview</a><a href="ai.html">AI Solutions</a><a href="product.html">Product Development</a><a href="platforms.html">Platforms</a></div>
+                </div>
+                <div class="nav-item relative">
+                    <button class="nav-link-new">Industries <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button>
+                    <div class="nav-dropdown-new"><a href="industries/healthcare.html">Healthcare</a><a href="industries/financial-services.html">Financial Services</a><a href="industries/retail.html">Retail</a><a href="industries/manufacturing.html">Manufacturing</a></div>
+                </div>
+                <div class="nav-item relative">
+                    <button class="nav-link-new">Insights <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button>
+                    <div class="nav-dropdown-new"><a href="insights.html">All Insights</a><a href="blogs.html">Blog</a><a href="success-stories.html">Success Stories</a></div>
+                </div>
+                <a href="careers.html" class="nav-link-new">Careers</a>
+                <a href="contact.html" class="nav-cta-btn">Contact</a>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero-bg min-h-[50vh] flex items-center justify-center px-6 pt-20">
+        <div class="max-w-5xl mx-auto text-center section-reveal">
+            <p class="text-accent font-semibold tracking-wider uppercase mb-4">Our Blog</p>
+            <h1 class="text-4xl md:text-6xl font-bold mb-6 leading-tight">
+                Insights & <span class="gradient-text">Ideas</span>
+            </h1>
+            <p class="text-xl text-theme-secondary max-w-3xl mx-auto leading-relaxed">
+                Thoughts on AI, product development, and the future of technology from our team.
+            </p>
+        </div>
+    </section>
+
+    <section class="py-16 px-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="featured-card section-reveal mb-16">
+                <div class="grid md:grid-cols-2">
+                    <img src="https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80" alt="Featured post" class="w-full h-64 md:h-full object-cover">
+                    <div class="p-8 md:p-12 flex flex-col justify-center">
+                        <span class="category-badge mb-4 w-fit">Featured</span>
+                        <h2 class="text-2xl md:text-3xl font-bold mb-4">The Future of AI in Product Development: 2024 and Beyond</h2>
+                        <p class="text-theme-secondary mb-6">Explore how AI is transforming the way we build products, from ideation to deployment, and what it means for the future of software development.</p>
+                        <div class="flex items-center gap-4">
+                            <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&q=80" alt="Author" class="w-10 h-10 rounded-full object-cover">
+                            <div>
+                                <p class="font-medium">Alex Chen</p>
+                                <p class="text-sm text-theme-secondary">Jan 15, 2024 · 8 min read</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <article class="blog-card section-reveal">
+                    <div class="overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?w=600&q=80" alt="Blog post" class="blog-img">
+                    </div>
+                    <div class="p-6">
+                        <span class="category-badge mb-3 w-fit" style="background: var(--secondary);">AI</span>
+                        <h3 class="text-lg font-bold mb-2">Building RAG Applications: A Practical Guide</h3>
+                        <p class="text-theme-secondary text-sm mb-4">Learn how to build production-ready retrieval-augmented generation systems.</p>
+                        <p class="text-sm text-theme-muted">Jan 10, 2024 · 6 min read</p>
+                    </div>
+                </article>
+
+                <article class="blog-card section-reveal">
+                    <div class="overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1551434678-e076c223a692?w=600&q=80" alt="Blog post" class="blog-img">
+                    </div>
+                    <div class="p-6">
+                        <span class="category-badge mb-3 w-fit" style="background: var(--accent);">Product</span>
+                        <h3 class="text-lg font-bold mb-2">Why We Launch Products in 2 Weeks</h3>
+                        <p class="text-theme-secondary text-sm mb-4">The philosophy and methodology behind our rapid product development approach.</p>
+                        <p class="text-sm text-theme-muted">Jan 8, 2024 · 5 min read</p>
+                    </div>
+                </article>
+
+                <article class="blog-card section-reveal">
+                    <div class="overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=600&q=80" alt="Blog post" class="blog-img">
+                    </div>
+                    <div class="p-6">
+                        <span class="category-badge mb-3 w-fit">AI</span>
+                        <h3 class="text-lg font-bold mb-2">Fine-tuning LLMs for Enterprise Applications</h3>
+                        <p class="text-theme-secondary text-sm mb-4">Best practices for customizing large language models for business use cases.</p>
+                        <p class="text-sm text-theme-muted">Jan 5, 2024 · 10 min read</p>
+                    </div>
+                </article>
+
+                <article class="blog-card section-reveal">
+                    <div class="overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1553877522-43269d4ea984?w=600&q=80" alt="Blog post" class="blog-img">
+                    </div>
+                    <div class="p-6">
+                        <span class="category-badge mb-3 w-fit" style="background: var(--secondary);">Design</span>
+                        <h3 class="text-lg font-bold mb-2">Designing AI-First User Experiences</h3>
+                        <p class="text-theme-secondary text-sm mb-4">How to create intuitive interfaces for AI-powered products.</p>
+                        <p class="text-sm text-theme-muted">Jan 3, 2024 · 7 min read</p>
+                    </div>
+                </article>
+
+                <article class="blog-card section-reveal">
+                    <div class="overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=600&q=80" alt="Blog post" class="blog-img">
+                    </div>
+                    <div class="p-6">
+                        <span class="category-badge mb-3 w-fit" style="background: var(--accent);">Engineering</span>
+                        <h3 class="text-lg font-bold mb-2">Scaling AI Workloads on Kubernetes</h3>
+                        <p class="text-theme-secondary text-sm mb-4">Infrastructure patterns for running ML models in production.</p>
+                        <p class="text-sm text-theme-muted">Dec 28, 2023 · 12 min read</p>
+                    </div>
+                </article>
+
+                <article class="blog-card section-reveal">
+                    <div class="overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&q=80" alt="Blog post" class="blog-img">
+                    </div>
+                    <div class="p-6">
+                        <span class="category-badge mb-3 w-fit">Culture</span>
+                        <h3 class="text-lg font-bold mb-2">Building a Remote-First AI Company</h3>
+                        <p class="text-theme-secondary text-sm mb-4">Lessons learned from scaling a distributed team of AI engineers.</p>
+                        <p class="text-sm text-theme-muted">Dec 20, 2023 · 6 min read</p>
+                    </div>
+                </article>
+            </div>
+
+            <div class="text-center mt-12 section-reveal">
+                <button class="glass-card px-8 py-3 rounded-full font-medium hover:bg-primary/10 transition-colors">Load More Articles</button>
+            </div>
+        </div>
+    </section>
+
+    <footer class="py-12 px-6 border-t border-theme">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                </div>
+                <span class="font-semibold">AI Product Studio</span>
+            </div>
+            <p class="text-theme-secondary text-sm">&copy; 2024 AI Product Studio. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/chat-widget.js"></script>
+    <script>
+        const chatWidget = new ChatWidget({ title: 'AI Product Studio', subtitle: 'Online', welcomeMessage: 'Have questions about our articles?', pageType: 'blog' });
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.utils.toArray('.section-reveal').forEach((elem) => {
+            const isHero = elem.closest('section')?.classList.contains('hero-bg');
+            if (isHero) { gsap.to(elem, { opacity: 1, y: 0, duration: 1, ease: 'power3.out', delay: 0.3 }); }
+            else { gsap.to(elem, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', scrollTrigger: { trigger: elem, start: 'top 85%' } }); }
+        });
+        document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'dark');
+    </script>
+</body>
+</html>
