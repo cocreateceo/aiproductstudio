@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Product Studio - Chat</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+    <!-- Centralized Configuration -->
+    <script src="js/config.js"></script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Chat Widget Styles -->
+    <link rel="stylesheet" href="css/chat-widget.css">
+
+    <!-- html2canvas for screenshots -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        /* Theme Variables */
+        :root {
+            --transition-speed: 0.3s;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: rgba(18, 18, 26, 0.95);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: rgba(99, 102, 241, 0.2);
+            --primary: #6366f1;
+            --secondary: #8b5cf6;
+            --accent: #06b6d4;
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f1f5f9;
+            --bg-card: rgba(255, 255, 255, 0.98);
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            --border-color: rgba(99, 102, 241, 0.15);
+            --primary: #4f46e5;
+            --secondary: #7c3aed;
+            --accent: #0891b2;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            background: var(--bg-primary);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        /* Popup window specific styles */
+        #chat-widget {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-sidebar {
+            position: relative !important;
+            top: 0 !important;
+            right: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            max-width: none !important;
+            border-radius: 0 !important;
+            transform: none !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            display: flex !important;
+            flex-direction: column;
+        }
+
+        .chat-sidebar.open {
+            transform: none !important;
+        }
+
+        /* Hide elements not needed in popup */
+        .chat-toggle,
+        .chat-resize-handle {
+            display: none !important;
+        }
+
+        /* Header styling for popup */
+        .chat-header {
+            border-radius: 0 !important;
+            flex-shrink: 0;
+        }
+
+        /* Messages area fills remaining space */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        /* Input area at bottom */
+        .chat-input-area {
+            flex-shrink: 0;
+        }
+
+        /* Page context indicator */
+        .page-context-bar {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 6px 16px;
+            font-size: 11px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .page-context-bar svg {
+            width: 12px;
+            height: 12px;
+            opacity: 0.6;
+        }
+
+        .page-context-bar .page-name {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <!-- Page Context Bar -->
+    <div id="page-context-bar" class="page-context-bar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        <span>Viewing:</span>
+        <span id="current-page" class="page-name">Home</span>
+    </div>
+
+    <!-- Chat Widget Container -->
+    <div id="chat-widget-container"></div>
+
+    <script src="js/chat-widget.js"></script>
+    <script>
+        // Page context received from parent window
+        let pageContext = {
+            page: 'index',
+            title: 'AI Product Studio',
+            url: ''
+        };
+
+        // Update page context display
+        function updatePageContextDisplay() {
+            const pageNameEl = document.getElementById('current-page');
+            if (pageNameEl) {
+                // Format page name nicely
+                let displayName = pageContext.page || 'Home';
+                displayName = displayName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                if (displayName === 'Index') displayName = 'Home';
+                pageNameEl.textContent = displayName;
+            }
+        }
+
+        // Listen for messages from parent/opener window
+        window.addEventListener('message', (event) => {
+            const data = event.data;
+            if (!data || !data.type) return;
+
+            if (data.type === 'pageContext') {
+                pageContext = {
+                    page: data.page || 'index',
+                    title: data.title || 'AI Product Studio',
+                    url: data.url || ''
+                };
+                console.log('[Chat Popup] Page context updated:', pageContext);
+                updatePageContextDisplay();
+
+                // Update chat widget's context
+                if (window.chatWidget) {
+                    window.chatWidget.setPageContext(pageContext);
+                }
+            }
+
+            if (data.type === 'setTheme') {
+                document.documentElement.setAttribute('data-theme', data.theme);
+                localStorage.setItem('theme', data.theme);
+            }
+        });
+
+        // Initialize chat widget
+        window.chatWidget = new ChatWidget({
+            title: 'AI Product Studio',
+            subtitle: 'Online - Ready to help',
+            welcomeMessage: `Hi there! 👋 Welcome to AI Product Studio!
+
+I'm here to answer any questions about our partnership model. We help business founders launch AI-powered products in just 2 weeks.
+
+What would you like to know?`,
+            startOpen: true,
+            containerId: 'chat-widget-container',
+            iframeMode: false,
+            getPageContext: () => pageContext
+        });
+
+        // Notify opener that chat is ready
+        if (window.opener) {
+            window.opener.postMessage({ type: 'chatReady' }, '*');
+        }
+
+        // Apply saved theme
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+
+        // Update context display
+        updatePageContextDisplay();
+
+        // Handle window close
+        window.addEventListener('beforeunload', () => {
+            if (window.opener) {
+                window.opener.postMessage({ type: 'chatClosed' }, '*');
+            }
+        });
+    </script>
+</body>
+</html>

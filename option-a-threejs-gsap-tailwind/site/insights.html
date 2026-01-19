@@ -20,6 +20,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
     <script src="js/config.js"></script>
     <link rel="stylesheet" href="css/chat-widget.css">
+    <link rel="stylesheet" href="css/responsive.css">
 
     <style>
         :root { --transition-speed: 0.4s; }
@@ -63,6 +64,20 @@
         .article-image { height: 200px; background-size: cover; background-position: center; }
         .category-badge { display: inline-flex; padding: 0.25rem 0.75rem; background: var(--primary); color: white; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; text-transform: uppercase; }
         .featured-card { background: linear-gradient(135deg, var(--bg-card) 0%, rgba(99, 102, 241, 0.1) 100%); border: 1px solid var(--primary); }
+        /* Theme Switcher Styles */
+        .theme-switcher { position: relative; }
+        .theme-toggle-btn { display: flex; align-items: center; gap: 6px; padding: 0.5rem 0.75rem; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; transition: color 0.2s ease; }
+        .theme-toggle-btn:hover { color: var(--text-primary); }
+        .theme-dropdown { position: absolute; top: calc(100% + 8px); right: 0; background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-color); border-radius: 16px; padding: 8px; min-width: 180px; opacity: 0; visibility: hidden; transform: translateY(-10px); transition: all 0.3s ease; z-index: 100; }
+        .theme-dropdown.active { opacity: 1; visibility: visible; transform: translateY(0); }
+        .theme-option { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 12px; cursor: pointer; transition: all 0.2s ease; color: var(--text-secondary); }
+        .theme-option:hover { background: var(--bg-secondary); color: var(--text-primary); }
+        .theme-option.active { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; }
+        .theme-preview { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--border-color); position: relative; overflow: hidden; }
+        .theme-preview-dark { background: linear-gradient(135deg, #020617 50%, #6366f1 50%); }
+        .theme-preview-midnight { background: linear-gradient(135deg, #0c0a1d 50%, #a78bfa 50%); }
+        .theme-preview-dusk { background: linear-gradient(135deg, #1e1b2e 50%, #fb923c 50%); }
+        .theme-preview-light { background: linear-gradient(135deg, #f8fafc 50%, #4f46e5 50%); }
     </style>
 </head>
 <body>
@@ -93,6 +108,21 @@
                     <div class="nav-dropdown-new"><a href="insights.html">All Insights</a><a href="blogs.html">Blog</a><a href="success-stories.html">Success Stories</a></div>
                 </div>
                 <a href="careers.html" class="nav-link-new">Careers</a>
+                <!-- Theme Switcher -->
+                <div class="theme-switcher">
+                    <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle theme">
+                        <svg class="w-4 h-4" id="theme-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                        </svg>
+                        <span class="text-xs font-medium uppercase tracking-wide" id="theme-label">Dark</span>
+                    </button>
+                    <div class="theme-dropdown" id="theme-dropdown">
+                        <div class="theme-option active" data-theme="dark"><div class="theme-preview theme-preview-dark"></div><span>Dark</span></div>
+                        <div class="theme-option" data-theme="midnight"><div class="theme-preview theme-preview-midnight"></div><span>Midnight</span></div>
+                        <div class="theme-option" data-theme="dusk"><div class="theme-preview theme-preview-dusk"></div><span>Dusk</span></div>
+                        <div class="theme-option" data-theme="light"><div class="theme-preview theme-preview-light"></div><span>Light</span></div>
+                    </div>
+                </div>
                 <a href="apply.html" class="nav-cta-btn">Contact</a>
             </div>
         </div>
@@ -221,17 +251,45 @@
         </div>
     </footer>
 
+    <!-- Chat Widget (iframe-based, persists across pages) -->
     <script src="js/chat-widget.js"></script>
+    <script src="js/chat-loader.js"></script>
     <script>
-        const chatWidget = new ChatWidget({ title: 'AI Product Studio', subtitle: 'Online - Ready to help', welcomeMessage: 'Looking for insights on AI and product development? Ask away!', pageType: 'insights' });
         gsap.registerPlugin(ScrollTrigger);
         gsap.utils.toArray('.section-reveal').forEach((elem, i) => {
             const isHero = elem.closest('section')?.classList.contains('hero-bg');
             if (isHero) { gsap.to(elem, { opacity: 1, y: 0, duration: 1, ease: 'power3.out', delay: 0.3 }); }
             else { gsap.to(elem, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', scrollTrigger: { trigger: elem, start: 'top 85%' } }); }
         });
-        const theme = localStorage.getItem('theme') || 'dark';
-        document.documentElement.setAttribute('data-theme', theme);
+        // Theme Management
+        const themes = {
+            dark: { icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>`, label: 'Dark' },
+            midnight: { icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>`, label: 'Midnight' },
+            dusk: { icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>`, label: 'Dusk' },
+            light: { icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>`, label: 'Light' }
+        };
+        let currentTheme = localStorage.getItem('theme') || 'dark';
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeDropdown = document.getElementById('theme-dropdown');
+        const themeIcon = document.getElementById('theme-icon');
+        const themeLabel = document.getElementById('theme-label');
+        const themeOptions = document.querySelectorAll('.theme-option');
+
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            currentTheme = theme;
+            localStorage.setItem('theme', theme);
+            themeIcon.innerHTML = themes[theme].icon;
+            themeLabel.textContent = themes[theme].label;
+            themeOptions.forEach(option => { option.classList.toggle('active', option.dataset.theme === theme); });
+        }
+
+        themeToggle.addEventListener('click', (e) => { e.stopPropagation(); themeDropdown.classList.toggle('active'); });
+        document.addEventListener('click', () => { themeDropdown.classList.remove('active'); });
+        themeOptions.forEach(option => {
+            option.addEventListener('click', (e) => { e.stopPropagation(); setTheme(option.dataset.theme); themeDropdown.classList.remove('active'); });
+        });
+        setTheme(currentTheme);
     </script>
 </body>
 </html>

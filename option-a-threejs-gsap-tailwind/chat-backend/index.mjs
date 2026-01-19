@@ -1034,9 +1034,18 @@ Example response:
 }
 
 // Chat with Claude
-async function chatWithClaude(messages, hasContactInfo, screenshot = null) {
+async function chatWithClaude(messages, hasContactInfo, screenshot = null, pageContext = null) {
   try {
     let contextualPrompt = SYSTEM_PROMPT;
+
+    // Add page context so AI knows where the user is
+    if (pageContext && pageContext.currentPage) {
+      contextualPrompt += `\n\n## CURRENT PAGE CONTEXT:
+The user is currently viewing the "${pageContext.currentPage}" page on the AI Product Studio website.
+Page URL: ${pageContext.url || 'Unknown'}
+If the user asks about "this page" or "where am I", refer to this page context.`;
+    }
+
     if (hasContactInfo) {
       contextualPrompt += '\n\n## Current Status: Contact info collected. Provide helpful detailed answers about AI Product Studio partnerships.';
     } else {
@@ -1622,10 +1631,14 @@ export const handler = async (event) => {
     // Get screenshot from request if provided
     const screenshot = body.screenshot || null;
 
+    // Get page context from request
+    const pageContext = body.pageContext || null;
+    console.log('Page context received:', pageContext);
+
     // Get AI response
     let response;
     try {
-      response = await chatWithClaude(messages, hasCompleteContactInfo, screenshot);
+      response = await chatWithClaude(messages, hasCompleteContactInfo, screenshot, pageContext);
     } catch (claudeError) {
       console.log('Claude failed, trying OpenAI backup');
       response = await chatWithOpenAI(messages, hasCompleteContactInfo, screenshot);

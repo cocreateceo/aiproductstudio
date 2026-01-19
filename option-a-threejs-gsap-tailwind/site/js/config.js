@@ -29,10 +29,8 @@
 
     // API Configuration
     api: {
-      // Chat endpoint
-      chat: isLocal
-        ? `http://localhost:5000/api/chat`
-        : 'https://bx0ywfkona.execute-api.ap-south-1.amazonaws.com/prod/chat',
+      // Chat endpoint - always use production API (no local backend)
+      chat: 'https://bx0ywfkona.execute-api.ap-south-1.amazonaws.com/prod/chat',
 
       // Admin endpoints (local only)
       admin: isLocal ? `http://localhost:5000/api/admin` : null,

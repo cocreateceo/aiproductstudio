@@ -33,18 +33,31 @@ class ChatWidget {
             startOpen: options.startOpen !== false,
             apiUrl: this.detectApiUrl(),
             onFormData: options.onFormData || null,
-            containerId: options.containerId || 'chat-widget-container'
+            containerId: options.containerId || 'chat-widget-container',
+            storageKey: 'aiProductStudio_chat',
+            iframeMode: options.iframeMode || false,
+            getPageContext: options.getPageContext || null
         };
+
+        // Page context for iframe mode
+        this.pageContext = {
+            page: 'unknown',
+            title: document.title,
+            url: window.location.href
+        };
+
+        // Load persisted state or use defaults
+        const savedState = this.loadState();
 
         // State
         this.state = {
-            messages: [],
-            visitorInfo: {},
-            isOpen: this.config.startOpen,
+            messages: savedState.messages || [],
+            visitorInfo: savedState.visitorInfo || {},
+            isOpen: savedState.isOpen !== undefined ? savedState.isOpen : this.config.startOpen,
             isLoading: false,
             screenshot: null,
-            tokenUsage: { total: 0, cost: 0, requests: 0 },
-            sessionId: null
+            tokenUsage: savedState.tokenUsage || { total: 0, cost: 0, requests: 0 },
+            sessionId: savedState.sessionId || null
         };
 
         // Elements (will be set after render)
@@ -63,10 +76,71 @@ class ChatWidget {
         this.updateLayoutOffset();
         window.addEventListener('resize', () => this.updateLayoutOffset());
 
-        // Show welcome message
-        setTimeout(() => {
-            this.addMessage('assistant', this.config.welcomeMessage);
-        }, 300);
+        // Restore messages or show welcome
+        if (this.state.messages.length > 0) {
+            console.log('[ChatWidget] Restoring', this.state.messages.length, 'messages from localStorage');
+            this.restoreMessages();
+        } else {
+            console.log('[ChatWidget] No saved messages, showing welcome');
+            setTimeout(() => {
+                this.addMessage('assistant', this.config.welcomeMessage);
+            }, 300);
+        }
+    }
+
+    // Persistence methods
+    loadState() {
+        try {
+            const saved = localStorage.getItem(this.config.storageKey);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                // Check if session is still valid (24 hours)
+                if (parsed.timestamp && Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
+                    return parsed;
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to load chat state:', e);
+        }
+        return {};
+    }
+
+    saveState() {
+        try {
+            const stateToSave = {
+                messages: this.state.messages,
+                visitorInfo: this.state.visitorInfo,
+                isOpen: this.state.isOpen,
+                tokenUsage: this.state.tokenUsage,
+                sessionId: this.state.sessionId,
+                timestamp: Date.now()
+            };
+            localStorage.setItem(this.config.storageKey, JSON.stringify(stateToSave));
+        } catch (e) {
+            console.warn('Failed to save chat state:', e);
+        }
+    }
+
+    restoreMessages() {
+        this.state.messages.forEach(msg => {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `chat-message ${msg.role}`;
+            if (msg.role === 'assistant') {
+                msgDiv.innerHTML = this.parseMarkdown(msg.content);
+            } else {
+                msgDiv.textContent = msg.content;
+            }
+            this.elements.messages.appendChild(msgDiv);
+        });
+        this.elements.messages.scrollTop = this.elements.messages.scrollHeight;
+
+        // Update token display if we have usage data
+        if (this.state.tokenUsage.requests > 0) {
+            this.elements.tokenCount.textContent = this.formatNumber(this.state.tokenUsage.total);
+            this.elements.requestCount.textContent = this.state.tokenUsage.requests;
+            this.elements.tokenCost.textContent = this.formatCost(this.state.tokenUsage.cost);
+            this.elements.tokenDisplay.style.display = 'flex';
+        }
     }
 
     detectApiUrl() {
@@ -86,7 +160,7 @@ class ChatWidget {
 
         const html = `
             <!-- Chat Sidebar -->
-            <div id="chat-sidebar" class="chat-sidebar ${this.config.startOpen ? 'open' : ''}">
+            <div id="chat-sidebar" class="chat-sidebar ${this.state.isOpen ? 'open' : ''}">
                 <div id="chat-resize-handle" class="chat-resize-handle"></div>
                 <div class="chat-header">
                     <div class="chat-header-info">
@@ -148,7 +222,7 @@ class ChatWidget {
             </div>
 
             <!-- Chat Toggle Button -->
-            <button id="chat-toggle" class="chat-toggle ${this.config.startOpen ? 'hidden' : ''}" aria-label="Open chat">
+            <button id="chat-toggle" class="chat-toggle ${this.state.isOpen ? 'hidden' : ''}" aria-label="Open chat">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                 </svg>
@@ -365,6 +439,7 @@ class ChatWidget {
         this.elements.sidebar.classList.toggle('open', this.state.isOpen);
         this.elements.toggle.classList.toggle('hidden', this.state.isOpen);
         this.updateLayoutOffset();
+        this.saveState(); // Persist open/close state
         if (this.state.isOpen) {
             this.elements.input.focus();
         }
@@ -389,8 +464,10 @@ class ChatWidget {
         this.elements.messages.innerHTML = '';
         this.state.messages = [];
         this.state.tokenUsage = { total: 0, cost: 0, requests: 0 };
+        this.state.sessionId = null; // Reset session
         this.elements.tokenDisplay.style.display = 'none';
         this.removeScreenshot();
+        this.saveState(); // Persist cleared state
 
         // Re-add welcome message
         setTimeout(() => {
@@ -413,6 +490,7 @@ class ChatWidget {
 
         if (role !== 'system') {
             this.state.messages.push({ role, content });
+            this.saveState(); // Persist after each message
         }
     }
 
@@ -454,10 +532,18 @@ class ChatWidget {
         this.showTyping();
 
         try {
+            // Get current page context
+            const currentPageContext = this.getPageContext();
+
             const requestBody = {
                 messages: this.state.messages,
                 visitorInfo: this.state.visitorInfo,
-                page: window.location.href,
+                page: currentPageContext.url || window.location.href,
+                pageContext: {
+                    ...currentPageContext,
+                    currentPage: currentPageContext.pageName || currentPageContext.page,
+                    userLocation: `The user is currently on the "${currentPageContext.pageName || currentPageContext.title}" page of the website.`
+                },
                 sessionId: this.state.sessionId
             };
 
@@ -466,6 +552,13 @@ class ChatWidget {
                 requestBody.screenshot = this.state.screenshot;
                 this.removeScreenshot();
             }
+
+            // Log the request for debugging
+            console.log('=== CHAT REQUEST DEBUG ===');
+            console.log('API URL:', this.config.apiUrl);
+            console.log('Page Context:', JSON.stringify(requestBody.pageContext, null, 2));
+            console.log('Full Request Body:', JSON.stringify(requestBody, null, 2));
+            console.log('=== END DEBUG ===');
 
             const response = await fetch(this.config.apiUrl, {
                 method: 'POST',
@@ -496,6 +589,9 @@ class ChatWidget {
                 if (data.usage) {
                     this.updateTokenUsage(data.usage);
                 }
+
+                // Save state after successful response
+                this.saveState();
 
                 // Callback for form data
                 if (formData && this.config.onFormData) {
@@ -617,6 +713,29 @@ class ChatWidget {
 
     getTokenUsage() {
         return this.state.tokenUsage;
+    }
+
+    // Set page context (called from chat-loader or postMessage)
+    setPageContext(context) {
+        this.pageContext = {
+            page: context.page || 'unknown',
+            pageName: context.pageName || context.title || document.title,
+            title: context.title || document.title,
+            url: context.url || window.location.href,
+            description: context.description || ''
+        };
+        console.log('[ChatWidget] Page context set:', this.pageContext.pageName);
+    }
+
+    getPageContext() {
+        // If has getPageContext function from config, use it for fresh context
+        if (this.config.getPageContext) {
+            const ctx = this.config.getPageContext();
+            console.log('[ChatWidget] getPageContext from config:', ctx);
+            return ctx;
+        }
+        console.log('[ChatWidget] getPageContext from stored:', this.pageContext);
+        return this.pageContext;
     }
 }
 

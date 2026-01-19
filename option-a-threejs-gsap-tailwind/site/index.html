@@ -46,6 +46,7 @@
 
     <!-- Chat Widget -->
     <link rel="stylesheet" href="css/chat-widget.css">
+    <link rel="stylesheet" href="css/responsive.css">
 
     <style>
         /* Theme CSS Variables */
@@ -2809,22 +2810,11 @@
         </div>
     </div>
 
-    <!-- Chat Widget -->
+    <!-- Chat Widget (iframe-based, persists across pages) -->
     <script src="js/chat-widget.js"></script>
+    <script src="js/chat-loader.js"></script>
+
     <script>
-        // Initialize Chat Widget for Landing Page
-        const chatWidget = new ChatWidget({
-            title: 'AI Product Studio',
-            subtitle: 'Online - Ready to help',
-            welcomeMessage: `Hi there! 👋 Welcome to AI Product Studio!
-
-I'm here to answer any questions about our partnership model. We help business founders launch AI-powered products in just 2 weeks.
-
-What would you like to know?`,
-            pageType: 'landing',
-            startOpen: true
-        });
-
         // Search Functionality
         const searchPages = [
             { title: 'Home', desc: 'AI Product Studio - Launch your product in 2 weeks', url: 'index.html' },
