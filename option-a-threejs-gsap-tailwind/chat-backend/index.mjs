@@ -897,6 +897,77 @@ async function listBuildHistory(limit = 50) {
   }
 }
 
+// Check for duplicate application by email or phone
+async function checkDuplicateApplication(email, phone) {
+  const { S3Client, ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = new S3Client({ region: 'ap-south-1' });
+
+  // Normalize email and phone
+  const normalizedEmail = email ? email.toLowerCase().trim() : null;
+  const normalizedPhone = phone ? phone.replace(/[^0-9]/g, '') : null;
+
+  if (!normalizedEmail && !normalizedPhone) {
+    return { isDuplicate: false };
+  }
+
+  try {
+    // List all applications
+    const listResult = await s3.send(new ListObjectsV2Command({
+      Bucket: S3_BUCKET,
+      Prefix: 'applications/',
+      MaxKeys: 500
+    }));
+
+    if (!listResult.Contents || listResult.Contents.length === 0) {
+      return { isDuplicate: false };
+    }
+
+    // Check each application for matching email or phone
+    for (const obj of listResult.Contents) {
+      if (!obj.Key.endsWith('.json')) continue;
+
+      try {
+        const getResult = await s3.send(new GetObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: obj.Key
+        }));
+        const appData = JSON.parse(await getResult.Body.transformToString());
+
+        // Check email match
+        const appEmail = appData.visitorInfo?.email || appData.formData?.email;
+        if (normalizedEmail && appEmail && appEmail.toLowerCase().trim() === normalizedEmail) {
+          console.log('Duplicate found by email:', normalizedEmail, 'in', obj.Key);
+          return {
+            isDuplicate: true,
+            matchedBy: 'email',
+            existingApplication: obj.Key,
+            submittedAt: appData.submittedAt
+          };
+        }
+
+        // Check phone match
+        const appPhone = appData.visitorInfo?.phone || appData.formData?.phone;
+        if (normalizedPhone && appPhone && appPhone.replace(/[^0-9]/g, '') === normalizedPhone) {
+          console.log('Duplicate found by phone:', normalizedPhone, 'in', obj.Key);
+          return {
+            isDuplicate: true,
+            matchedBy: 'phone',
+            existingApplication: obj.Key,
+            submittedAt: appData.submittedAt
+          };
+        }
+      } catch (e) {
+        // Skip files that can't be read
+      }
+    }
+
+    return { isDuplicate: false };
+  } catch (error) {
+    console.error('Duplicate check error:', error.message);
+    return { isDuplicate: false }; // Allow submission on error
+  }
+}
+
 // Save form submission to S3
 async function saveFormToS3(visitorInfo, formContent, clientIP) {
   const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
@@ -2074,7 +2145,41 @@ export const handler = async (event) => {
 
     // For form submissions, save to S3 and send email
     if (isFormSubmission) {
-      console.log('Form submission detected - saving to S3 and sending email...');
+      console.log('Form submission detected - checking for duplicates...');
+
+      // Check for duplicate application
+      const duplicateCheck = await checkDuplicateApplication(
+        updatedVisitorInfo.email,
+        updatedVisitorInfo.phone
+      );
+
+      if (duplicateCheck.isDuplicate) {
+        console.log('Duplicate application detected:', duplicateCheck);
+        const submittedDate = duplicateCheck.submittedAt
+          ? new Date(duplicateCheck.submittedAt).toLocaleDateString()
+          : 'previously';
+
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            success: true,
+            response: `It looks like you've already submitted an application on ${submittedDate} using the same ${duplicateCheck.matchedBy}. Our team is reviewing it and will contact you soon. If you have updates or questions, please email us at gopi@sunwaretechnologies.com`,
+            provider: 'system',
+            visitorInfo: updatedVisitorInfo,
+            hasContactInfo: true,
+            formSubmitted: false,
+            isDuplicate: true,
+            duplicateInfo: {
+              matchedBy: duplicateCheck.matchedBy,
+              submittedAt: duplicateCheck.submittedAt
+            },
+            sessionId
+          })
+        };
+      }
+
+      console.log('No duplicate found - saving to S3 and sending email...');
 
       // Save to S3 and send email in parallel
       const [s3Result, emailResult] = await Promise.all([

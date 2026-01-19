@@ -35,8 +35,52 @@
         'manufacturing': 'Manufacturing Industry Solutions'
     };
 
+    // Required fields for form submission
+    const REQUIRED_FIELDS = ['fullName', 'email', 'phone', 'productIdea', 'targetCustomer'];
+
+    // Check if all required fields are filled
+    function checkRequiredFields() {
+        for (const fieldId of REQUIRED_FIELDS) {
+            const field = document.getElementById(fieldId);
+            if (!field || !field.value || field.value.trim() === '') {
+                console.log(`[ChatLoader] Required field missing: ${fieldId}`);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Auto-submit the form
+    function autoSubmitForm() {
+        const form = document.getElementById('partnership-form');
+        if (!form) {
+            console.log('[ChatLoader] Form not found, cannot auto-submit');
+            return false;
+        }
+
+        // Check all required fields are filled
+        if (!checkRequiredFields()) {
+            console.log('[ChatLoader] Cannot auto-submit: required fields missing');
+            return false;
+        }
+
+        console.log('[ChatLoader] All required fields filled, auto-submitting form...');
+
+        // Trigger form submit
+        const submitBtn = form.querySelector('button[type="submit"]') || form.querySelector('input[type="submit"]');
+        if (submitBtn) {
+            submitBtn.click();
+            console.log('[ChatLoader] Form submitted via button click');
+        } else {
+            form.submit();
+            console.log('[ChatLoader] Form submitted directly');
+        }
+
+        return true;
+    }
+
     // Fill form fields with extracted data from AI
-    function fillFormFields(formData) {
+    function fillFormFields(formData, shouldAutoSubmit = false) {
         if (!formData) return;
 
         // Map of form field IDs to formData keys
@@ -87,6 +131,14 @@
             const form = document.getElementById('partnership-form');
             if (form) {
                 form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            // Auto-submit if all required fields are filled and shouldAutoSubmit is true
+            if (shouldAutoSubmit && checkRequiredFields()) {
+                // Delay submit slightly to let user see the filled form
+                setTimeout(() => {
+                    autoSubmitForm();
+                }, 1500);
             }
         }
     }
@@ -144,7 +196,12 @@ What would you like to know?`,
             // Auto-fill form when AI extracts data from uploaded files
             onFormData: (formData) => {
                 console.log('[ChatLoader] Received form data to auto-fill:', formData);
-                fillFormFields(formData);
+
+                // Check if all required fields have values - if so, auto-submit
+                const hasAllRequired = formData.fullName && formData.email && formData.phone
+                    && formData.productIdea && formData.targetCustomer;
+
+                fillFormFields(formData, hasAllRequired);
             }
         });
 
