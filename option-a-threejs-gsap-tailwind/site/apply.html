@@ -41,8 +41,8 @@
     <script src="js/theme.js"></script>
 
     <!-- Chat Widget -->
-    <link rel="stylesheet" href="css/chat-widget.css">
-    <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="css/chat-widget.css?v=20260118a">
+    <link rel="stylesheet" href="css/responsive.css?v=20260118a">
 
     <style>
         /* Theme CSS Variables */
@@ -795,7 +795,7 @@
     <div id="chat-widget-container"></div>
 
     <!-- Chat Widget -->
-    <script src="js/chat-widget.js"></script>
+    <script src="js/chat-widget.js?v=20260118a"></script>
     <script>
         // Form elements
         const form = document.getElementById('partnership-form');
@@ -860,8 +860,11 @@ What would you like to start with?`,
             pageType: 'apply',
             startOpen: true,
             onFormData: (formData) => {
-                const filledFields = fillFormFromAI(formData);
-                console.log('Filled form fields:', filledFields);
+                const shouldApply = window.confirm('We extracted details from the chat or document. Apply them to the form now?');
+                if (shouldApply) {
+                    const filledFields = fillFormFromAI(formData);
+                    console.log('Filled form fields:', filledFields);
+                }
             }
         });
 
