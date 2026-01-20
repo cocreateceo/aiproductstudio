@@ -251,7 +251,7 @@ class ChatWidget {
                         </div>
                     </div>
                     <div class="chat-input-row">
-                        <textarea id="chat-input" placeholder="Type your message... (Shift+Enter for new line)" rows="1"></textarea>
+                        <textarea id="chat-input" placeholder="Type your message... (Shift+Enter for new line)" rows="4"></textarea>
                         <button id="chat-attach" class="chat-attach-btn" aria-label="Attach file" title="Attach file">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M21.44 11.05l-8.49 8.49a5.5 5.5 0 0 1-7.78-7.78l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.19 9.19a1.5 1.5 0 0 1-2.12-2.12l8.49-8.49"/>
