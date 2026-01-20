@@ -39,11 +39,10 @@
     // FORM FIELD CONFIGURATION
     // ============================================
 
-    // 9 Mandatory fields (ALL REQUIRED)
+    // 8 Mandatory fields (ALL REQUIRED - matches HTML form)
     const MANDATORY_FIELDS = [
         'fullName',
         'email',
-        'phone',
         'businessStage',
         'industry',
         'background',
@@ -51,13 +50,6 @@
         'targetCustomer',
         'timeCommitment',
         'timeline'
-    ];
-
-    // 4 Optional fields
-    const OPTIONAL_FIELDS = [
-        'linkedin',
-        'marketValidation',
-        'additionalInfo'
     ];
 
     // ============================================
@@ -68,12 +60,6 @@
     function formatEmail(email) {
         if (!email) return '';
         return email.toLowerCase().trim();
-    }
-
-    // Validate email format
-    function isValidEmail(email) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
     }
 
     // Format phone: remove spaces, dashes, parentheses, keep + and digits
@@ -152,7 +138,7 @@
             return false;
         }
 
-        console.log('[ChatLoader] All 9 mandatory fields filled, auto-submitting form...');
+        console.log('[ChatLoader] All 8 mandatory fields filled, auto-submitting form...');
 
         // Trigger form submit
         const submitBtn = form.querySelector('button[type="submit"]') || form.querySelector('input[type="submit"]');
@@ -226,7 +212,7 @@
             }
 
             // Auto-submit if all required fields are filled and shouldAutoSubmit is true
-            if (shouldAutoSubmit && checkRequiredFields()) {
+            if (shouldAutoSubmit && checkMandatoryFields().allFilled) {
                 // Delay submit slightly to let user see the filled form
                 setTimeout(() => {
                     autoSubmitForm();
@@ -289,10 +275,10 @@ What would you like to know?`,
             onFormData: (formData) => {
                 console.log('[ChatLoader] Received form data to auto-fill:', formData);
 
-                // Check if ALL 9 mandatory fields have values - if so, auto-submit
+                // Check if ALL 8 mandatory fields have values - if so, auto-submit
+                // Note: phone is OPTIONAL (not in mandatory list)
                 const hasAllMandatory = formData.fullName
                     && formData.email
-                    && formData.phone
                     && formData.businessStage
                     && formData.industry
                     && formData.background
@@ -301,7 +287,7 @@ What would you like to know?`,
                     && formData.timeCommitment
                     && formData.timeline;
 
-                console.log('[ChatLoader] All 9 mandatory fields present:', hasAllMandatory);
+                console.log('[ChatLoader] All 8 mandatory fields present:', hasAllMandatory);
 
                 // Fill form fields, auto-submit only if all mandatory present
                 fillFormFields(formData, hasAllMandatory);

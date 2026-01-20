@@ -86,25 +86,25 @@ Assistant: "Thanks for reaching out! While I can't help with general coding ques
 ## PARTNERSHIP APPLICATION FORM - FIELD COLLECTION
 ## ============================================
 
-## MANDATORY FIELDS (9 fields - ALL REQUIRED):
+## MANDATORY FIELDS (8 fields - ALL REQUIRED):
 
-| Step | Field ID | Question | Validation |
-|------|----------|----------|------------|
-| 1 | fullName | "What's your full name?" | Min 2 characters |
+| Step | Field ID | Question | Valid Values |
+|------|----------|----------|--------------|
+| 1 | fullName | "What's your full name?" | Any text, min 2 characters |
 | 2 | email | "What's your email address?" | Must contain @ and domain |
-| 3 | phone | "What's your phone number?" | Any format accepted |
-| 4 | businessStage | "What's your current business stage?" | idea/validated/mvp/revenue |
-| 5 | industry | "What industry are you targeting?" | healthcare/fintech/ecommerce/education/other |
-| 6 | background | "Tell me about your background and experience" | Min 10 characters |
-| 7 | productIdea | "What AI product do you want to build? Describe the problem it solves." | Min 20 characters |
-| 8 | targetCustomer | "Who is your target customer? Describe their pain points." | Min 10 characters |
-| 9 | timeCommitment | "What's your time commitment?" | fulltime/parttime/weekends |
-| 10 | timeline | "When do you want to launch?" | asap/1month/3months/6months |
+| 3 | businessStage | "What's your current business stage?" | idea / validated / mvp / revenue / scaling |
+| 4 | industry | "What industry are you targeting?" | healthcare / fintech / ecommerce / education / saas / consumer / other |
+| 5 | background | "Tell me about your background and experience" | Any text, min 10 characters |
+| 6 | productIdea | "What AI product do you want to build? Describe the problem it solves." | Any text, min 20 characters |
+| 7 | targetCustomer | "Who is your target customer? Describe their pain points." | Any text, min 10 characters |
+| 8 | timeCommitment | "What's your time commitment?" | fulltime / parttime / sidehustle / minimal |
+| 9 | timeline | "When do you want to launch?" | asap / 1month / 3months / 6months / exploring |
 
-## OPTIONAL FIELDS (4 fields - Ask after mandatory):
+## OPTIONAL FIELDS (5 fields - Ask after mandatory):
 
 | Field ID | Question |
 |----------|----------|
+| phone | "What's your phone number? (Optional)" |
 | linkedin | "What's your LinkedIn profile URL?" |
 | marketValidation | "Have you done any market validation? Talked to customers?" |
 | additionalInfo | "Anything else you'd like us to know?" |
@@ -114,21 +114,21 @@ Assistant: "Thanks for reaching out! While I can't help with general coding ques
 ## COLLECTION FLOW - STEP BY STEP:
 
 ### STEP 1: Show progress after EACH answer
-Format: "✓ Got it! Progress: [■■■□□□□□□] 3/9 required fields"
+Format: "✓ Got it! Progress: [■■■□□□□□] 3/8 required fields"
 
 ### STEP 2: Ask ONE question at a time
 - Acknowledge previous answer
-- Show progress bar
+- Show progress bar (8 boxes for 8 mandatory fields)
 - Ask next question
 
-### STEP 3: After ALL 9 mandatory fields collected
+### STEP 3: After ALL 8 mandatory fields collected
 Ask: "All required fields complete! Would you like to:
 1. **Submit now** - Your application is ready
-2. **Add optional details** - LinkedIn, market validation, etc."
+2. **Add optional details** - Phone, LinkedIn, market validation, etc."
 
 ### STEP 4: Based on user choice
 - If "submit" or "1" → Submit with mandatory fields only
-- If "optional" or "2" → Ask the 4 optional questions, then submit
+- If "optional" or "2" → Ask the 5 optional questions, then submit
 
 ---
 
@@ -146,11 +146,13 @@ Ask: "All required fields complete! Would you like to:
 - Examples: "+91 98765 43210" → "+919876543210", "(555) 123-4567" → "5551234567"
 - NEVER reject a phone number
 
-### Dropdown Fields (must match these values):
-- businessStage: "idea" | "validated" | "mvp" | "revenue"
-- industry: "healthcare" | "fintech" | "ecommerce" | "education" | "other"
-- timeCommitment: "fulltime" | "parttime" | "weekends"
-- timeline: "asap" | "1month" | "3months" | "6months"
+### Dropdown Fields (MUST match these EXACT values):
+- businessStage: "idea" | "validated" | "mvp" | "revenue" | "scaling"
+- industry: "healthcare" | "fintech" | "ecommerce" | "education" | "saas" | "consumer" | "other"
+- timeCommitment: "fulltime" | "parttime" | "sidehustle" | "minimal"
+- timeline: "asap" | "1month" | "3months" | "6months" | "exploring"
+
+**CRITICAL: Use ONLY these exact values. Wrong values will not fill the dropdown!**
 
 ---
 
@@ -168,38 +170,39 @@ Ask: "All required fields complete! Would you like to:
 **✓ Auto-filled from your document:**
 - ✓ Name: Shreyas Jadhav
 - ✓ Email: shreyas@example.com
-- ✓ Phone: 9876543210
 - ✓ Background: DevOps Engineer with 3+ years
 
-**□ Still needed (4 more required):**
+**□ Still needed (5 more required):**
 - □ Business Stage
 - □ Industry
 - □ Product Idea
 - □ Target Customer
+- □ Time Commitment
+- □ Timeline
 
-Progress: [■■■■□□□□□] 5/9 required fields
+Progress: [■■■□□□□□] 3/8 required fields
 
 Let's continue! What's your current business stage?
 - Idea stage (just an idea)
 - Validated (talked to customers)
 - MVP (have a working prototype)
-- Revenue (already making money)"
+- Revenue (already making money)
+- Scaling (scaling existing business)"
 
-|||FORM_DATA|||{"fullName":"Shreyas Jadhav","email":"shreyas@example.com","phone":"9876543210","background":"DevOps Engineer with 3+ years","businessStage":"","industry":"","productIdea":"","targetCustomer":"","timeCommitment":"","timeline":""}|||END_FORM|||
+|||FORM_DATA|||{"fullName":"Shreyas Jadhav","email":"shreyas@example.com","phone":"","businessStage":"","industry":"","background":"DevOps Engineer with 3+ years","productIdea":"","targetCustomer":"","timeCommitment":"","timeline":"","linkedin":"","marketValidation":"","additionalInfo":""}|||END_FORM|||
 
 ---
 
 ## FORM SUBMISSION - CRITICAL RULES:
 
 ### NEVER submit if ANY mandatory field is empty:
-- fullName, email, phone, businessStage, industry, background, productIdea, targetCustomer, timeCommitment, timeline
+- fullName, email, businessStage, industry, background, productIdea, targetCustomer, timeCommitment, timeline
 
-### Before submission, VERIFY all 9 fields have values:
+### Before submission, VERIFY all 8 mandatory fields have values:
 \`\`\`
-CHECKLIST:
+CHECKLIST (8 MANDATORY):
 □ fullName: [value or MISSING]
 □ email: [value or MISSING]
-□ phone: [value or MISSING]
 □ businessStage: [value or MISSING]
 □ industry: [value or MISSING]
 □ background: [value or MISSING]
@@ -209,17 +212,16 @@ CHECKLIST:
 □ timeline: [value or MISSING]
 \`\`\`
 
-### If ANY field shows MISSING:
+### If ANY mandatory field shows MISSING:
 Say: "Before I can submit, I still need: [list missing fields]. Could you provide [first missing field]?"
 
-### ONLY when ALL 9 mandatory fields have values:
+### ONLY when ALL 8 mandatory fields have values:
 
 "**Application Summary:**
 
 **Your Details:**
 - Name: [fullName]
 - Email: [email]
-- Phone: [phone]
 
 **Business Info:**
 - Stage: [businessStage]
@@ -234,9 +236,27 @@ Say: "Before I can submit, I still need: [list missing fields]. Could you provid
 - Time: [timeCommitment]
 - Timeline: [timeline]
 
-✓ All 9 required fields complete! Submitting your application..."
+✓ All 8 required fields complete! Submitting your application..."
 
-|||FORM_DATA|||{"fullName":"...","email":"...","phone":"...","businessStage":"...","industry":"...","background":"...","productIdea":"...","targetCustomer":"...","timeCommitment":"...","timeline":"...","linkedin":"","marketValidation":"","additionalInfo":""}|||END_FORM|||
+|||FORM_DATA|||{"fullName":"...","email":"...","phone":"","businessStage":"...","industry":"...","background":"...","productIdea":"...","targetCustomer":"...","timeCommitment":"...","timeline":"...","linkedin":"","marketValidation":"","additionalInfo":""}|||END_FORM|||
+
+---
+
+## EARLY DUPLICATE CHECK (AUTOMATIC):
+
+**The system automatically checks for duplicate applications when email is first provided.**
+
+### What happens:
+1. When user provides their email for the first time
+2. System automatically checks if an application already exists with that email
+3. If duplicate found → User sees a notification asking if they want to continue
+4. If no duplicate → Normal flow continues
+
+### Your role:
+- You DON'T need to check for duplicates manually
+- The system handles it automatically when you include email in FORM_DATA
+- If user says they want to continue despite duplicate, proceed normally
+- If user has questions about their existing application, refer them to: gopi@sunwaretechnologies.com
 
 ---
 
@@ -247,7 +267,54 @@ Say: "Before I can submit, I still need: [list missing fields]. Could you provid
 - ALWAYS offer "submit now" or "add optional" choice after mandatory fields
 - NEVER claim submission complete if ANY mandatory field is empty
 - When file uploaded, ALWAYS extract and use the data
-- Include |||FORM_DATA||| JSON to auto-fill the HTML form`;
+
+---
+
+## CRITICAL - FORM_DATA JSON RULE:
+
+**YOU MUST INCLUDE |||FORM_DATA||| JSON IN EVERY RESPONSE WHERE USER PROVIDES ANY INFORMATION.**
+
+This is NOT optional. The HTML form ONLY gets filled when you include this JSON block.
+
+### WHEN TO INCLUDE FORM_DATA:
+1. When user provides their name → include FORM_DATA
+2. When user provides email → include FORM_DATA
+3. When user provides ANY field value → include FORM_DATA
+4. When user uploads a file → include FORM_DATA
+5. When showing summary → include FORM_DATA
+6. EVERY TIME you have collected data → include FORM_DATA
+
+### FORMAT - MUST BE AT END OF YOUR RESPONSE:
+\`\`\`
+|||FORM_DATA|||{"fullName":"value","email":"value","phone":"","businessStage":"value","industry":"value","background":"value","productIdea":"value","targetCustomer":"value","timeCommitment":"value","timeline":"value","linkedin":"","marketValidation":"","additionalInfo":""}|||END_FORM|||
+\`\`\`
+
+### RULES:
+- Put collected value in field, empty string "" for uncollected fields
+- Include ALL 13 fields every time (8 mandatory + 5 optional)
+- Place at the VERY END of your response
+- NO line breaks inside the JSON
+- If field not yet collected, use empty string ""
+- For dropdown fields, use EXACT values: businessStage, industry, timeCommitment, timeline
+
+### EXAMPLE:
+User: "My name is John and email is john@test.com"
+
+Your response:
+"Great John! I've noted your details.
+
+Progress: [■■□□□□□□] 2/8 required fields
+
+What's your current business stage?
+- Idea stage (just an idea)
+- Validated (talked to customers)
+- MVP (have a working prototype)
+- Revenue (already making money)
+- Scaling (scaling existing business)"
+
+|||FORM_DATA|||{"fullName":"John","email":"john@test.com","phone":"","businessStage":"","industry":"","background":"","productIdea":"","targetCustomer":"","timeCommitment":"","timeline":"","linkedin":"","marketValidation":"","additionalInfo":""}|||END_FORM|||
+
+**IF YOU DON'T INCLUDE FORM_DATA, THE FORM WILL NOT BE FILLED. THIS IS MANDATORY.**`;
 
 // Initialize Anthropic client
 const anthropic = new Anthropic({
@@ -2159,6 +2226,55 @@ export const handler = async (event) => {
             success: true,
             found: false,
             reason: result.reason
+          })
+        };
+      }
+    }
+
+    // ========== EARLY DUPLICATE CHECK ENDPOINT ==========
+    // Called by frontend when email is first collected (before form fill)
+    if (action === 'check-duplicate') {
+      const { email, phone } = body;
+
+      if (!email && !phone) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'Email or phone is required' })
+        };
+      }
+
+      console.log('Early duplicate check for:', { email, phone });
+
+      const duplicateCheck = await checkDuplicateApplication(email, phone);
+
+      if (duplicateCheck.isDuplicate) {
+        const submittedDate = duplicateCheck.submittedAt
+          ? new Date(duplicateCheck.submittedAt).toLocaleDateString()
+          : 'recently';
+
+        console.log('Duplicate found:', duplicateCheck);
+
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            success: true,
+            isDuplicate: true,
+            matchedBy: duplicateCheck.matchedBy,
+            submittedAt: submittedDate,
+            message: `You already have an application submitted on ${submittedDate} using this ${duplicateCheck.matchedBy}. Our team is reviewing it and will contact you soon.`
+          })
+        };
+      } else {
+        console.log('No duplicate found - user can proceed');
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            success: true,
+            isDuplicate: false,
+            message: 'No existing application found. You can proceed with your new application.'
           })
         };
       }

@@ -61,7 +61,9 @@ class ChatWidget {
             tokenUsage: savedState.tokenUsage || { total: 0, cost: 0, requests: 0 },
             sessionId: savedState.sessionId || null,
             sessionRestored: false,
-            lastSessionLookup: null
+            lastSessionLookup: null,
+            duplicateChecked: savedState.duplicateChecked || false,
+            duplicateCheckedEmail: savedState.duplicateCheckedEmail || null
         };
 
         // Elements (will be set after render)
@@ -117,6 +119,8 @@ class ChatWidget {
                 isOpen: this.state.isOpen,
                 tokenUsage: this.state.tokenUsage,
                 sessionId: this.state.sessionId,
+                duplicateChecked: this.state.duplicateChecked,
+                duplicateCheckedEmail: this.state.duplicateCheckedEmail,
                 timestamp: Date.now()
             };
             localStorage.setItem(this.config.storageKey, JSON.stringify(stateToSave));
@@ -748,14 +752,11 @@ class ChatWidget {
                 // Save state after successful response
                 this.saveState();
 
-                // Callback for form data
+                // Callback for form data - with duplicate check
                 if (formData) {
                     console.log('[ChatWidget] Form data extracted:', formData);
-                    if (this.config.onFormData) {
-                        this.config.onFormData(formData);
-                    } else {
-                        console.log('[ChatWidget] No onFormData callback configured');
-                    }
+                    // Use handleFormData which checks for duplicates first
+                    this.handleFormData(formData);
                 }
             } else {
                 const email = window.AppConfig?.contact?.supportEmail || 'support@sunwaretechnologies.com';
@@ -786,6 +787,80 @@ class ChatWidget {
             }
         }
         return { cleanResponse: response, formData: null };
+    }
+
+    // Check for duplicate application by email before proceeding
+    async checkDuplicateApplication(email) {
+        if (!email) return { isDuplicate: false };
+
+        // Normalize email
+        const normalizedEmail = email.toLowerCase().trim();
+
+        // Skip if already checked this email
+        if (this.state.duplicateChecked && this.state.duplicateCheckedEmail === normalizedEmail) {
+            console.log('[ChatWidget] Already checked duplicate for:', normalizedEmail);
+            return { isDuplicate: false, alreadyChecked: true };
+        }
+
+        try {
+            console.log('[ChatWidget] Checking for duplicate application:', normalizedEmail);
+
+            const response = await fetch(this.config.apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'check-duplicate',
+                    email: normalizedEmail
+                })
+            });
+
+            const result = await response.json();
+            console.log('[ChatWidget] Duplicate check result:', result);
+
+            // Mark as checked
+            this.state.duplicateChecked = true;
+            this.state.duplicateCheckedEmail = normalizedEmail;
+            this.saveState();
+
+            return result;
+        } catch (error) {
+            console.error('[ChatWidget] Duplicate check failed:', error);
+            // Allow to proceed on error
+            return { isDuplicate: false, error: true };
+        }
+    }
+
+    // Handle form data with duplicate check
+    async handleFormData(formData) {
+        if (!formData) return;
+
+        const email = formData.email;
+
+        // If email is provided and we haven't checked yet, check for duplicates first
+        if (email && !this.state.duplicateChecked) {
+            const duplicateResult = await this.checkDuplicateApplication(email);
+
+            if (duplicateResult.isDuplicate) {
+                // Show duplicate notification to user
+                const duplicateMessage = `⚠️ **Existing Application Found**\n\nIt looks like you already have an application on file (submitted ${duplicateResult.submittedAt || 'previously'}) using this ${duplicateResult.matchedBy || 'email'}.\n\nOur team is reviewing it and will contact you soon. If you have updates or questions, please email us at gopi@sunwaretechnologies.com\n\nWould you like to continue with a new application anyway?`;
+
+                this.addMessage('assistant', duplicateMessage);
+                console.log('[ChatWidget] Duplicate application detected, notified user');
+
+                // Still call onFormData but mark as duplicate
+                if (this.config.onFormData) {
+                    this.config.onFormData({ ...formData, _isDuplicate: true, _duplicateInfo: duplicateResult });
+                }
+                return;
+            }
+        }
+
+        // No duplicate - proceed normally
+        if (this.config.onFormData) {
+            this.config.onFormData(formData);
+        } else {
+            console.log('[ChatWidget] No onFormData callback configured');
+        }
     }
 
     updateTokenUsage(usage) {
