@@ -192,16 +192,6 @@ class ChatWidget {
                         <div>
                             <h3>${this.config.title}</h3>
                             <p class="chat-status">${this.config.subtitle}</p>
-                            <p class="chat-session-info">
-                                Your session will be active for 24 hours
-                                <span class="info-tooltip" data-tooltip="After 24 hours, your session will expire. To continue your previous conversation, simply provide your name and email when you return, and we'll restore your chat history.">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                                        <circle cx="12" cy="12" r="10"/>
-                                        <path d="M12 16v-4"/>
-                                        <path d="M12 8h.01"/>
-                                    </svg>
-                                </span>
-                            </p>
                         </div>
                     </div>
                     <div class="chat-header-actions">
