@@ -161,29 +161,13 @@
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
-        /* Navigation Tab Styles */
-        .nav-tab {
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .nav-tab:not(.active):hover {
-            transform: translateY(-2px);
-            border-color: var(--primary) !important;
-            opacity: 0.8;
-        }
-
-        .nav-tab.active {
-            transform: none;
-        }
-
         [data-theme="light"] .nav-tab:not(.active) {
-            background: #e2e8f0 !important;
-            color: #475569 !important;
+            background: #e2e8f0;
+            color: #475569;
         }
 
         [data-theme="light"] .nav-tab:not(.active):hover {
-            background: #cbd5e1 !important;
+            background: #cbd5e1;
         }
 
         [data-theme="light"] .filter-btn:not(.active) {
@@ -196,18 +180,6 @@
             background: #f1f5f9;
             border-color: #e2e8f0;
             color: #0f172a;
-        }
-
-        /* User Filter Dropdown Styles */
-        #user-filter-dropdown:hover {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-        }
-
-        #user-filter-dropdown:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
         }
 
         /* Theme Selector Styles */
@@ -315,88 +287,6 @@
         .ws-status { font-size: 10px; padding: 2px 8px; border-radius: 10px; }
         .ws-status.connected { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
         .ws-status.disconnected { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
-
-        /* Toast Notifications */
-        #toast-container {
-            position: fixed;
-            top: 24px;
-            right: 24px;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            pointer-events: none;
-        }
-
-        .toast {
-            min-width: 300px;
-            max-width: 400px;
-            padding: 16px 20px;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(10px);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            pointer-events: auto;
-            animation: slideIn 0.3s ease-out;
-            border: 1px solid;
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .toast.success {
-            background: rgba(34, 197, 94, 0.15);
-            border-color: rgba(34, 197, 94, 0.4);
-            color: #22c55e;
-        }
-
-        .toast.error {
-            background: rgba(239, 68, 68, 0.15);
-            border-color: rgba(239, 68, 68, 0.4);
-            color: #ef4444;
-        }
-
-        .toast.info {
-            background: rgba(99, 102, 241, 0.15);
-            border-color: rgba(99, 102, 241, 0.4);
-            color: #6366f1;
-        }
-
-        .toast-icon {
-            font-size: 20px;
-            flex-shrink: 0;
-        }
-
-        .toast-message {
-            flex: 1;
-        }
-
-        .toast.removing {
-            animation: slideOut 0.3s ease-in forwards;
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateX(400px);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        @keyframes slideOut {
-            from {
-                transform: translateX(0);
-                opacity: 1;
-            }
-            to {
-                transform: translateX(400px);
-                opacity: 0;
-            }
-        }
     </style>
 </head>
 <body>
@@ -506,40 +396,18 @@
                 </div>
             </div>
 
-            <!-- Global User Filter -->
-            <div class="mb-6">
-                <div class="glass-card rounded-xl p-4">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                            </svg>
-                            <label class="text-sm font-semibold" style="color: var(--text-primary);">Filter by User:</label>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <select id="user-filter-dropdown"
-                                    class="px-4 py-2 rounded-lg font-medium cursor-pointer transition-all"
-                                    style="background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); min-width: 250px;">
-                                <option value="all">All Users</option>
-                            </select>
-                            <span id="user-count-badge" class="px-2 py-1 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-400">0</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Main Navigation Tabs -->
             <div class="flex gap-2 mb-6 pb-4" style="border-bottom: 1px solid var(--border-color);">
-                <button class="nav-tab active px-6 py-3 rounded-lg font-semibold" data-view="applications" style="background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; border: 1px solid var(--primary); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);">
+                <button class="nav-tab active px-6 py-3 rounded-lg font-semibold" data-view="applications" style="background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white;">
                     📋 Applications
                 </button>
-                <button class="nav-tab px-6 py-3 rounded-lg font-semibold" data-view="chats" style="background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid transparent;">
+                <button class="nav-tab px-6 py-3 rounded-lg" data-view="chats" style="background: var(--bg-secondary); color: var(--text-secondary);">
                     💬 Chat History
                 </button>
-                <button class="nav-tab px-6 py-3 rounded-lg font-semibold" data-view="clients" style="background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid transparent;">
+                <button class="nav-tab px-6 py-3 rounded-lg" data-view="clients" style="background: var(--bg-secondary); color: var(--text-secondary);">
                     👤 Clients
                 </button>
-                <button class="nav-tab px-6 py-3 rounded-lg font-semibold" data-view="builds" style="background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid transparent;">
+                <button class="nav-tab px-6 py-3 rounded-lg" data-view="builds" style="background: var(--bg-secondary); color: var(--text-secondary);">
                     🔨 Builds
                 </button>
             </div>
@@ -567,34 +435,11 @@
 
             <!-- Chat History View -->
             <div id="view-chats" class="view-content hidden">
-                <!-- Page Source Filter + Status Controls -->
-                <div class="flex items-center justify-between mb-6">
-                    <!-- Left: Page Source Tabs -->
-                    <div class="flex gap-2">
-                        <button class="chat-filter-btn active px-4 py-2 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30" data-source="all">All Chats</button>
-                        <button class="chat-filter-btn px-4 py-2 rounded-lg" data-source="landing" style="background: var(--bg-secondary); color: var(--text-secondary);">Landing Page</button>
-                        <button class="chat-filter-btn px-4 py-2 rounded-lg" data-source="apply" style="background: var(--bg-secondary); color: var(--text-secondary);">Apply Page</button>
-                    </div>
-
-                    <!-- Right: Status Dropdown + Clear Button -->
-                    <div class="flex items-center gap-4">
-                        <div class="flex items-center gap-2">
-                            <label class="text-sm font-semibold" style="color: var(--text-primary);">Status:</label>
-                            <select id="chat-status-filter"
-                                    class="px-4 py-2 rounded-lg font-medium cursor-pointer transition-all"
-                                    style="background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color);">
-                                <option value="all">All Statuses</option>
-                                <option value="active">Active</option>
-                                <option value="converted">Converted</option>
-                            </select>
-                        </div>
-                        <button id="clear-chats-btn"
-                                class="px-4 py-2 rounded-lg font-semibold transition-all bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30">
-                            🗑️ Clear Chats
-                        </button>
-                    </div>
+                <div class="flex gap-2 mb-6">
+                    <button class="chat-filter-btn active px-4 py-2 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30" data-source="all">All Chats</button>
+                    <button class="chat-filter-btn px-4 py-2 rounded-lg" data-source="landing" style="background: var(--bg-secondary); color: var(--text-secondary);">Landing Page</button>
+                    <button class="chat-filter-btn px-4 py-2 rounded-lg" data-source="apply" style="background: var(--bg-secondary); color: var(--text-secondary);">Apply Page</button>
                 </div>
-
                 <div id="chats-list" class="space-y-4">
                     <div class="text-center py-12" style="color: var(--text-muted);">Loading chat sessions...</div>
                 </div>
@@ -675,9 +520,6 @@
         </div>
     </div>
 
-    <!-- Toast Notifications Container -->
-    <div id="toast-container"></div>
-
     <!-- Chat Widget Container -->
     <div id="chat-widget-container"></div>
 
@@ -699,8 +541,6 @@
         let adminPassword = '';
         let applications = [];
         let currentFilter = 'all';
-        let currentUserFilter = 'all'; // Global user filter (email address or 'all')
-        let allUsers = []; // Cache of all unique users: [{name, email}]
         let currentApp = null;
         let progressPollInterval = null;
         let currentBuildState = null;
@@ -709,45 +549,6 @@
         let ws = null;
         let wsReconnectInterval = null;
         let liveBuildLogs = [];
-
-        // Toast Notification System
-        function showToast(message, type = 'info') {
-            const container = document.getElementById('toast-container');
-            if (!container) return;
-
-            // Create toast element
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-
-            // Icon based on type
-            const icons = {
-                success: '✓',
-                error: '✕',
-                info: 'ℹ'
-            };
-            const icon = icons[type] || icons.info;
-
-            toast.innerHTML = `
-                <span class="toast-icon">${icon}</span>
-                <span class="toast-message">${message}</span>
-            `;
-
-            // Add to container
-            container.appendChild(toast);
-
-            // Auto-remove after duration
-            const duration = AppConfig.ui.toastDuration || 3000;
-            setTimeout(() => {
-                toast.classList.add('removing');
-                setTimeout(() => {
-                    if (toast.parentNode) {
-                        toast.parentNode.removeChild(toast);
-                    }
-                }, 300); // Match animation duration
-            }, duration);
-
-            console.log(`[Toast] ${type.toUpperCase()}: ${message}`);
-        }
 
         function initWebSocket() {
             if (!WS_URL) return;
@@ -993,18 +794,7 @@
                     sessionStorage.setItem('adminPassword', password);
                     loginScreen.classList.add('hidden');
                     dashboard.classList.remove('hidden');
-
-                    // Load all data upfront for stable user count
-                    await Promise.all([
-                        loadApplications(),
-                        loadChatSessions(),
-                        loadClientProfiles(),
-                        loadBuildHistory()
-                    ]);
-
-                    // Populate user dropdown after all data is loaded
-                    populateUserDropdown();
-
+                    loadApplications();
                     onLoginSuccess(); // Initialize WebSocket
                 } else {
                     loginError.textContent = 'Invalid password';
@@ -1088,116 +878,15 @@
             document.getElementById('stat-rejected').textContent = applications.filter(a => a.status === 'rejected').length;
         }
 
-        // Extract unique users from all data sources
-        function extractAllUsers() {
-            const userMap = new Map(); // Use Map to deduplicate by email
-
-            // Extract from Applications
-            applications.forEach(app => {
-                const email = app.visitorInfo?.email;
-                const name = app.visitorInfo?.name;
-                if (email && name) {
-                    userMap.set(email, { name, email });
-                }
-            });
-
-            // Extract from Chat Sessions
-            chatSessions.forEach(session => {
-                const email = session.visitorInfo?.email;
-                const name = session.visitorInfo?.name;
-                if (email && name) {
-                    userMap.set(email, { name, email });
-                }
-            });
-
-            // Extract from Client Profiles
-            clientProfiles.forEach(client => {
-                const email = client.email;
-                const name = client.name;
-                if (email && name) {
-                    userMap.set(email, { name, email });
-                }
-            });
-
-            // Extract from Build History (fallback to name if no email)
-            buildHistory.forEach(build => {
-                const name = build.client?.name;
-                if (name) {
-                    // Try to find matching email from other sources
-                    const existingUser = Array.from(userMap.values()).find(u => u.name === name);
-                    if (existingUser) {
-                        userMap.set(existingUser.email, existingUser);
-                    } else {
-                        // Use name as key if no email found
-                        userMap.set(name, { name, email: name });
-                    }
-                }
-            });
-
-            // Convert to array and sort alphabetically by name
-            return Array.from(userMap.values()).sort((a, b) =>
-                a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
-            );
-        }
-
-        // Populate user dropdown with current users
-        function populateUserDropdown() {
-            allUsers = extractAllUsers();
-            const dropdown = document.getElementById('user-filter-dropdown');
-            const badge = document.getElementById('user-count-badge');
-
-            if (!dropdown || !badge) return; // Guard against missing elements
-
-            // Check if there are any anonymous users (without email/name)
-            let hasAnonymous = false;
-            hasAnonymous = hasAnonymous || applications.some(app => !app.visitorInfo?.email || !app.visitorInfo?.name);
-            hasAnonymous = hasAnonymous || chatSessions.some(session => !session.visitorInfo?.email || !session.visitorInfo?.name);
-            hasAnonymous = hasAnonymous || clientProfiles.some(client => !client.email || !client.name);
-
-            // Build options HTML
-            let optionsHTML = '<option value="all">All Users</option>';
-
-            // Add Anonymous option if there are any anonymous users
-            if (hasAnonymous) {
-                const selected = currentUserFilter === 'anonymous' ? 'selected' : '';
-                optionsHTML += `<option value="anonymous" ${selected}>Anonymous Users</option>`;
-            }
-
-            allUsers.forEach(user => {
-                const selected = currentUserFilter === user.email ? 'selected' : '';
-                optionsHTML += `<option value="${user.email}" ${selected}>${user.name} (${user.email})</option>`;
-            });
-
-            dropdown.innerHTML = optionsHTML;
-            badge.textContent = hasAnonymous ? allUsers.length + 1 : allUsers.length;
-
-            console.log(`[User Filter] Populated dropdown with ${allUsers.length} unique users${hasAnonymous ? ' + Anonymous' : ''}`);
-        }
-
         // Render Applications with expandable cards
         function renderApplications() {
-            // STEP 1: Filter by user (if not 'all')
-            let userFiltered = applications;
-            if (currentUserFilter === 'anonymous') {
-                // Show only anonymous users (no email or name)
-                userFiltered = applications.filter(app =>
-                    !app.visitorInfo?.email || !app.visitorInfo?.name
-                );
-            } else if (currentUserFilter !== 'all') {
-                // Show specific user by email
-                userFiltered = applications.filter(app =>
-                    app.visitorInfo?.email === currentUserFilter
-                );
-            }
-
-            // STEP 2: Filter by status (existing logic)
             let filtered;
             if (currentFilter === 'all') {
-                filtered = userFiltered;
+                filtered = applications;
             } else if (currentFilter === 'pending') {
-                filtered = userFiltered.filter(a => !a.status || a.status === 'pending');
+                filtered = applications.filter(a => !a.status || a.status === 'pending');
             } else {
-                filtered = userFiltered.filter(a => a.status === currentFilter);
+                filtered = applications.filter(a => a.status === currentFilter);
             }
 
             if (filtered.length === 0) {
@@ -1501,41 +1190,8 @@
             });
         });
 
-        // Global User Filter Dropdown Handler
-        const userFilterDropdown = document.getElementById('user-filter-dropdown');
-        if (userFilterDropdown) {
-            userFilterDropdown.addEventListener('change', (e) => {
-                currentUserFilter = e.target.value;
-                console.log(`[User Filter] Changed to: ${currentUserFilter}`);
-
-                // Re-render current view with new filter
-                switch(currentView) {
-                    case 'applications':
-                        renderApplications();
-                        break;
-                    case 'chats':
-                        renderChatSessions();
-                        break;
-                    case 'clients':
-                        renderClientProfiles();
-                        break;
-                    case 'builds':
-                        renderBuildHistory();
-                        break;
-                }
-            });
-        }
-
-        // Refresh - reload all data and repopulate user dropdown
-        refreshBtn.addEventListener('click', async () => {
-            await Promise.all([
-                loadApplications(),
-                loadChatSessions(),
-                loadClientProfiles(),
-                loadBuildHistory()
-            ]);
-            populateUserDropdown();
-        });
+        // Refresh
+        refreshBtn.addEventListener('click', loadApplications);
 
         // ========== BUILD PROGRESS TRACKING ==========
 
@@ -1783,46 +1439,28 @@
 
                 // Update active tab
                 navTabs.forEach(t => {
-                    t.classList.remove('active');
-                    // Inactive state
-                    t.style.background = 'var(--bg-secondary)';
-                    t.style.color = 'var(--text-secondary)';
-                    t.style.border = '1px solid transparent';
+                    t.classList.remove('active', 'bg-gradient-to-r', 'from-indigo-500', 'to-purple-500', 'text-white', 'font-semibold');
+                    t.classList.add('bg-slate-800', 'text-slate-400');
                 });
-                // Active state
-                tab.classList.add('active');
-                tab.style.background = 'linear-gradient(135deg, var(--primary), var(--secondary))';
-                tab.style.color = 'white';
-                tab.style.border = '1px solid var(--primary)';
-                tab.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.3)';
+                tab.classList.remove('bg-slate-800', 'text-slate-400');
+                tab.classList.add('active', 'bg-gradient-to-r', 'from-indigo-500', 'to-purple-500', 'text-white', 'font-semibold');
 
                 // Show/hide views
                 viewContents.forEach(v => v.classList.add('hidden'));
                 document.getElementById(`view-${view}`).classList.remove('hidden');
                 currentView = view;
 
-                // Render the view with current filter (data already loaded on login)
-                if (view === 'applications') {
-                    renderApplications();
-                }
-                else if (view === 'chats') {
-                    renderChatSessions();
-                }
-                else if (view === 'clients') {
-                    renderClientProfiles();
-                }
-                else if (view === 'builds') {
-                    renderBuildHistory();
-                }
+                // Load data for the view
+                if (view === 'chats') loadChatSessions();
+                if (view === 'clients') loadClientProfiles();
+                if (view === 'builds') loadBuildHistory();
             });
         });
 
         // ========== CHAT HISTORY ==========
         let chatSessions = [];
         let chatSourceFilter = 'all';
-        let chatStatusFilter = 'all';
 
-        // Chat page source filter buttons
         document.querySelectorAll('.chat-filter-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.chat-filter-btn').forEach(b => {
@@ -1835,124 +1473,6 @@
                 loadChatSessions();
             });
         });
-
-        // Chat status filter dropdown
-        const chatStatusFilterDropdown = document.getElementById('chat-status-filter');
-        if (chatStatusFilterDropdown) {
-            chatStatusFilterDropdown.addEventListener('change', (e) => {
-                chatStatusFilter = e.target.value;
-                console.log(`[Chat Status Filter] Changed to: ${chatStatusFilter}`);
-                renderChatSessions();
-            });
-        }
-
-        // Clear chats button
-        const clearChatsBtn = document.getElementById('clear-chats-btn');
-        if (clearChatsBtn) {
-            clearChatsBtn.addEventListener('click', async () => {
-                // Filter sessions by current filters (user + status)
-                let sessionsToDelete = chatSessions;
-
-                // Apply user filter
-                if (currentUserFilter === 'anonymous') {
-                    sessionsToDelete = sessionsToDelete.filter(session =>
-                        !session.visitorInfo?.email || !session.visitorInfo?.name
-                    );
-                } else if (currentUserFilter !== 'all') {
-                    sessionsToDelete = sessionsToDelete.filter(session =>
-                        session.visitorInfo?.email === currentUserFilter
-                    );
-                }
-
-                // Apply status filter
-                if (chatStatusFilter !== 'all') {
-                    sessionsToDelete = sessionsToDelete.filter(session =>
-                        session.status === chatStatusFilter
-                    );
-                }
-
-                if (sessionsToDelete.length === 0) {
-                    alert('No chat sessions match the current filters.');
-                    return;
-                }
-
-                // Confirmation dialog
-                const confirmMsg = `Are you sure you want to permanently delete ${sessionsToDelete.length} chat session(s)?\n\n` +
-                    `Filters applied:\n` +
-                    `- User: ${currentUserFilter === 'all' ? 'All Users' : currentUserFilter === 'anonymous' ? 'Anonymous Users' : allUsers.find(u => u.email === currentUserFilter)?.name || currentUserFilter}\n` +
-                    `- Status: ${chatStatusFilter === 'all' ? 'All Statuses' : chatStatusFilter}\n\n` +
-                    `This action cannot be undone!`;
-
-                if (!confirm(confirmMsg)) {
-                    return;
-                }
-
-                // Prepare session IDs and sources for deletion
-                const sessionIds = sessionsToDelete.map(session => ({
-                    sessionId: session.sessionId,
-                    source: session.source
-                }));
-
-                clearChatsBtn.disabled = true;
-                clearChatsBtn.textContent = 'Deleting...';
-
-                try {
-                    const res = await fetch(API_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            action: 'admin-delete-chats',
-                            password: adminPassword,
-                            sessionIds: sessionIds
-                        })
-                    });
-                    const data = await res.json();
-
-                    if (data.success) {
-                        alert(`Successfully deleted ${data.deleted} chat session(s).${data.failed > 0 ? `\nFailed to delete ${data.failed} session(s).` : ''}`);
-                        // Reload chat sessions
-                        await loadChatSessions();
-                        // Update user dropdown (in case users are now gone)
-                        await Promise.all([
-                            loadApplications(),
-                            loadClientProfiles(),
-                            loadBuildHistory()
-                        ]);
-                        populateUserDropdown();
-
-                        // Reset filter if current user no longer exists
-                        if (currentUserFilter !== 'all') {
-                            let filterStillValid = false;
-
-                            if (currentUserFilter === 'anonymous') {
-                                // Check if any anonymous users exist
-                                const hasAnonymous =
-                                    applications.some(app => !app.visitorInfo?.email || !app.visitorInfo?.name) ||
-                                    chatSessions.some(session => !session.visitorInfo?.email || !session.visitorInfo?.name) ||
-                                    clientProfiles.some(client => !client.email || !client.name);
-                                filterStillValid = hasAnonymous;
-                            } else {
-                                // Check if the email still exists in allUsers
-                                filterStillValid = allUsers.some(u => u.email === currentUserFilter);
-                            }
-
-                            if (!filterStillValid) {
-                                currentUserFilter = 'all';
-                                document.getElementById('user-filter-dropdown').value = 'all';
-                                renderChatSessions(); // Re-render with 'all' filter
-                            }
-                        }
-                    } else {
-                        alert(`Error: ${data.error}`);
-                    }
-                } catch (e) {
-                    alert(`Connection error: ${e.message}`);
-                }
-
-                clearChatsBtn.disabled = false;
-                clearChatsBtn.textContent = '🗑️ Clear Chats';
-            });
-        }
 
         async function loadChatSessions() {
             const chatsList = document.getElementById('chats-list');
@@ -1979,34 +1499,12 @@
 
         function renderChatSessions() {
             const chatsList = document.getElementById('chats-list');
-
-            // STEP 1: Filter by user (if not 'all')
-            let filtered = chatSessions;
-            if (currentUserFilter === 'anonymous') {
-                // Show only anonymous users (no email or name)
-                filtered = chatSessions.filter(session =>
-                    !session.visitorInfo?.email || !session.visitorInfo?.name
-                );
-            } else if (currentUserFilter !== 'all') {
-                // Show specific user by email
-                filtered = chatSessions.filter(session =>
-                    session.visitorInfo?.email === currentUserFilter
-                );
-            }
-
-            // STEP 2: Filter by status (if not 'all')
-            if (chatStatusFilter !== 'all') {
-                filtered = filtered.filter(session =>
-                    session.status === chatStatusFilter
-                );
-            }
-
-            if (filtered.length === 0) {
+            if (chatSessions.length === 0) {
                 chatsList.innerHTML = '<div class="text-center py-12 text-slate-500">No chat sessions found</div>';
                 return;
             }
 
-            chatsList.innerHTML = filtered.map(session => {
+            chatsList.innerHTML = chatSessions.map(session => {
                 const lastMsg = session.messages?.[session.messages.length - 1]?.content?.substring(0, 100) || 'No messages';
                 const statusColor = session.status === 'converted' ? 'text-green-400' : session.status === 'active' ? 'text-yellow-400' : 'text-slate-400';
                 const sourceIcon = session.source === 'apply' ? '📝' : '🏠';
@@ -2102,22 +1600,7 @@
 
         function renderClientProfiles() {
             const clientsList = document.getElementById('clients-list');
-
-            // Filter by user (if not 'all')
-            let filtered = clientProfiles;
-            if (currentUserFilter === 'anonymous') {
-                // Show only anonymous users (no email or name)
-                filtered = clientProfiles.filter(client =>
-                    !client.email || !client.name
-                );
-            } else if (currentUserFilter !== 'all') {
-                // Show specific user by email
-                filtered = clientProfiles.filter(client =>
-                    client.email === currentUserFilter
-                );
-            }
-
-            if (filtered.length === 0) {
+            if (clientProfiles.length === 0) {
                 clientsList.innerHTML = '<div class="text-center py-12 text-slate-500 col-span-full">No client profiles found</div>';
                 return;
             }
@@ -2130,7 +1613,7 @@
                 delivered: 'bg-green-500'
             };
 
-            clientsList.innerHTML = filtered.map(client => `
+            clientsList.innerHTML = clientProfiles.map(client => `
                 <div class="glass-card rounded-xl p-4 cursor-pointer hover:border-indigo-500/50 transition" onclick="showClientDetail('${client.clientId}')">
                     <div class="flex items-center gap-3 mb-3">
                         <div class="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-xl font-bold">
@@ -2234,33 +1717,7 @@
 
         function renderBuildHistory() {
             const buildsList = document.getElementById('builds-list');
-
-            // Filter by user (if not 'all')
-            let filtered = buildHistory;
-            if (currentUserFilter === 'anonymous') {
-                // Show only anonymous users (no client name)
-                filtered = buildHistory.filter(build =>
-                    !build.client?.name
-                );
-            } else if (currentUserFilter !== 'all') {
-                // Show specific user
-                filtered = buildHistory.filter(build => {
-                    const clientName = build.client?.name;
-                    if (!clientName) return false;
-
-                    // Check if currentUserFilter is an email
-                    if (currentUserFilter.includes('@')) {
-                        // Try to find matching user in allUsers cache
-                        const user = allUsers.find(u => u.email === currentUserFilter);
-                        return user && user.name === clientName;
-                    } else {
-                        // Direct name match (fallback)
-                        return clientName === currentUserFilter;
-                    }
-                });
-            }
-
-            if (filtered.length === 0) {
+            if (buildHistory.length === 0) {
                 buildsList.innerHTML = '<div class="text-center py-12 text-slate-500">No builds found</div>';
                 return;
             }
@@ -2280,7 +1737,7 @@
             };
 
             // Sort builds by datetime descending (newest first)
-            const sortedBuilds = [...filtered].sort((a, b) => {
+            const sortedBuilds = [...buildHistory].sort((a, b) => {
                 const dateA = new Date(a.timestamps?.created || a.createdAt || 0);
                 const dateB = new Date(b.timestamps?.created || b.createdAt || 0);
                 return dateB - dateA; // Descending order
@@ -2808,11 +2265,9 @@ How can I help you today?`,
                 if (theme === 'light') {
                     tab.style.background = '#e2e8f0';
                     tab.style.color = '#475569';
-                    tab.style.border = '1px solid transparent';
                 } else {
                     tab.style.background = 'var(--bg-secondary)';
                     tab.style.color = 'var(--text-secondary)';
-                    tab.style.border = '1px solid transparent';
                 }
             });
         }
