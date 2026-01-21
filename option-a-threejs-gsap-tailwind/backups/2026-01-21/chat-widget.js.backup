@@ -52,7 +52,6 @@ class ChatWidget {
         // State
         this.state = {
             messages: savedState.messages || [],
-            allMessages: savedState.allMessages || [],
             visitorInfo: savedState.visitorInfo || {},
             isOpen: savedState.isOpen !== undefined ? savedState.isOpen : this.config.startOpen,
             isMinimized: false,
@@ -83,25 +82,16 @@ class ChatWidget {
         this.updateLayoutOffset();
         window.addEventListener('resize', () => this.updateLayoutOffset());
 
-        // Restore messages if they exist
+        // Restore messages or show welcome
         if (this.state.messages.length > 0) {
             console.log('[ChatWidget] Restoring', this.state.messages.length, 'messages from localStorage');
             this.restoreMessages();
-        }
-
-        // Check if there are any messages from the current page type
-        const currentPageMessages = this.state.messages.filter(msg =>
-            !msg.pageType || msg.pageType === this.config.pageType
-        );
-
-        // If chat starts open and no messages from current page, add welcome
-        if (this.state.isOpen && currentPageMessages.length === 0) {
-            console.log('[ChatWidget] Chat starts open with no current page messages, adding welcome message');
+        } else {
+            console.log('[ChatWidget] No saved messages, showing welcome');
             setTimeout(() => {
-                this.addMessage('assistant', this.config.welcomeMessage, true);
+                this.addMessage('assistant', this.config.welcomeMessage);
             }, 300);
         }
-        // Otherwise, welcome message will be added when chat is first opened
     }
 
     // Persistence methods
@@ -112,46 +102,7 @@ class ChatWidget {
                 const parsed = JSON.parse(saved);
                 // Check if session is still valid (24 hours)
                 if (parsed.timestamp && Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
-                    // Store all messages (unfiltered)
-                    const allMessages = parsed.messages || [];
-
-                    // Filter messages based on current page type for display
-                    let filteredMessages = [...allMessages];
-
-                    // Apply filtering logic
-                    if (this.config.pageType === 'landing') {
-                        // Landing: Show ONLY landing messages
-                        filteredMessages = filteredMessages.filter(msg =>
-                            !msg.pageType || msg.pageType === 'landing'
-                        );
-                    } else if (this.config.pageType === 'apply') {
-                        // Apply: Show landing + apply messages (for context and auto-fill)
-                        // But exclude welcome messages from other pages
-                        filteredMessages = filteredMessages.filter(msg => {
-                            // If it's a welcome message from a different page, exclude it
-                            if (msg.isWelcome && msg.pageType !== 'apply') {
-                                return false;
-                            }
-                            // Otherwise include landing and apply messages
-                            return !msg.pageType || msg.pageType === 'landing' || msg.pageType === 'apply';
-                        });
-                    } else if (this.config.pageType === 'admin') {
-                        // Admin: Show only admin messages
-                        filteredMessages = filteredMessages.filter(msg =>
-                            !msg.pageType || msg.pageType === 'admin'
-                        );
-                    }
-
-                    return {
-                        messages: filteredMessages,
-                        allMessages: allMessages,
-                        visitorInfo: parsed.visitorInfo || {},
-                        isOpen: parsed.isOpen,
-                        tokenUsage: parsed.tokenUsage || { total: 0, cost: 0, requests: 0 },
-                        sessionId: parsed.sessionId || null,
-                        duplicateChecked: parsed.duplicateChecked || false,
-                        duplicateCheckedEmail: parsed.duplicateCheckedEmail || null
-                    };
+                    return parsed;
                 }
             }
         } catch (e) {
@@ -163,7 +114,7 @@ class ChatWidget {
     saveState() {
         try {
             const stateToSave = {
-                messages: this.state.allMessages,
+                messages: this.state.messages,
                 visitorInfo: this.state.visitorInfo,
                 isOpen: this.state.isOpen,
                 tokenUsage: this.state.tokenUsage,
@@ -582,28 +533,13 @@ class ChatWidget {
     }
 
     toggle() {
-        const wasOpen = this.state.isOpen;
         this.state.isOpen = !this.state.isOpen;
         this.elements.sidebar.classList.toggle('open', this.state.isOpen);
         this.elements.toggle.classList.toggle('hidden', this.state.isOpen);
         this.updateLayoutOffset();
         this.saveState(); // Persist open/close state
-
         if (this.state.isOpen) {
             this.elements.input.focus();
-
-            // Check if there are any messages from the current page type
-            const currentPageMessages = this.state.messages.filter(msg =>
-                !msg.pageType || msg.pageType === this.config.pageType
-            );
-
-            // Add welcome message only on first open (no messages from current page yet)
-            if (!wasOpen && currentPageMessages.length === 0) {
-                console.log('[ChatWidget] First time opening chat on this page, adding welcome message');
-                setTimeout(() => {
-                    this.addMessage('assistant', this.config.welcomeMessage, true);
-                }, 300);
-            }
         }
     }
 
@@ -645,7 +581,6 @@ class ChatWidget {
     clearChat() {
         this.elements.messages.innerHTML = '';
         this.state.messages = [];
-        this.state.allMessages = [];
         this.state.tokenUsage = { total: 0, cost: 0, requests: 0 };
         this.state.sessionId = null; // Reset session
         this.elements.tokenDisplay.style.display = 'none';
@@ -655,11 +590,11 @@ class ChatWidget {
 
         // Re-add welcome message
         setTimeout(() => {
-            this.addMessage('assistant', this.config.welcomeMessage, true);
+            this.addMessage('assistant', this.config.welcomeMessage);
         }, 100);
     }
 
-    addMessage(role, content, isWelcome = false) {
+    addMessage(role, content) {
         const row = document.createElement('div');
         row.className = `chat-message-row ${role}`;
 
@@ -688,17 +623,7 @@ class ChatWidget {
         this.elements.messages.scrollTop = this.elements.messages.scrollHeight;
 
         if (role !== 'system') {
-            const message = {
-                role,
-                content,
-                pageType: this.config.pageType,
-                timestamp: Date.now(),
-                isWelcome: isWelcome
-            };
-            // Add to filtered messages (for display)
-            this.state.messages.push(message);
-            // Add to all messages (for storage)
-            this.state.allMessages.push(message);
+            this.state.messages.push({ role, content });
             this.saveState(); // Persist after each message
         }
     }
