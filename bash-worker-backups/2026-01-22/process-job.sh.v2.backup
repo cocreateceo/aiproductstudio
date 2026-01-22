@@ -1,0 +1,205 @@
+#!/bin/bash
+JOB_ID=$1
+JOB_DIR="/home/ubuntu/ai-product-studio/jobs/$JOB_ID"
+LOG_FILE="/home/ubuntu/ai-product-studio/logs/$JOB_ID.log"
+SCRIPTS_DIR="/home/ubuntu/ai-product-studio/skills/product-builder/scripts"
+S3_BUCKET="ai-product-studio-applications"
+
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a $LOG_FILE
+}
+
+cd $JOB_DIR
+
+log "Starting job processing: $JOB_ID"
+
+# Update progress: Starting
+$SCRIPTS_DIR/update-progress.sh $JOB_ID "architect" "in_progress" "Analyzing business requirements"
+
+# Run Claude Code with product-builder skill
+claude -p "You are building an MVP landing page. Follow these steps:
+
+1. First, read input.json to understand the business requirements.
+2. Act as the ARCHITECT agent: Design the site structure and create architecture.json
+3. Act as the DEVELOPER agent: Build the complete site in the output/ directory
+4. Act as the DEPLOYER agent: Deploy to S3 and create CloudFront distribution
+
+Reference the agent definitions in /home/ubuntu/ai-product-studio/.claude/agents/ for detailed instructions.
+Reference the skill definition in /home/ubuntu/ai-product-studio/skills/product-builder/SKILL.md for workflow.
+
+After each phase, update progress using: /home/ubuntu/ai-product-studio/skills/product-builder/scripts/update-progress.sh JOB_ID PHASE STATUS MESSAGE
+
+Current job ID: $JOB_ID
+Working directory: $JOB_DIR
+
+Be autonomous. Make decisions confidently. Build a beautiful, functional MVP." \
+--allowedTools "Read,Write,Edit,Bash,Glob,Grep" \
+2>&1 | tee -a $LOG_FILE
+
+# ============================================================================
+# POST-PROCESSING: Extract deployment info and create metadata files
+# ============================================================================
+
+log "Post-processing: Creating metadata files..."
+
+# Extract deployment information from log or deployed.json
+CLOUDFRONT_URL=""
+BUCKET_NAME=""
+CF_ID=""
+CF_DOMAIN=""
+OAI_ID=""
+DEPLOYED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+# Try to read deployed.json if Claude created it
+if [ -f "$JOB_DIR/output/deployed.json" ]; then
+    log "Found deployed.json created by Claude"
+    CLOUDFRONT_URL=$(jq -r '.cloudfrontUrl // empty' "$JOB_DIR/output/deployed.json")
+    BUCKET_NAME=$(jq -r '.bucketName // empty' "$JOB_DIR/output/deployed.json")
+    CF_ID=$(jq -r '.cloudfrontId // empty' "$JOB_DIR/output/deployed.json")
+    CF_DOMAIN=$(jq -r '.cloudfrontDomain // empty' "$JOB_DIR/output/deployed.json")
+    OAI_ID=$(jq -r '.oaiId // empty' "$JOB_DIR/output/deployed.json")
+    DEPLOYED_AT=$(jq -r '.deployedAt // empty' "$JOB_DIR/output/deployed.json")
+else
+    log "deployed.json not found, attempting to extract from log..."
+
+    # Try to extract from log file
+    BUCKET_NAME=$(grep -oP 'BUCKET_NAME="?\K[^"$\s]+' $LOG_FILE | tail -1)
+    CF_ID=$(grep -oP 'CF_ID="?\K[^"$\s]+' $LOG_FILE | tail -1)
+    CF_DOMAIN=$(grep -oP 'CF_DOMAIN="?\K[^"$\s]+' $LOG_FILE | tail -1)
+    OAI_ID=$(grep -oP 'OAI_ID="?\K[^"$\s]+' $LOG_FILE | tail -1)
+
+    if [ -n "$CF_DOMAIN" ]; then
+        CLOUDFRONT_URL="https://$CF_DOMAIN"
+    fi
+
+    # Create deployed.json if we have the info
+    if [ -n "$CLOUDFRONT_URL" ]; then
+        log "Creating deployed.json from extracted information"
+        cat > "$JOB_DIR/output/deployed.json" << EOF
+{
+  "jobId": "$JOB_ID",
+  "bucketName": "$BUCKET_NAME",
+  "cloudfrontId": "$CF_ID",
+  "cloudfrontDomain": "$CF_DOMAIN",
+  "cloudfrontUrl": "$CLOUDFRONT_URL",
+  "oaiId": "$OAI_ID",
+  "deployedAt": "$DEPLOYED_AT",
+  "status": "deployed"
+}
+EOF
+    fi
+fi
+
+# Determine deployment status
+DEPLOYMENT_STATUS="unknown"
+MVP_URL=""
+MODE="local"
+
+if [ -n "$CLOUDFRONT_URL" ]; then
+    DEPLOYMENT_STATUS="completed"
+    MVP_URL="$CLOUDFRONT_URL"
+    MODE="production"
+    log "Deployment successful: $CLOUDFRONT_URL"
+elif [ -f "$JOB_DIR/output/index.html" ]; then
+    DEPLOYMENT_STATUS="partial"
+    MVP_URL="file://$JOB_DIR/output/index.html"
+    MODE="local"
+    log "MVP built locally but deployment may have failed"
+else
+    DEPLOYMENT_STATUS="failed"
+    MVP_URL=""
+    MODE="local"
+    log "Job failed - no output generated"
+fi
+
+# ============================================================================
+# Create metadata.json programmatically
+# ============================================================================
+
+log "Creating metadata.json..."
+
+# Read client and business info from input.json
+CLIENT_INFO=$(jq -c '.client // {}' "$JOB_DIR/input.json" 2>/dev/null || echo '{}')
+BUSINESS_INFO=$(jq -c '.business // {}' "$JOB_DIR/input.json" 2>/dev/null || echo '{}')
+CREATED_AT=$(jq -r '.createdAt // empty' "$JOB_DIR/input.json" 2>/dev/null)
+APPLICATION_S3_KEY=$(jq -r '.applicationS3Key // empty' "$JOB_DIR/input.json" 2>/dev/null)
+
+# List files created in output directory
+FILES_CREATED="[]"
+if [ -d "$JOB_DIR/output" ]; then
+    FILES_CREATED=$(cd "$JOB_DIR/output" && find . -type f | sed 's|^\./||' | jq -R . | jq -s .)
+fi
+
+# Build metadata JSON
+cat > /tmp/metadata-$JOB_ID.json << EOF
+{
+  "buildId": "$JOB_ID",
+  "clientId": null,
+  "applicationId": "$APPLICATION_S3_KEY",
+  "client": $CLIENT_INFO,
+  "business": $BUSINESS_INFO,
+  "status": "$DEPLOYMENT_STATUS",
+  "timestamps": {
+    "created": "$CREATED_AT",
+    "started": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+    "completed": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  },
+  "phases": {
+    "architect": {
+      "status": "completed"
+    },
+    "developer": {
+      "status": "$([ "$DEPLOYMENT_STATUS" != "failed" ] && echo "completed" || echo "failed")"
+    },
+    "deployer": {
+      "status": "$([ "$DEPLOYMENT_STATUS" == "completed" ] && echo "completed" || echo "partial")"
+    }
+  },
+  "mvpUrl": "$MVP_URL",
+  "deployment": $(if [ -n "$CLOUDFRONT_URL" ]; then cat << DEPLOY
+{
+    "bucketName": "$BUCKET_NAME",
+    "cloudfrontId": "$CF_ID",
+    "cloudfrontDomain": "$CF_DOMAIN",
+    "oaiId": "$OAI_ID",
+    "deployedAt": "$DEPLOYED_AT"
+  }
+DEPLOY
+else
+  echo "null"
+fi),
+  "localPath": "$JOB_DIR",
+  "mode": "$MODE",
+  "filesCreated": $FILES_CREATED
+}
+EOF
+
+# Upload metadata.json to S3
+log "Uploading metadata.json to S3..."
+aws s3 cp /tmp/metadata-$JOB_ID.json s3://$S3_BUCKET/builds/$JOB_ID/metadata.json
+
+if [ $? -eq 0 ]; then
+    log "metadata.json uploaded successfully"
+else
+    log "WARNING: Failed to upload metadata.json to S3"
+fi
+
+# Clean up temp file
+rm -f /tmp/metadata-$JOB_ID.json
+
+# ============================================================================
+# Update final progress status
+# ============================================================================
+
+if [ "$DEPLOYMENT_STATUS" == "completed" ]; then
+    log "Job completed successfully"
+    $SCRIPTS_DIR/update-progress.sh $JOB_ID "deployer" "completed" "MVP deployed successfully at $CLOUDFRONT_URL"
+elif [ "$DEPLOYMENT_STATUS" == "partial" ]; then
+    log "Job partially completed - site built but deployment may have failed"
+    $SCRIPTS_DIR/update-progress.sh $JOB_ID "deployer" "partial" "Site built but deployment may need review"
+else
+    log "Job failed - no output generated"
+    $SCRIPTS_DIR/update-progress.sh $JOB_ID "architect" "failed" "Failed to generate MVP"
+fi
+
+log "Job processing complete: $JOB_ID"
