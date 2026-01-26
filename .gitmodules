@@ -4,6 +4,6 @@
 [submodule "projects/vedic-astro"]
 	path = projects/vedic-astro
 	url = https://github.com/GopiSunware/Vedic_Astro.git
-[submodule "projects/vedic-transform/vedic-transform"]
-	path = projects/vedic-transform/vedic-transform
+[submodule "projects/vedic-transform"]
+	path = projects/vedic-transform
 	url = https://github.com/GopiSunware/vedic-transformation.git
