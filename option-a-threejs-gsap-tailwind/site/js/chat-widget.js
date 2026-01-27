@@ -54,7 +54,7 @@ class ChatWidget {
             messages: savedState.messages || [],
             allMessages: savedState.allMessages || [],
             visitorInfo: savedState.visitorInfo || {},
-            isOpen: savedState.isOpen !== undefined ? savedState.isOpen : this.config.startOpen,
+            isOpen: false,  // Always start minimized
             isMinimized: false,
             isLoading: false,
             screenshot: null,
@@ -89,19 +89,19 @@ class ChatWidget {
             this.restoreMessages();
         }
 
-        // Check if there are any messages from the current page type
-        const currentPageMessages = this.state.messages.filter(msg =>
-            !msg.pageType || msg.pageType === this.config.pageType
-        );
+        // Welcome message will be added when chat is first opened (in toggle method)
 
-        // If chat starts open and no messages from current page, add welcome
-        if (this.state.isOpen && currentPageMessages.length === 0) {
-            console.log('[ChatWidget] Chat starts open with no current page messages, adding welcome message');
-            setTimeout(() => {
-                this.addMessage('assistant', this.config.welcomeMessage, true);
-            }, 300);
+        // Show dot indicator if conversation exists
+        if (this.hasExistingConversation() && this.elements.badge) {
+            this.elements.badge.style.display = 'flex';
+            this.elements.badge.textContent = '';
+            this.elements.badge.classList.add('dot-indicator');
         }
-        // Otherwise, welcome message will be added when chat is first opened
+    }
+
+    // Check if there's an existing conversation (any messages at all)
+    hasExistingConversation() {
+        return this.state.allMessages.length > 0;
     }
 
     // Persistence methods
@@ -112,39 +112,12 @@ class ChatWidget {
                 const parsed = JSON.parse(saved);
                 // Check if session is still valid (24 hours)
                 if (parsed.timestamp && Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
-                    // Store all messages (unfiltered)
+                    // All messages shown on all pages (no filtering)
                     const allMessages = parsed.messages || [];
 
-                    // Filter messages based on current page type for display
-                    let filteredMessages = [...allMessages];
-
-                    // Apply filtering logic
-                    if (this.config.pageType === 'landing') {
-                        // Landing: Show ONLY landing messages
-                        filteredMessages = filteredMessages.filter(msg =>
-                            !msg.pageType || msg.pageType === 'landing'
-                        );
-                    } else if (this.config.pageType === 'apply') {
-                        // Apply: Show landing + apply messages (for context and auto-fill)
-                        // But exclude welcome messages from other pages
-                        filteredMessages = filteredMessages.filter(msg => {
-                            // If it's a welcome message from a different page, exclude it
-                            if (msg.isWelcome && msg.pageType !== 'apply') {
-                                return false;
-                            }
-                            // Otherwise include landing and apply messages
-                            return !msg.pageType || msg.pageType === 'landing' || msg.pageType === 'apply';
-                        });
-                    } else if (this.config.pageType === 'admin') {
-                        // Admin: Show only admin messages
-                        filteredMessages = filteredMessages.filter(msg =>
-                            !msg.pageType || msg.pageType === 'admin'
-                        );
-                    }
-
                     return {
-                        messages: filteredMessages,
-                        allMessages: allMessages,
+                        messages: [...allMessages],      // Create separate copy
+                        allMessages: [...allMessages],   // Create separate copy
                         visitorInfo: parsed.visitorInfo || {},
                         isOpen: parsed.isOpen,
                         tokenUsage: parsed.tokenUsage || { total: 0, cost: 0, requests: 0 },
@@ -361,7 +334,8 @@ class ChatWidget {
             tokenCost: document.getElementById('token-cost'),
             avatar: document.querySelector('.chat-avatar'),
             attach: document.getElementById('chat-attach'),
-            fileInput: document.getElementById('chat-file-input')
+            fileInput: document.getElementById('chat-file-input'),
+            badge: document.getElementById('chat-badge')
         };
     }
 
@@ -592,14 +566,15 @@ class ChatWidget {
         if (this.state.isOpen) {
             this.elements.input.focus();
 
-            // Check if there are any messages from the current page type
-            const currentPageMessages = this.state.messages.filter(msg =>
-                !msg.pageType || msg.pageType === this.config.pageType
-            );
+            // Hide conversation indicator
+            if (this.elements.badge) {
+                this.elements.badge.style.display = 'none';
+                this.elements.badge.classList.remove('dot-indicator');
+            }
 
-            // Add welcome message only on first open (no messages from current page yet)
-            if (!wasOpen && currentPageMessages.length === 0) {
-                console.log('[ChatWidget] First time opening chat on this page, adding welcome message');
+            // Add welcome message only if no messages exist at all (first ever open)
+            if (!wasOpen && this.state.allMessages.length === 0) {
+                console.log('[ChatWidget] First time opening chat, adding welcome message for:', this.config.pageType);
                 setTimeout(() => {
                     this.addMessage('assistant', this.config.welcomeMessage, true);
                 }, 300);

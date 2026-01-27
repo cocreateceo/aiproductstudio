@@ -13,6 +13,11 @@
 import Anthropic from '@anthropic-ai/sdk';
 import pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
+import dns from 'dns';
+import { promisify } from 'util';
+
+// DNS MX lookup for email validation
+const resolveMx = promisify(dns.resolveMx);
 
 // Configuration
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -58,6 +63,49 @@ POLITELY DECLINE any questions about:
 
 When declining, say something like:
 "I appreciate your curiosity! However, I'm specifically here to help you explore partnership opportunities with AI Product Studio. Is there something about our venture model or AI product development I can help you with?"
+
+## INPUT VALIDATION - Name, Email, and Product Idea:
+
+### Name Validation:
+When user provides their name, evaluate if it's a realistic human name.
+
+REJECT names that are:
+- Keyboard mashing: "asdfgh", "qwerty", "zxcvbn", "jkl;", "fghj"
+- Repeated characters: "aaaa", "abcabc", "xxxx"
+- Obvious test inputs: "test", "fake", "none", "na", "xxx", "aaa", "123"
+- Single words that aren't names: "hello", "yes", "null", "undefined", "admin"
+
+ACCEPT names that are:
+- Common names in any culture/language
+- Names with hyphens, apostrophes, spaces (O'Brien, Mary-Jane, José García)
+- Uncommon but plausible names
+
+If name seems invalid, DO NOT include it in FORM_DATA. Instead respond:
+"That doesn't look like a real name. Could you please provide your actual name so we can personalize your experience?"
+
+### Email Validation:
+The system will validate emails before you process them. If an email fails validation, you will receive a validation error. In that case:
+- DO NOT include the invalid email in FORM_DATA
+- Ask the user to provide a valid email address
+- Be helpful: "That email doesn't seem to be valid. Could you double-check it?"
+
+### Product Idea Validation:
+When user provides their product idea, evaluate if it's a coherent business/product concept.
+
+REJECT ideas that are:
+- Gibberish or random text: "asdfasdf", "test idea", "blah blah", "xyz123"
+- Completely off-topic: "I like pizza", "What's the weather", "hello world"
+- Empty or placeholder: "TBD", "will fill later", "idea here", "test", "n/a"
+- Single unrelated words: "money", "success", "app", "thing"
+
+ACCEPT ideas that are:
+- A describable product or service concept
+- Related to business/technology/solving a problem
+- Brief but coherent: "AI tool for restaurant menu pricing" is fine
+- Ambitious but logical: "Platform connecting farmers to restaurants"
+
+If idea seems invalid, DO NOT include it in FORM_DATA. Instead respond:
+"I'd love to hear more about your product idea! Could you describe what problem it solves or what it does? Even a brief description like 'an app that helps X do Y' works great."
 
 ## CRITICAL - Contact Information Collection:
 You MUST collect contact information before providing detailed answers. Follow this flow:
@@ -321,6 +369,182 @@ const anthropic = new Anthropic({
   apiKey: ANTHROPIC_API_KEY,
 });
 
+// ========== FORM VALIDATION AGENT ==========
+
+const FORM_VALIDATION_PROMPT = `You are a form validation agent. You receive form data as JSON and validate specific fields.
+
+VALIDATION RULES:
+
+1. NAME - Validate for:
+   - Must be at least 2 characters
+   - No numbers allowed
+   - Detect gibberish (asdf, qwerty, aasdjf, random letters)
+   - Detect fake names (test, admin, user, none, fake, null, undefined)
+   - Detect keyboard mashing patterns
+   If invalid: set valid=false, KEEP the original value in "value", provide helpful error message
+
+2. EMAIL - Validate for:
+   - Must be valid email format (name@domain.com)
+   - Detect gibberish emails (asdf@asdf.com, test@test.com)
+   - Detect obviously fake domains (fake.com, example.com, test.com)
+   - Detect disposable email providers (tempmail, guerrillamail, mailinator, 10minutemail)
+   If invalid: set valid=false, KEEP the original value in "value", provide helpful error message
+
+3. PRODUCT IDEA - Validate for:
+   REJECT if:
+   - Gibberish, random text, keyboard mashing (asdfasdf, xyz123)
+   - Off-topic text (weather, food, unrelated personal topics)
+   - Placeholder text (TBD, test, n/a, lorem ipsum, "will fill later")
+   - Too vague with no clear problem/solution ("an app", "something with AI", "a platform")
+   - Doesn't describe what problem it solves or who it helps
+   - Fantasy/unrealistic ideas with no feasible path ("teleportation device", "mind reading app")
+   - Just a buzzword combo with no substance ("AI blockchain metaverse solution")
+
+   ACCEPT if:
+   - Describes a specific product/service concept
+   - Identifies a problem it solves OR a target audience it helps
+   - Is feasible with current technology (even if ambitious)
+   - Brief is OK if clear: "AI tool to help restaurants price their menu based on costs and competition"
+
+   If invalid: set valid=false, KEEP the original value in "value", provide helpful error explaining what's missing (e.g., "Please describe what problem your product solves and who it helps")
+
+OTHER FIELDS: Pass through unchanged with just "value" property.
+
+RESPONSE FORMAT: Return ONLY valid JSON matching this exact structure. No explanation text before or after.
+
+{
+  "success": true/false,
+  "fields": {
+    "name": { "valid": true, "value": "the name" },
+    "email": { "valid": true, "value": "the email" },
+    "productIdea": { "valid": true, "value": "the idea" },
+    "phone": { "value": "the value" },
+    ... other fields with just "value"
+  }
+}
+
+Set "success": true only if ALL 3 core validations (name, email, productIdea) pass.`;
+
+// Handle form validation requests
+async function handleFormValidation(formData, visitorInfo, clientIP) {
+  console.log('Form validation request received:', { formData: Object.keys(formData) });
+
+  const userMessage = `Validate this form data and return JSON response:
+${JSON.stringify(formData, null, 2)}`;
+
+  try {
+    const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 800,
+      system: FORM_VALIDATION_PROMPT,
+      messages: [{ role: 'user', content: userMessage }]
+    });
+
+    const responseText = response.content[0].text.trim();
+    console.log('AI validation response:', responseText);
+
+    // Parse AI response - extract JSON
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('No valid JSON in AI response');
+    }
+
+    const validationResult = JSON.parse(jsonMatch[0]);
+
+    if (!validationResult.success) {
+      // Validation failed - return errors
+      console.log('Validation failed:', validationResult);
+      return {
+        statusCode: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify(validationResult)
+      };
+    }
+
+    // Validation passed - save to S3 and send email
+    console.log('Validation passed - saving application...');
+
+    // Build visitorInfo from validated data
+    const updatedVisitorInfo = {
+      ...visitorInfo,
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone || ''
+    };
+
+    // Build the application message in the expected format
+    const applicationMessage = `PARTNERSHIP APPLICATION SUBMISSION:
+
+Name: ${formData.name}
+Email: ${formData.email}
+Phone: ${formData.phone || 'Not provided'}
+LinkedIn: ${formData.linkedin || 'Not provided'}
+
+Business Stage: ${formData.businessStage}
+Industry: ${formData.industry}
+Background: ${formData.background}
+
+Product Idea: ${formData.productIdea}
+Target Customer: ${formData.targetCustomer}
+Market Validation: ${formData.marketValidation || 'Not provided'}
+
+Time Commitment: ${formData.timeCommitment}
+Timeline: ${formData.timeline}
+Additional Info: ${formData.additionalInfo || 'None'}`;
+
+    // Check for duplicate
+    const duplicateCheck = await checkDuplicateApplication(
+      updatedVisitorInfo.email,
+      updatedVisitorInfo.phone
+    );
+
+    if (duplicateCheck.isDuplicate) {
+      console.log('Duplicate application detected:', duplicateCheck);
+      return {
+        statusCode: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          success: true,
+          fields: validationResult.fields,
+          message: `You've already submitted an application. Our team will contact you soon.`,
+          isDuplicate: true
+        })
+      };
+    }
+
+    // Save to S3 and send email
+    const [s3Result, emailResult] = await Promise.all([
+      saveFormToS3(updatedVisitorInfo, applicationMessage, clientIP),
+      sendFormSubmissionEmail(updatedVisitorInfo, applicationMessage, clientIP)
+    ]);
+
+    console.log('S3 save result:', s3Result);
+    console.log('Email send result:', emailResult);
+
+    return {
+      statusCode: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        success: true,
+        fields: validationResult.fields,
+        message: 'Application submitted successfully'
+      })
+    };
+
+  } catch (error) {
+    console.error('Form validation error:', error);
+    return {
+      statusCode: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        success: false,
+        error: 'Validation service error. Please try again.'
+      })
+    };
+  }
+}
+
 // CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -545,6 +769,51 @@ Page: ${visitorInfo.page || 'Apply Page'}
   } catch (error) {
     console.error('Form submission email error:', error.message);
     return false;
+  }
+}
+
+// ========== EMAIL VALIDATION ==========
+
+// Validate email format and domain MX records
+async function validateEmail(email) {
+  if (!email) {
+    return { valid: false, reason: 'missing' };
+  }
+
+  // 1. Format check
+  const formatRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!formatRegex.test(email)) {
+    return { valid: false, reason: 'invalid_format' };
+  }
+
+  // 2. Extract domain
+  const domain = email.split('@')[1].toLowerCase();
+
+  // 3. MX record lookup to verify domain exists
+  try {
+    const mxRecords = await resolveMx(domain);
+    if (!mxRecords || mxRecords.length === 0) {
+      console.log(`Email validation: No MX records for domain ${domain}`);
+      return { valid: false, reason: 'invalid_domain' };
+    }
+    console.log(`Email validation: Valid MX records found for ${domain}`);
+  } catch (error) {
+    console.log(`Email validation: MX lookup failed for ${domain}:`, error.code);
+    return { valid: false, reason: 'invalid_domain' };
+  }
+
+  return { valid: true };
+}
+
+// Get human-readable validation error message
+function getEmailValidationMessage(reason) {
+  switch (reason) {
+    case 'invalid_format':
+      return "That email doesn't look quite right. Could you check the format? (e.g., name@company.com)";
+    case 'invalid_domain':
+      return "I couldn't verify that email domain. Could you double-check the spelling or try a different email?";
+    default:
+      return "Please provide a valid email address.";
   }
 }
 
@@ -1628,7 +1897,7 @@ async function processAttachments(attachments) {
 }
 
 // Chat with Claude
-async function chatWithClaude(messages, hasContactInfo, screenshot = null, pageContext = null, processedAttachments = null) {
+async function chatWithClaude(messages, hasContactInfo, screenshot = null, pageContext = null, processedAttachments = null, validationErrors = null) {
   try {
     let contextualPrompt = SYSTEM_PROMPT;
 
@@ -1644,6 +1913,16 @@ If the user asks about "this page" or "where am I", refer to this page context.`
       contextualPrompt += '\n\n## Current Status: Contact info collected. Provide helpful detailed answers about AI Product Studio partnerships.';
     } else {
       contextualPrompt += '\n\n## Current Status: NO CONTACT INFO YET. You must ask for name and phone/email before giving detailed answers!';
+    }
+
+    // Add validation errors if present - AI should address these
+    if (validationErrors && validationErrors.length > 0) {
+      contextualPrompt += '\n\n## VALIDATION ERRORS - ADDRESS THESE FIRST:\n';
+      contextualPrompt += 'The following validation issues were detected. Please inform the user and ask them to provide valid information:\n';
+      for (const error of validationErrors) {
+        contextualPrompt += `- ${error}\n`;
+      }
+      contextualPrompt += '\nDO NOT include invalid data in FORM_DATA. Ask the user to correct these issues.';
     }
 
     // Build attachment context for the AI
@@ -1866,6 +2145,12 @@ export const handler = async (event) => {
     const clientIP = event.requestContext?.http?.sourceIp ||
                      event.headers?.['x-forwarded-for']?.split(',')[0] ||
                      'Unknown';
+
+    // ========== FORM VALIDATION MODE ==========
+    // Handle direct form validation (AI agent validates core fields)
+    if (body.mode === 'validate' && body.formData) {
+      return await handleFormValidation(body.formData, visitorInfo, clientIP);
+    }
 
     // ========== ADMIN ENDPOINTS ==========
 
@@ -2297,10 +2582,22 @@ export const handler = async (event) => {
     // Use LLM to extract contact info from entire conversation
     const extractedInfo = await extractContactInfoWithLLM(messages);
 
+    // Validate extracted email if present
+    let emailValidation = { valid: true };
+    let emailValidationError = null;
+    if (extractedInfo.email) {
+      emailValidation = await validateEmail(extractedInfo.email);
+      if (!emailValidation.valid) {
+        emailValidationError = getEmailValidationMessage(emailValidation.reason);
+        console.log('Email validation failed:', extractedInfo.email, emailValidation.reason);
+      }
+    }
+
     const updatedVisitorInfo = {
       ...visitorInfo,
       ...(extractedInfo.name && { name: extractedInfo.name }),
-      ...(extractedInfo.email && { email: extractedInfo.email }),
+      // Only include email if validation passed
+      ...(extractedInfo.email && emailValidation.valid && { email: extractedInfo.email }),
       ...(extractedInfo.phone && { phone: extractedInfo.phone }),
       clientIP,
       page: visitorInfo.page || body.page
@@ -2423,10 +2720,16 @@ export const handler = async (event) => {
       console.log('Processed attachments:', processedAttachments?.map(a => ({ type: a.type, name: a.name })));
     }
 
+    // Build validation errors array for AI context
+    const validationErrors = [];
+    if (emailValidationError) {
+      validationErrors.push(`Email validation failed: ${emailValidationError}`);
+    }
+
     // Get AI response
     let response;
     try {
-      response = await chatWithClaude(messages, hasCompleteContactInfo, screenshot, pageContext, processedAttachments);
+      response = await chatWithClaude(messages, hasCompleteContactInfo, screenshot, pageContext, processedAttachments, validationErrors.length > 0 ? validationErrors : null);
     } catch (claudeError) {
       console.log('Claude failed, trying OpenAI backup');
       response = await chatWithOpenAI(messages, hasCompleteContactInfo, screenshot);

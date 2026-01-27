@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <title>Lets CoCreate in 24 Hrs | CoCreate AI</title>
-    <meta name="description" content="Apply to partner with CoCreate AI. Launch your AI-powered product in 2 weeks with our unique co-founder partnership model.">
+    <title>Lets CoCreate in 24 Hrs | AI Product Studio</title>
+    <meta name="description" content="Apply to partner with AI Product Studio. Launch your AI-powered product in 2 weeks with our 40/40/20 partnership model.">
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -33,10 +33,6 @@
 
     <!-- html2canvas for screenshots -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
-    <!-- Calendly -->
-    <link href="https://assets.calendly.com/assets/external/widget.css" rel="stylesheet">
-    <script src="https://assets.calendly.com/assets/external/widget.js" type="text/javascript" async></script>
 
     <!-- Centralized Configuration -->
     <script src="js/config.js"></script>
@@ -599,7 +595,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                     </svg>
                 </div>
-                <span class="text-xl font-bold gradient-text">CoCreate AI</span>
+                <span class="text-xl font-bold gradient-text">AI Product Studio</span>
             </a>
             <a href="index.html" class="text-theme-secondary hover:text-theme-primary transition flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -629,76 +625,171 @@
                 </div>
             </div>
 
-            <!-- Application Form - Simplified -->
+            <!-- Application Form -->
             <div id="form-container" class="glass-card-premium rounded-2xl p-8 md:p-10 shimmer">
                 <form id="partnership-form">
-                    <!-- Contact Info -->
+                    <!-- Personal Information -->
                     <div class="mb-8">
+                        <h2 class="text-xl font-semibold mb-6 flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-full section-badge flex items-center justify-center text-white text-sm font-bold">1</span>
+                            <span class="gradient-text">Personal Information</span>
+                        </h2>
+
                         <div class="grid md:grid-cols-2 gap-6">
                             <div class="form-group">
-                                <label class="form-label" for="fullName">Your Name *</label>
+                                <label class="form-label" for="fullName">Full Name *</label>
                                 <input type="text" id="fullName" name="fullName" class="form-input form-input-premium" placeholder="John Smith" required>
                             </div>
                             <div class="form-group">
-                                <label class="form-label" for="email">Email *</label>
+                                <label class="form-label" for="email">Email Address *</label>
                                 <input type="email" id="email" name="email" class="form-input form-input-premium" placeholder="john@example.com" required>
                             </div>
+                        </div>
+
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="form-group">
+                                <label class="form-label" for="phone">Phone Number</label>
+                                <input type="tel" id="phone" name="phone" class="form-input form-input-premium" placeholder="+1 (555) 123-4567">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="linkedin">LinkedIn Profile</label>
+                                <input type="url" id="linkedin" name="linkedin" class="form-input form-input-premium" placeholder="https://linkedin.com/in/yourprofile">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Business Information -->
+                    <div class="mb-8">
+                        <h2 class="text-xl font-semibold mb-6 flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-full section-badge flex items-center justify-center text-white text-sm font-bold">2</span>
+                            <span class="gradient-text">Business Information</span>
+                        </h2>
+
+                        <div class="form-group">
+                            <label class="form-label" for="businessStage">Current Business Stage *</label>
+                            <select id="businessStage" name="businessStage" class="form-select form-select-premium" required>
+                                <option value="">Select your stage...</option>
+                                <option value="idea">Just an idea</option>
+                                <option value="validated">Validated concept (talked to customers)</option>
+                                <option value="mvp">Have an MVP</option>
+                                <option value="revenue">Generating revenue</option>
+                                <option value="scaling">Scaling existing business</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="industry">Target Industry *</label>
+                            <select id="industry" name="industry" class="form-select form-select-premium" required>
+                                <option value="">Select industry...</option>
+                                <option value="healthcare">Healthcare & Wellness</option>
+                                <option value="fintech">Finance & Fintech</option>
+                                <option value="ecommerce">E-commerce & Retail</option>
+                                <option value="education">Education & EdTech</option>
+                                <option value="saas">SaaS & Enterprise</option>
+                                <option value="consumer">Consumer Apps</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="background">Your Background *</label>
+                            <textarea id="background" name="background" class="form-textarea form-textarea-premium" placeholder="Tell us about your experience, skills, and what you bring to the partnership..." required></textarea>
+                            <p class="form-help">What's your expertise? Sales, marketing, industry knowledge, domain expertise, etc.</p>
                         </div>
                     </div>
 
                     <!-- Product Idea -->
                     <div class="mb-8">
-                        <div class="form-group">
-                            <label class="form-label" for="productIdea">Tell us about your idea *</label>
-                            <textarea id="productIdea" name="productIdea" class="form-textarea form-textarea-premium" style="min-height: 180px;" placeholder="What's the problem you want to solve? Who would use it? What's your background?
+                        <h2 class="text-xl font-semibold mb-6 flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-full section-badge flex items-center justify-center text-white text-sm font-bold">3</span>
+                            <span class="gradient-text">Your Product Idea</span>
+                        </h2>
 
-Example: I'm a restaurant consultant and I want to build an AI tool that helps restaurant owners optimize their menu pricing based on ingredient costs and local competition..." required></textarea>
-                            <p class="form-help">Share as much or as little as you'd like - we'll follow up for details</p>
+                        <div class="form-group">
+                            <label class="form-label" for="productIdea">Describe Your AI Product Idea *</label>
+                            <textarea id="productIdea" name="productIdea" class="form-textarea form-textarea-premium" style="min-height: 150px;" placeholder="What problem does it solve? Who is the target audience? How will AI enhance the solution?" required></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="targetCustomer">Who is Your Target Customer? *</label>
+                            <textarea id="targetCustomer" name="targetCustomer" class="form-textarea form-textarea-premium" placeholder="Describe your ideal customer - demographics, pain points, current solutions they use..." required></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="marketValidation">Market Validation</label>
+                            <textarea id="marketValidation" name="marketValidation" class="form-textarea form-textarea-premium" placeholder="Have you talked to potential customers? What feedback have you received? Any early interest or commitments?"></textarea>
+                            <p class="form-help">Optional, but helps us understand your progress</p>
+                        </div>
+                    </div>
+
+                    <!-- Partnership Expectations -->
+                    <div class="mb-8">
+                        <h2 class="text-xl font-semibold mb-6 flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-full section-badge flex items-center justify-center text-white text-sm font-bold">4</span>
+                            <span class="gradient-text">Partnership Expectations</span>
+                        </h2>
+
+                        <div class="form-group">
+                            <label class="form-label" for="timeCommitment">Time Commitment *</label>
+                            <select id="timeCommitment" name="timeCommitment" class="form-select form-select-premium" required>
+                                <option value="">How much time can you dedicate?</option>
+                                <option value="fulltime">Full-time (40+ hours/week)</option>
+                                <option value="parttime">Part-time (20-40 hours/week)</option>
+                                <option value="sidehustle">Side project (10-20 hours/week)</option>
+                                <option value="minimal">Minimal (less than 10 hours/week)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="timeline">When do you want to launch? *</label>
+                            <select id="timeline" name="timeline" class="form-select form-select-premium" required>
+                                <option value="">Select timeline...</option>
+                                <option value="asap">As soon as possible</option>
+                                <option value="1month">Within 1 month</option>
+                                <option value="3months">Within 3 months</option>
+                                <option value="6months">Within 6 months</option>
+                                <option value="exploring">Just exploring options</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="additionalInfo">Anything Else You'd Like Us to Know?</label>
+                            <textarea id="additionalInfo" name="additionalInfo" class="form-textarea form-textarea-premium" placeholder="Questions, concerns, or additional context..."></textarea>
                         </div>
                     </div>
 
                     <!-- Submit Button -->
-                    <div class="flex flex-col sm:flex-row gap-4 items-center justify-center">
-                        <button type="submit" class="cta-button submit-btn-premium pulse-glow px-12 py-4 rounded-full text-lg font-semibold text-white">
-                            Submit & Get Started
+                    <div class="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                        <button type="button" id="ai-fill-form" class="ai-fill-btn shimmer">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="icon-glow">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                            Ask AI to Help Fill Form
+                        </button>
+                        <button type="submit" class="cta-button submit-btn-premium pulse-glow px-10 py-4 rounded-full text-lg font-semibold text-white">
+                            Submit Application
                         </button>
                     </div>
-
-                    <p class="text-center text-theme-muted text-sm mt-6">
-                        We'll respond within 24 hours to schedule a quick call
-                    </p>
                 </form>
             </div>
 
-            <!-- Success Message with Calendly (hidden by default) -->
-            <div id="success-message" class="hidden">
-                <div class="text-center mb-6">
-                    <div class="w-14 h-14 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mx-auto mb-3 celebration-icon">
-                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <!-- Success Message (hidden by default) -->
+            <div id="success-message" class="glass-card-premium rounded-2xl p-8 md:p-10 hidden shimmer">
+                <div class="form-success">
+                    <div class="w-20 h-20 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mx-auto mb-6 celebration-icon pulse-glow">
+                        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
                     </div>
-                    <h2 class="text-2xl font-bold mb-1 gradient-text-animate">You're In!</h2>
-                    <p class="text-theme-secondary">Pick a time that works for you</p>
+                    <h2 class="text-2xl font-bold mb-4 gradient-text-animate text-glow">Application Submitted!</h2>
+                    <p class="text-theme-secondary mb-6">Thank you for your interest in partnering with AI Product Studio. Our team will review your application and get back to you within 24 hours.</p>
+                    <a href="index.html" class="cta-button submit-btn-premium px-8 py-3 rounded-full text-white font-semibold inline-block">
+                        Back to Home
+                    </a>
                 </div>
             </div>
         </div>
     </main>
-
-    <!-- Full-screen Calendly (outside container for full width) -->
-    <div id="calendly-fullscreen" class="hidden" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: var(--bg-primary);">
-        <div style="position: absolute; top: 10px; right: 20px; z-index: 10000;">
-            <button id="calendly-close" class="text-theme-secondary hover:text-theme-primary transition p-2" title="Close">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-            </button>
-        </div>
-        <div class="text-center pt-4 pb-2">
-            <h2 class="text-xl font-bold gradient-text">Schedule Your Call</h2>
-        </div>
-        <div id="calendly-embed" style="height: calc(100vh - 80px); width: 100%;"></div>
-    </div>
 
     <!-- Chat Widget Container -->
     <div id="chat-widget-container"></div>
@@ -710,22 +801,37 @@ Example: I'm a restaurant consultant and I want to build an AI tool that helps r
         const form = document.getElementById('partnership-form');
         const formContainer = document.getElementById('form-container');
         const successMessage = document.getElementById('success-message');
+        const aiFillBtn = document.getElementById('ai-fill-form');
 
         // Fill form with AI extracted data
         function fillFormFromAI(formData) {
-            const filledFields = [];
+            const fieldMap = {
+                'fullName': 'fullName',
+                'email': 'email',
+                'phone': 'phone',
+                'linkedin': 'linkedin',
+                'businessStage': 'businessStage',
+                'industry': 'industry',
+                'background': 'background',
+                'productIdea': 'productIdea',
+                'targetCustomer': 'targetCustomer',
+                'marketValidation': 'marketValidation',
+                'timeCommitment': 'timeCommitment',
+                'timeline': 'timeline',
+                'additionalInfo': 'additionalInfo'
+            };
 
-            if (formData.fullName) {
-                document.getElementById('fullName').value = formData.fullName;
-                filledFields.push('fullName');
-            }
-            if (formData.email) {
-                document.getElementById('email').value = formData.email;
-                filledFields.push('email');
-            }
-            if (formData.productIdea) {
-                document.getElementById('productIdea').value = formData.productIdea;
-                filledFields.push('productIdea');
+            const filledFields = [];
+            for (const [dataKey, fieldId] of Object.entries(fieldMap)) {
+                if (formData[dataKey] && formData[dataKey].trim()) {
+                    const field = document.getElementById(fieldId);
+                    if (field) {
+                        field.value = formData[dataKey];
+                        field.style.borderColor = '#10b981';
+                        setTimeout(() => { field.style.borderColor = ''; }, 2000);
+                        filledFields.push(dataKey);
+                    }
+                }
             }
 
             if (filledFields.length > 0) {
@@ -738,17 +844,46 @@ Example: I'm a restaurant consultant and I want to build an AI tool that helps r
         // Initialize Chat Widget for Apply Page
         const chatWidget = new ChatWidget({
             title: 'CoCreate AI',
-            subtitle: 'Ready to help',
-            welcomeMessage: `Hi! 👋 Ready to build something amazing?
+            subtitle: 'Ready to help with your application',
+            welcomeMessage: `Hi! I'm here to help you with your partnership application.
 
-Just tell me your name, email, and your product idea - I'll help you get started!
+I can help you:
+• **Brainstorm your business idea** - let's explore what AI product you could build
+• **Fill out the form** - just share your info in your own words, I'll organize it
+• **Answer questions** - about our partnership model, process, or anything else
 
-Or if you're still exploring, share what problem you'd like to solve and we can brainstorm together.`,
+For example, say:
+"I have a vague idea about using AI for restaurants..." or
+"I'm John, john@email.com - I want to build an AI expense tracker for freelancers"
+
+What would you like to start with?`,
             pageType: 'apply',
-            startOpen: false,
+            startOpen: true,
             onFormData: (formData) => {
-                fillFormFromAI(formData);
+                const shouldApply = window.confirm('We extracted details from the chat or document. Apply them to the form now?');
+                if (shouldApply) {
+                    const filledFields = fillFormFromAI(formData);
+                    console.log('Filled form fields:', filledFields);
+                }
             }
+        });
+
+        // AI Fill Form button
+        aiFillBtn.addEventListener('click', () => {
+            chatWidget.open();
+            chatWidget.addMessage('assistant', `Great! I can help you in two ways:
+
+**Option 1: Brainstorm First**
+If you're still exploring, tell me about the problem you want to solve or industry you're interested in. We can brainstorm together!
+
+**Option 2: Fill the Form**
+If you're ready, just share your info in free text:
+• Your name, email, phone
+• Your background/expertise
+• Your product idea & target customers
+• When you want to launch
+
+I'll organize everything and fill the form for you. What would you like to do?`);
         });
 
         // Use centralized configuration
@@ -774,55 +909,50 @@ Or if you're still exploring, share what problem you'd like to solve and we can 
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Submitting...
+                Validating...
             `;
             submitBtn.style.opacity = '0.7';
             submitBtn.style.cursor = 'not-allowed';
 
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData.entries());
+            // Collect all form data as JSON
+            const formData = {
+                name: document.getElementById('fullName').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value || '',
+                linkedin: document.getElementById('linkedin').value || '',
+                businessStage: document.getElementById('businessStage').value,
+                industry: document.getElementById('industry').value,
+                background: document.getElementById('background').value,
+                productIdea: document.getElementById('productIdea').value,
+                targetCustomer: document.getElementById('targetCustomer').value,
+                marketValidation: document.getElementById('marketValidation').value || '',
+                timeCommitment: document.getElementById('timeCommitment').value,
+                timeline: document.getElementById('timeline').value,
+                additionalInfo: document.getElementById('additionalInfo').value || ''
+            };
 
-            // Send form data via email (using the chat API)
             try {
                 const response = await fetch(CHAT_API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        messages: [
-                            { role: 'user', content: `PARTNERSHIP APPLICATION SUBMISSION:\n\nName: ${data.fullName}\nEmail: ${data.email}\n\nIdea/Background:\n${data.productIdea}` }
-                        ],
-                        visitorInfo: {
-                            name: data.fullName,
-                            email: data.email
-                        },
-                        page: 'apply-form-submission'
-                    })
+                    body: JSON.stringify({ mode: 'validate', formData })
                 });
 
-                // Show fullscreen Calendly
-                formContainer.classList.add('hidden');
-                successMessage.classList.remove('hidden');
-                document.getElementById('calendly-fullscreen').classList.remove('hidden');
-                document.body.style.overflow = 'hidden'; // Prevent background scroll
+                const result = await response.json();
 
-                // Load Calendly widget with pre-filled user info
-                setTimeout(() => {
-                    if (window.Calendly) {
-                        Calendly.initInlineWidget({
-                            url: 'https://calendly.com/cocreateceo?hide_gdpr_banner=1',
-                            parentElement: document.getElementById('calendly-embed'),
-                            prefill: {
-                                name: data.fullName,
-                                email: data.email
-                            }
-                        });
-                    }
-                }, 300);
+                if (result.success) {
+                    // All valid → show success/Calendly
+                    formContainer.classList.add('hidden');
+                    successMessage.classList.remove('hidden');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                    // Fill back valid fields, show errors for invalid
+                    handleValidationResult(result.fields);
+                }
             } catch (error) {
-                console.error('Form submission error:', error);
-                alert('There was an error submitting your application. Please try again or contact us directly.');
-
-                // Reset button on error
+                console.error('Submission error:', error);
+                alert('Error submitting form. Please try again.');
+            } finally {
                 isSubmitting = false;
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = originalBtnText;
@@ -831,13 +961,60 @@ Or if you're still exploring, share what problem you'd like to solve and we can 
             }
         });
 
-        // Close Calendly fullscreen
-        document.getElementById('calendly-close').addEventListener('click', () => {
-            document.getElementById('calendly-fullscreen').classList.add('hidden');
-            document.body.style.overflow = '';
-            // Show a thank you message or redirect
-            window.location.href = 'index.html';
-        });
+        // Handle validation results from AI agent
+        function handleValidationResult(fields) {
+            // Clear all previous errors
+            document.querySelectorAll('.validation-error').forEach(el => el.remove());
+            document.querySelectorAll('.form-input, .form-textarea, .form-select').forEach(el => {
+                el.style.borderColor = '';
+            });
+
+            // Field ID mapping (name in response → form field ID)
+            const fieldIdMap = {
+                'name': 'fullName',
+                'email': 'email',
+                'phone': 'phone',
+                'linkedin': 'linkedin',
+                'businessStage': 'businessStage',
+                'industry': 'industry',
+                'background': 'background',
+                'productIdea': 'productIdea',
+                'targetCustomer': 'targetCustomer',
+                'marketValidation': 'marketValidation',
+                'timeCommitment': 'timeCommitment',
+                'timeline': 'timeline',
+                'additionalInfo': 'additionalInfo'
+            };
+
+            // Process each field
+            for (const [fieldKey, data] of Object.entries(fields)) {
+                const fieldId = fieldIdMap[fieldKey] || fieldKey;
+                const field = document.getElementById(fieldId);
+                if (!field) continue;
+
+                if (data.valid === false) {
+                    // Invalid: keep value, show error with red border
+                    if (data.value !== undefined) {
+                        field.value = data.value;
+                    }
+                    field.style.borderColor = '#ef4444';
+
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'validation-error text-red-500 text-sm mt-1';
+                    errorDiv.textContent = data.error;
+                    field.parentNode.appendChild(errorDiv);
+                } else if (data.value !== undefined) {
+                    // Valid or pass-through: fill value
+                    field.value = data.value;
+                }
+            }
+
+            // Scroll to first error
+            const firstError = document.querySelector('.validation-error');
+            if (firstError) {
+                firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
     </script>
 </body>
 </html>

@@ -69,6 +69,32 @@
         return phone.replace(/[^\d+]/g, '');
     }
 
+    // Validate email format (quick client-side check)
+    function isValidEmailFormat(email) {
+        if (!email) return false;
+        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return regex.test(email.trim());
+    }
+
+    // Validate name format (quick client-side check)
+    function isValidNameFormat(name) {
+        if (!name) return false;
+        const trimmed = name.trim();
+
+        // Min 2 characters
+        if (trimmed.length < 2) return false;
+
+        // No numbers allowed
+        if (/\d/.test(trimmed)) return false;
+
+        // Must contain at least one letter (supports international characters)
+        if (!/\p{L}/u.test(trimmed)) return false;
+
+        // Allow letters, spaces, hyphens, apostrophes (international support)
+        const regex = /^[\p{L}\s'-]+$/u;
+        return regex.test(trimmed);
+    }
+
     // Check if all mandatory fields are filled
     function checkMandatoryFields() {
         const missing = [];
@@ -161,10 +187,23 @@
         const formattedEmail = formatEmail(formData.email);
         const formattedPhone = formatPhone(formData.phone);
 
+        // Validate email and name before filling
+        const validationIssues = [];
+
+        if (formData.fullName && !isValidNameFormat(formData.fullName)) {
+            console.log('[ChatLoader] Name validation failed:', formData.fullName);
+            validationIssues.push('fullName');
+        }
+
+        if (formattedEmail && !isValidEmailFormat(formattedEmail)) {
+            console.log('[ChatLoader] Email validation failed:', formattedEmail);
+            validationIssues.push('email');
+        }
+
         // Map of form field IDs to formData keys (with formatted values)
         const fieldMappings = {
-            'fullName': formData.fullName,
-            'email': formattedEmail,
+            'fullName': validationIssues.includes('fullName') ? null : formData.fullName,
+            'email': validationIssues.includes('email') ? null : formattedEmail,
             'phone': formattedPhone,
             'linkedin': formData.linkedin,
             'businessStage': formData.businessStage,
@@ -200,6 +239,17 @@
                     }, 2000);
                     console.log(`[ChatLoader] Filled ${fieldId}:`, strValue);
                 }
+            }
+        }
+
+        // Show warning for invalid fields
+        for (const fieldId of validationIssues) {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.style.transition = 'all 0.3s';
+                field.style.borderColor = '#f59e0b';
+                field.style.boxShadow = '0 0 0 3px rgba(245, 158, 11, 0.2)';
+                console.log(`[ChatLoader] Validation warning for ${fieldId}`);
             }
         }
 
@@ -347,7 +397,11 @@ What would you like to know?`,
         getVisitorInfo: () => window.chatWidget?.getVisitorInfo(),
 
         // Set visitor info manually
-        setVisitorInfo: (info) => window.chatWidget?.setVisitorInfo(info)
+        setVisitorInfo: (info) => window.chatWidget?.setVisitorInfo(info),
+
+        // Validation utilities
+        isValidEmailFormat: isValidEmailFormat,
+        isValidNameFormat: isValidNameFormat
     };
 
     init();
