@@ -34,7 +34,7 @@ class ChatWidget {
             apiUrl: this.detectApiUrl(),
             onFormData: options.onFormData || null,
             containerId: options.containerId || 'chat-widget-container',
-            storageKey: 'aiProductStudio_chat',
+            storageKey: 'coCreateAI_chat',
             iframeMode: options.iframeMode || false,
             getPageContext: options.getPageContext || null
         };
@@ -1178,7 +1178,7 @@ class ChatWidget {
             // No previous session - start fresh with personalized greeting
             this.clearChat();
             const greeting = name ? `Hi ${name}! 👋` : 'Hi there! 👋';
-            this.addMessage('assistant', `${greeting} Welcome to AI Product Studio!\n\nI'm here to answer any questions about our partnership model. We help business founders launch AI-powered products in just 2 weeks.\n\nWhat would you like to know?`);
+            this.addMessage('assistant', `${greeting} Welcome to CoCreate AI!\n\nI'm here to answer any questions about our partnership model. We help business founders launch AI-powered products in just 2 weeks.\n\nWhat would you like to know?`);
 
             // Open the chat
             if (!this.state.isOpen) {
@@ -1206,7 +1206,7 @@ class ChatWidget {
         // Clear any existing chat and start fresh with personalized greeting
         this.clearChat();
         const greeting = name ? `Welcome ${name}! 🎉` : 'Welcome! 🎉';
-        this.addMessage('assistant', `${greeting} Thanks for signing up with AI Product Studio!\n\nI'm your AI assistant, here to help you explore partnership opportunities. We partner with business founders to build AI-powered products in just 2 weeks.\n\nDo you have a product idea you'd like to discuss?`);
+        this.addMessage('assistant', `${greeting} Thanks for signing up with CoCreate AI!\n\nI'm your AI assistant, here to help you explore partnership opportunities. We partner with business founders to build AI-powered products in just 2 weeks.\n\nDo you have a product idea you'd like to discuss?`);
 
         // Open the chat
         if (!this.state.isOpen) {

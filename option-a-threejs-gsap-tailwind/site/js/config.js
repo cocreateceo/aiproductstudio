@@ -1,5 +1,5 @@
 /**
- * AI Product Studio - Centralized Configuration
+ * CoCreate AI - Centralized Configuration
  *
  * Single source of truth for all frontend configuration.
  * Auto-detects environment (local vs production) and sets appropriate values.

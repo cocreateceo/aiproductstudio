@@ -1,5 +1,5 @@
 /**
- * AI Product Studio - Unified Theme System
+ * CoCreate AI - Unified Theme System
  * Handles theme persistence across all pages
  */
 
