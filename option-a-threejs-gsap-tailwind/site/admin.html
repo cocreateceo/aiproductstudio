@@ -127,6 +127,21 @@
         .progress-bar.failed { background: linear-gradient(90deg, #ef4444, #dc2626); }
         .progress-bar.completed { background: linear-gradient(90deg, #22c55e, #16a34a); }
 
+        /* Indeterminate progress bar for session creation */
+        .progress-bar-indeterminate {
+            height: 8px;
+            width: 30%;
+            background: linear-gradient(90deg, #6366f1, #8b5cf6, #06b6d4);
+            border-radius: 8px;
+            animation: indeterminate 1.5s ease-in-out infinite;
+        }
+
+        @keyframes indeterminate {
+            0% { transform: translateX(-100%); }
+            50% { transform: translateX(250%); }
+            100% { transform: translateX(-100%); }
+        }
+
         /* Build log styles */
         .build-log { max-height: 300px; overflow-y: auto; font-family: 'Monaco', 'Menlo', monospace; font-size: 12px; }
         .build-log::-webkit-scrollbar { width: 6px; }
@@ -1174,6 +1189,52 @@
             console.log(`[User Filter] Populated dropdown with ${allUsers.length} unique users${hasAnonymous ? ' + Anonymous' : ''}`);
         }
 
+        // Render session status box (success, error, or loading)
+        function renderSessionStatusBox(app) {
+            // Check for loading state (set temporarily during API call)
+            if (app._sessionLoading) {
+                return `
+                    <div class="session-status-box bg-slate-800/50 rounded-lg p-4 mb-4">
+                        <div class="flex items-center gap-3 mb-2">
+                            <span class="text-indigo-400 font-semibold">Creating session...</span>
+                        </div>
+                        <div class="progress-container">
+                            <div class="progress-bar-indeterminate"></div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Check for successful session
+            if (app.guid && app.sessionLink) {
+                return `
+                    <div class="session-status-box bg-green-500/10 border border-green-500/30 rounded-lg p-4 mb-4">
+                        <div class="flex items-center gap-2 text-green-400 font-semibold mb-2">
+                            <span>✓ Session Created</span>
+                        </div>
+                        <a href="${app.sessionLink}" target="_blank"
+                           class="text-indigo-400 hover:text-indigo-300 underline break-all text-sm">
+                            ${app.sessionLink}
+                        </a>
+                    </div>
+                `;
+            }
+
+            // Check for failed session
+            if (app.sessionError) {
+                return `
+                    <div class="session-status-box bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-4">
+                        <div class="flex items-center gap-2 text-red-400 font-semibold mb-2">
+                            <span>✗ Session Failed</span>
+                        </div>
+                        <p class="text-slate-300 text-sm">${app.sessionError}</p>
+                    </div>
+                `;
+            }
+
+            return '';
+        }
+
         // Render Applications with expandable cards
         function renderApplications() {
             // STEP 1: Filter by user (if not 'all')
@@ -1296,36 +1357,68 @@
                                 ${renderBuildSection(app)}
                             </div>
 
+                            <!-- Session Status Box (above buttons) -->
+                            ${renderSessionStatusBox(app)}
+
                             <!-- Action Buttons -->
                             <div class="flex gap-3 pt-4 border-t border-slate-700">
-                                ${status === 'pending' || !status ? `
-                                    <button onclick="event.stopPropagation(); quickApprove('${app.s3Key}')"
-                                        class="btn-approve px-4 py-2 rounded-lg font-semibold transition flex-1">
-                                        ✓ Approve & Build
-                                    </button>
-                                    <button onclick="event.stopPropagation(); quickReject('${app.s3Key}')"
-                                        class="btn-reject px-4 py-2 rounded-lg font-semibold transition flex-1">
-                                        ✗ Reject
-                                    </button>
-                                ` : status === 'approved' ? `
-                                    ${isBuilding ? `
-                                        <button onclick="event.stopPropagation(); cancelBuild('${app.s3Key}')"
-                                            class="btn-cancel px-4 py-2 rounded-lg font-semibold transition flex-1">
-                                            ⏹ Cancel Build
-                                        </button>
-                                    ` : `
-                                        <button onclick="event.stopPropagation(); rebuildMVP('${app.s3Key}')"
-                                            class="btn-rebuild px-4 py-2 rounded-lg font-semibold transition flex-1">
-                                            🔄 Rebuild MVP
-                                        </button>
-                                        ${app.buildUrl ? `
-                                        <a href="${app.buildUrl}" target="_blank" onclick="event.stopPropagation()"
-                                            class="px-4 py-2 rounded-lg font-semibold transition flex-1 text-center bg-green-500/20 text-green-400 border border-green-500/30">
-                                            🌐 View MVP
-                                        </a>
-                                        ` : ''}
-                                    `}
-                                ` : ''}
+                                ${(() => {
+                                    const isLoading = app._sessionLoading;
+                                    const hasSession = app.guid && app.sessionLink;
+                                    const hasError = app.sessionError;
+
+                                    if (isLoading) {
+                                        // Loading: disable both buttons
+                                        return `
+                                            <button disabled class="btn-approve px-4 py-2 rounded-lg font-semibold transition flex-1 opacity-50 cursor-not-allowed">
+                                                ✓ Approve & Build
+                                            </button>
+                                            <button disabled class="btn-reject px-4 py-2 rounded-lg font-semibold transition flex-1 opacity-50 cursor-not-allowed">
+                                                ✗ Reject
+                                            </button>
+                                        `;
+                                    }
+
+                                    if (status === 'approved' && hasSession) {
+                                        // Success: show only Reject
+                                        return `
+                                            <button onclick="event.stopPropagation(); quickReject('${app.s3Key}')"
+                                                class="btn-reject px-4 py-2 rounded-lg font-semibold transition flex-1">
+                                                ✗ Reject
+                                            </button>
+                                        `;
+                                    }
+
+                                    if (status === 'approved' && hasError) {
+                                        // Failed: show Retry and Reject
+                                        return `
+                                            <button onclick="event.stopPropagation(); retrySession('${app.s3Key}')"
+                                                class="px-4 py-2 rounded-lg font-semibold transition flex-1 bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-500/30">
+                                                🔄 Retry
+                                            </button>
+                                            <button onclick="event.stopPropagation(); quickReject('${app.s3Key}')"
+                                                class="btn-reject px-4 py-2 rounded-lg font-semibold transition flex-1">
+                                                ✗ Reject
+                                            </button>
+                                        `;
+                                    }
+
+                                    if (status === 'pending' || !status) {
+                                        // Pending: show Approve and Reject
+                                        return `
+                                            <button onclick="event.stopPropagation(); quickApprove('${app.s3Key}')"
+                                                class="btn-approve px-4 py-2 rounded-lg font-semibold transition flex-1">
+                                                ✓ Approve & Build
+                                            </button>
+                                            <button onclick="event.stopPropagation(); quickReject('${app.s3Key}')"
+                                                class="btn-reject px-4 py-2 rounded-lg font-semibold transition flex-1">
+                                                ✗ Reject
+                                            </button>
+                                        `;
+                                    }
+
+                                    return '';
+                                })()}
                             </div>
                         </div>
                     </div>
@@ -1405,13 +1498,30 @@
             }
         }
 
-        // Quick approve without confirmation
+        // Quick approve with loading state
         async function quickApprove(s3Key) {
             const app = applications.find(a => a.s3Key === s3Key);
             if (!app) return;
 
+            // Set loading state and re-render
+            const idx = applications.findIndex(a => a.s3Key === s3Key);
+            if (idx !== -1) {
+                applications[idx]._sessionLoading = true;
+                renderApplications();
+                // Re-expand the card
+                setTimeout(() => {
+                    const card = document.querySelector(`.app-card[data-key="${s3Key}"]`);
+                    if (card) card.classList.add('expanded');
+                }, 50);
+            }
+
             currentApp = app;
             await updateStatus('approved');
+
+            // Clear loading state after API returns
+            if (idx !== -1) {
+                delete applications[idx]._sessionLoading;
+            }
         }
 
         // Quick reject without confirmation
@@ -1421,6 +1531,36 @@
 
             currentApp = app;
             await updateStatus('rejected');
+        }
+
+        // Retry session creation for failed applications
+        async function retrySession(s3Key) {
+            const app = applications.find(a => a.s3Key === s3Key);
+            if (!app) return;
+
+            // Set loading state
+            const idx = applications.findIndex(a => a.s3Key === s3Key);
+            if (idx !== -1) {
+                applications[idx]._sessionLoading = true;
+                // Clear previous error for UI
+                delete applications[idx].sessionError;
+                renderApplications();
+                // Re-expand the card
+                setTimeout(() => {
+                    const card = document.querySelector(`.app-card[data-key="${s3Key}"]`);
+                    if (card) card.classList.add('expanded');
+                }, 50);
+            }
+
+            currentApp = app;
+
+            // Call updateStatus with 'approved' to retry the session creation
+            await updateStatus('approved');
+
+            // Clear loading state
+            if (idx !== -1) {
+                delete applications[idx]._sessionLoading;
+            }
         }
 
         // Rebuild MVP without confirmation - just start immediately
@@ -1698,9 +1838,45 @@
             }
         }
 
+        // Poll for session result (used when API Gateway times out but Lambda may still be running)
+        async function pollForSessionResult(s3Key, maxAttempts = 8, intervalMs = 5000) {
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                showToast(`Waiting for session... (${attempt}/${maxAttempts})`, 'info');
+                await new Promise(r => setTimeout(r, intervalMs));
+
+                try {
+                    // Fetch fresh application list
+                    const res = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'admin-list',
+                            password: adminPassword
+                        })
+                    });
+                    const data = await res.json();
+
+                    if (data.success && data.applications) {
+                        const app = data.applications.find(a => a.s3Key === s3Key);
+                        if (app?.guid && app?.sessionLink) {
+                            return { success: true, application: app };
+                        }
+                        if (app?.sessionError) {
+                            return { success: false, error: app.sessionError, application: app };
+                        }
+                    }
+                } catch (pollError) {
+                    console.log('Poll attempt failed:', pollError.message);
+                }
+            }
+            return { success: false, error: 'Timeout waiting for session creation' };
+        }
+
         // Update Status (for expandable cards - no modal)
         async function updateStatus(status) {
             if (!currentApp) return;
+            const requestStartTime = Date.now();
+            const appS3Key = currentApp.s3Key;
 
             try {
                 showToast(`${status === 'approved' ? 'Approving' : 'Rejecting'}...`, 'info');
@@ -1719,32 +1895,89 @@
                 const data = await res.json();
 
                 if (data.success) {
-                    // Update local data
+                    // Update local data with all returned fields (including session data)
                     const idx = applications.findIndex(a => a.s3Key === currentApp.s3Key);
                     if (idx !== -1) {
                         applications[idx] = { ...applications[idx], ...data.application };
+                        // Clear loading state
+                        delete applications[idx]._sessionLoading;
                     }
                     updateStats();
 
-                    // If approved and has jobId, update progress state
-                    if (status === 'approved' && data.application?.jobId) {
-                        currentApp = { ...currentApp, ...data.application };
-                        applications[idx].buildProgress = { status: 'in_progress', percent: 5, phase: 'starting', message: 'Build starting...' };
+                    // Check session result for toast message
+                    if (status === 'approved') {
+                        if (data.application?.guid) {
+                            showToast('Approved! Session created successfully.', 'success');
+                        } else if (data.application?.sessionError) {
+                            showToast('Approved but session failed: ' + data.application.sessionError, 'error');
+                        } else {
+                            showToast('Approved!', 'success');
+                        }
+                    } else {
+                        showToast('Rejected', 'info');
                     }
 
                     renderApplications();
 
-                    // Re-expand the card to show progress
+                    // Re-expand the card to show result
                     if (status === 'approved') {
-                        setTimeout(() => toggleCard(currentApp.s3Key), 100);
+                        setTimeout(() => {
+                            const card = document.querySelector(`.app-card[data-key="${currentApp.s3Key}"]`);
+                            if (card) card.classList.add('expanded');
+                        }, 100);
                     }
-
-                    showToast(status === 'approved' ? 'Approved! Build starting...' : 'Rejected', status === 'approved' ? 'success' : 'info');
                 } else {
                     showToast('Error: ' + data.error, 'error');
                 }
             } catch (e) {
-                showToast('Connection error', 'error');
+                const requestDuration = Date.now() - requestStartTime;
+                const looksLikeTimeout = requestDuration > 15000; // 15+ seconds suggests API Gateway timeout
+
+                // If approving and looks like a timeout, Lambda may still be running - poll for result
+                if (status === 'approved' && looksLikeTimeout) {
+                    showToast('Request timed out, checking if session was created...', 'info');
+
+                    const pollResult = await pollForSessionResult(appS3Key);
+
+                    const idx = applications.findIndex(a => a.s3Key === appS3Key);
+                    if (pollResult.success) {
+                        // Lambda succeeded! Update UI
+                        if (idx !== -1) {
+                            applications[idx] = { ...applications[idx], ...pollResult.application };
+                            delete applications[idx]._sessionLoading;
+                        }
+                        updateStats();
+                        showToast('Session created successfully!', 'success');
+                        renderApplications();
+                        setTimeout(() => {
+                            const card = document.querySelector(`.app-card[data-key="${appS3Key}"]`);
+                            if (card) card.classList.add('expanded');
+                        }, 100);
+                    } else if (pollResult.application?.sessionError) {
+                        // Lambda finished but session creation failed
+                        if (idx !== -1) {
+                            applications[idx] = { ...applications[idx], ...pollResult.application };
+                            delete applications[idx]._sessionLoading;
+                        }
+                        showToast('Session creation failed: ' + pollResult.error, 'error');
+                        renderApplications();
+                    } else {
+                        // Polling timed out - couldn't determine result
+                        if (idx !== -1) {
+                            delete applications[idx]._sessionLoading;
+                        }
+                        showToast('Could not confirm session creation. Please refresh.', 'error');
+                        renderApplications();
+                    }
+                } else {
+                    // Quick error (not a timeout) - show error immediately
+                    const idx = applications.findIndex(a => a.s3Key === appS3Key);
+                    if (idx !== -1) {
+                        delete applications[idx]._sessionLoading;
+                    }
+                    showToast('Connection error: ' + e.message, 'error');
+                    renderApplications();
+                }
             }
         }
 

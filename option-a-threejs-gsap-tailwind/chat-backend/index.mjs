@@ -88,24 +88,21 @@ If name seems invalid, DO NOT include it in FORM_DATA. Instead respond:
 "That doesn't look like a real name. Could you please provide your actual name so we can personalize your experience?"
 
 ### Email Validation:
-When user provides their email, validate it STRICTLY. Check TWO things separately:
+Only validate email FORMAT (see DATA FORMAT section below).
 
-1. USERNAME (before @) - REJECT if:
-   - Gibberish or random characters (asdf, qwerty, xyz123, aaa)
-   - Test/placeholder inputs (test, fake, admin, user, null, example, demo)
-   - Repeated characters (aaaa, abcabc)
+// COMMENTED OUT - Username validation disabled
+// 1. USERNAME (before @) - REJECT if:
+//    - Gibberish or random characters (asdf, qwerty, xyz123, aaa)
+//    - Test/placeholder inputs (test, fake, admin, user, null, example, demo)
+//    - Repeated characters (aaaa, abcabc)
 
-2. PROVIDER/DOMAIN (after @) - REJECT if:
-   - Fake/suspicious domains (fake.com, example.com, test.com)
-   - Disposable/temporary email providers (tempmail, guerrillamail, mailinator, 10minutemail, throwaway, etc.)
-   - Unknown/unrecognized domains
-   - ACCEPT ONLY well-known providers (Gmail, Yahoo, Outlook, Hotmail, iCloud, ProtonMail, AOL, Zoho, etc.)
-   - Use your knowledge to identify legitimate email providers
-
-If email is invalid, DO NOT include it in FORM_DATA. Provide the CORRECT error message:
-- If USERNAME is the issue: "Please use a valid email address, not test or placeholder usernames."
-- If PROVIDER is the issue: "Please use an email from a recognized provider like Gmail, Yahoo, or Outlook."
-- If BOTH are issues: Mention both problems.
+// COMMENTED OUT - Provider/domain validation disabled
+// PROVIDER/DOMAIN (after @) - REJECT if:
+// - Fake/suspicious domains (fake.com, example.com, test.com)
+// - Disposable/temporary email providers (tempmail, guerrillamail, mailinator, 10minutemail, throwaway, etc.)
+// - Unknown/unrecognized domains
+// - ACCEPT ONLY well-known providers (Gmail, Yahoo, Outlook, Hotmail, iCloud, ProtonMail, AOL, Zoho, etc.)
+// - Use your knowledge to identify legitimate email providers
 
 ### Product Idea Validation:
 When user provides their product idea, evaluate if it's a coherent business/product concept.
@@ -404,25 +401,23 @@ VALIDATION RULES:
    ACCEPT: Common names, names with hyphens/apostrophes/spaces (O'Brien, Mary-Jane, José García), uncommon but plausible names
    If invalid: set valid=false, KEEP the original value in "value", provide helpful error message
 
-2. EMAIL - Validate STRICTLY. Check TWO things separately:
+2. EMAIL - Validate FORMAT only (must be name@domain.com structure).
+   If format invalid: set valid=false, KEEP the original value in "value", provide error: "Please provide a valid email address."
 
-   USERNAME (before @) - REJECT if:
-   - Gibberish or random characters (asdf, qwerty, xyz123, aaa)
-   - Test/placeholder inputs (test, fake, admin, user, null, example, demo)
-   - Repeated characters (aaaa, abcabc)
+   // COMMENTED OUT - Username validation disabled
+   // USERNAME (before @) - REJECT if:
+   // - Gibberish or random characters (asdf, qwerty, xyz123, aaa)
+   // - Test/placeholder inputs (test, fake, admin, user, null, example, demo)
+   // - Repeated characters (aaaa, abcabc)
 
-   PROVIDER/DOMAIN (after @) - REJECT if:
-   - Fake/suspicious domains (fake.com, example.com, test.com)
-   - Disposable/temporary providers (tempmail, guerrillamail, mailinator, 10minutemail, throwaway, etc.)
-   - Unknown/unrecognized domains
-   - ACCEPT ONLY well-known providers (Gmail, Yahoo, Outlook, Hotmail, iCloud, ProtonMail, AOL, Zoho, etc.)
-   - Use your knowledge to identify legitimate email providers
-   - When in doubt, REJECT
-
-   If invalid: set valid=false, KEEP the original value in "value", provide the CORRECT error:
-   - If USERNAME is the issue: "Please use a valid email address, not test or placeholder usernames."
-   - If PROVIDER is the issue: "Please use an email from a recognized provider (Gmail, Yahoo, Outlook, etc.)"
-   - If BOTH are issues: Mention both problems.
+   // COMMENTED OUT - Provider/domain validation disabled
+   // PROVIDER/DOMAIN (after @) - REJECT if:
+   // - Fake/suspicious domains (fake.com, example.com, test.com)
+   // - Disposable/temporary providers (tempmail, guerrillamail, mailinator, 10minutemail, throwaway, etc.)
+   // - Unknown/unrecognized domains
+   // - ACCEPT ONLY well-known providers (Gmail, Yahoo, Outlook, Hotmail, iCloud, ProtonMail, AOL, Zoho, etc.)
+   // - Use your knowledge to identify legitimate email providers
+   // - When in doubt, REJECT
 
 3. PRODUCT IDEA - Validate for:
    REJECT if:
@@ -1556,6 +1551,45 @@ async function listApplications() {
   }
 }
 
+// Create external session via CloudFront API
+async function createExternalSession(applicationData) {
+    const formData = applicationData.formData || {};
+    const visitorInfo = applicationData.visitorInfo || {};
+
+    const requestBody = {
+        name: visitorInfo.name || formData.name || formData.full_name,
+        email: visitorInfo.email || formData.email,
+        initial_request: formData.product_idea || formData.productIdea || formData['product/service_idea'] || ''
+    };
+
+    // Only include phone if it exists
+    const phone = visitorInfo.phone || formData.phone;
+    if (phone) {
+        requestBody.phone = phone;
+    }
+
+    console.log('Creating external session:', { name: requestBody.name, email: requestBody.email });
+
+    try {
+        const response = await fetch(
+            'https://d3r4k77gnvpmzn.cloudfront.net/api/admin/sessions',
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
+            }
+        );
+
+        const data = await response.json();
+        console.log('External session response:', data);
+        return data; // { success, guid, link } or { success: false, error }
+
+    } catch (error) {
+        console.error('External session error:', error.message);
+        return { success: false, error: error.message, guid: null, link: null };
+    }
+}
+
 // Update application status in S3
 async function updateApplicationStatus(s3Key, newStatus, reviewNotes = '') {
   const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
@@ -1588,20 +1622,52 @@ async function updateApplicationStatus(s3Key, newStatus, reviewNotes = '') {
 
     console.log('Updated application status:', s3Key, newStatus);
 
-    // If approved, trigger MVP build workflow
+    // If approved, create external session
     if (newStatus === 'approved') {
-      const jobId = await createBuildJob(applicationData, s3Key);
-      applicationData.jobId = jobId;
-      console.log('MVP build job created:', jobId);
+        const sessionResult = await createExternalSession(applicationData);
 
-      // Save jobId back to application record
-      await s3.send(new PutObjectCommand({
-        Bucket: S3_BUCKET,
-        Key: s3Key,
-        Body: JSON.stringify(applicationData, null, 2),
-        ContentType: 'application/json'
-      }));
-      console.log('Updated application with jobId:', jobId);
+        if (sessionResult.success) {
+            applicationData.guid = sessionResult.guid;
+            applicationData.sessionLink = sessionResult.link;
+            applicationData.sessionCreatedAt = new Date().toISOString();
+            // Clear any previous error
+            delete applicationData.sessionError;
+            delete applicationData.sessionFailedAt;
+            console.log('Session created successfully:', sessionResult.guid);
+        } else {
+            applicationData.sessionError = sessionResult.error || 'Unknown error';
+            applicationData.sessionFailedAt = new Date().toISOString();
+            // Clear any previous success data
+            delete applicationData.guid;
+            delete applicationData.sessionLink;
+            delete applicationData.sessionCreatedAt;
+            console.log('Session creation failed:', sessionResult.error);
+        }
+
+        // Save updated application with session data
+        await s3.send(new PutObjectCommand({
+            Bucket: S3_BUCKET,
+            Key: s3Key,
+            Body: JSON.stringify(applicationData, null, 2),
+            ContentType: 'application/json'
+        }));
+    }
+
+    // If rejected, clear session data
+    if (newStatus === 'rejected') {
+        delete applicationData.guid;
+        delete applicationData.sessionLink;
+        delete applicationData.sessionCreatedAt;
+        delete applicationData.sessionError;
+        delete applicationData.sessionFailedAt;
+
+        // Save updated application
+        await s3.send(new PutObjectCommand({
+            Bucket: S3_BUCKET,
+            Key: s3Key,
+            Body: JSON.stringify(applicationData, null, 2),
+            ContentType: 'application/json'
+        }));
     }
 
     return applicationData;
