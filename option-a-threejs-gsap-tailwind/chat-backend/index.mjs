@@ -70,12 +70,16 @@ When declining, say something like:
 When user provides their name, evaluate if it's a realistic human name.
 
 REJECT names that are:
+- Less than 2 characters
+- Containing numbers
 - Keyboard mashing: "asdfgh", "qwerty", "zxcvbn", "jkl;", "fghj"
+- Gibberish or random letters: "aasdjf", "xyzabc", "lkjhgf"
 - Repeated characters: "aaaa", "abcabc", "xxxx"
-- Obvious test inputs: "test", "fake", "none", "na", "xxx", "aaa", "123"
-- Single words that aren't names: "hello", "yes", "null", "undefined", "admin"
+- Obvious test inputs: "test", "fake", "none", "na", "xxx", "aaa", "123", "user", "admin"
+- Single words that aren't names: "hello", "yes", "null", "undefined"
 
 ACCEPT names that are:
+- At least 2 characters
 - Common names in any culture/language
 - Names with hyphens, apostrophes, spaces (O'Brien, Mary-Jane, José García)
 - Uncommon but plausible names
@@ -84,10 +88,24 @@ If name seems invalid, DO NOT include it in FORM_DATA. Instead respond:
 "That doesn't look like a real name. Could you please provide your actual name so we can personalize your experience?"
 
 ### Email Validation:
-The system will validate emails before you process them. If an email fails validation, you will receive a validation error. In that case:
-- DO NOT include the invalid email in FORM_DATA
-- Ask the user to provide a valid email address
-- Be helpful: "That email doesn't seem to be valid. Could you double-check it?"
+When user provides their email, validate it STRICTLY. Check TWO things separately:
+
+1. USERNAME (before @) - REJECT if:
+   - Gibberish or random characters (asdf, qwerty, xyz123, aaa)
+   - Test/placeholder inputs (test, fake, admin, user, null, example, demo)
+   - Repeated characters (aaaa, abcabc)
+
+2. PROVIDER/DOMAIN (after @) - REJECT if:
+   - Fake/suspicious domains (fake.com, example.com, test.com)
+   - Disposable/temporary email providers (tempmail, guerrillamail, mailinator, 10minutemail, throwaway, etc.)
+   - Unknown/unrecognized domains
+   - ACCEPT ONLY well-known providers (Gmail, Yahoo, Outlook, Hotmail, iCloud, ProtonMail, AOL, Zoho, etc.)
+   - Use your knowledge to identify legitimate email providers
+
+If email is invalid, DO NOT include it in FORM_DATA. Provide the CORRECT error message:
+- If USERNAME is the issue: "Please use a valid email address, not test or placeholder usernames."
+- If PROVIDER is the issue: "Please use an email from a recognized provider like Gmail, Yahoo, or Outlook."
+- If BOTH are issues: Mention both problems.
 
 ### Product Idea Validation:
 When user provides their product idea, evaluate if it's a coherent business/product concept.
@@ -378,17 +396,33 @@ VALIDATION RULES:
 1. NAME - Validate for:
    - Must be at least 2 characters
    - No numbers allowed
-   - Detect gibberish (asdf, qwerty, aasdjf, random letters)
+   - Detect gibberish (asdf, qwerty, aasdjf, xyzabc, random letters)
+   - Detect keyboard mashing patterns (asdfgh, zxcvbn, jkl;, fghj)
+   - Detect repeated characters (aaaa, abcabc, xxxx)
    - Detect fake names (test, admin, user, none, fake, null, undefined)
-   - Detect keyboard mashing patterns
+   - Detect single words that aren't names (hello, yes, hi)
+   ACCEPT: Common names, names with hyphens/apostrophes/spaces (O'Brien, Mary-Jane, José García), uncommon but plausible names
    If invalid: set valid=false, KEEP the original value in "value", provide helpful error message
 
-2. EMAIL - Validate for:
-   - Must be valid email format (name@domain.com)
-   - Detect gibberish emails (asdf@asdf.com, test@test.com)
-   - Detect obviously fake domains (fake.com, example.com, test.com)
-   - Detect disposable email providers (tempmail, guerrillamail, mailinator, 10minutemail)
-   If invalid: set valid=false, KEEP the original value in "value", provide helpful error message
+2. EMAIL - Validate STRICTLY. Check TWO things separately:
+
+   USERNAME (before @) - REJECT if:
+   - Gibberish or random characters (asdf, qwerty, xyz123, aaa)
+   - Test/placeholder inputs (test, fake, admin, user, null, example, demo)
+   - Repeated characters (aaaa, abcabc)
+
+   PROVIDER/DOMAIN (after @) - REJECT if:
+   - Fake/suspicious domains (fake.com, example.com, test.com)
+   - Disposable/temporary providers (tempmail, guerrillamail, mailinator, 10minutemail, throwaway, etc.)
+   - Unknown/unrecognized domains
+   - ACCEPT ONLY well-known providers (Gmail, Yahoo, Outlook, Hotmail, iCloud, ProtonMail, AOL, Zoho, etc.)
+   - Use your knowledge to identify legitimate email providers
+   - When in doubt, REJECT
+
+   If invalid: set valid=false, KEEP the original value in "value", provide the CORRECT error:
+   - If USERNAME is the issue: "Please use a valid email address, not test or placeholder usernames."
+   - If PROVIDER is the issue: "Please use an email from a recognized provider (Gmail, Yahoo, Outlook, etc.)"
+   - If BOTH are issues: Mention both problems.
 
 3. PRODUCT IDEA - Validate for:
    REJECT if:
@@ -423,12 +457,21 @@ RESPONSE FORMAT: Return ONLY valid JSON matching this exact structure. No explan
   }
 }
 
-Set "success": true only if ALL 3 core validations (name, email, productIdea) pass.`;
+Set "success": true only if ALL 3 validations (name, email, productIdea) pass.`;
 
 // Handle form validation requests
 async function handleFormValidation(formData, visitorInfo, clientIP) {
   console.log('Form validation request received:', { formData: Object.keys(formData) });
 
+  // COMMENTED OUT - Using AI validation for email instead of DNS MX lookup
+  // Step 1: DNS MX lookup for email (before AI validation)
+  // let emailMxResult = { valid: true };
+  // if (formData.email) {
+  //   emailMxResult = await validateEmail(formData.email);
+  //   console.log('Email MX validation result:', formData.email, emailMxResult);
+  // }
+
+  // AI validation for name, email, and productIdea
   const userMessage = `Validate this form data and return JSON response:
 ${JSON.stringify(formData, null, 2)}`;
 
@@ -452,8 +495,19 @@ ${JSON.stringify(formData, null, 2)}`;
 
     const validationResult = JSON.parse(jsonMatch[0]);
 
+    // COMMENTED OUT - Using AI validation for email instead of DNS MX lookup
+    // Step 3: Add email MX result to validation result
+    // if (!emailMxResult.valid) {
+    //   validationResult.success = false;
+    //   validationResult.fields.email = {
+    //     valid: false,
+    //     value: formData.email,
+    //     error: getEmailValidationMessage(emailMxResult.reason)
+    //   };
+    // }
+
+    // Return if any validation failed
     if (!validationResult.success) {
-      // Validation failed - return errors
       console.log('Validation failed:', validationResult);
       return {
         statusCode: 400,
@@ -462,7 +516,7 @@ ${JSON.stringify(formData, null, 2)}`;
       };
     }
 
-    // Validation passed - save to S3 and send email
+    // All validation passed - save to S3 and send email
     console.log('Validation passed - saving application...');
 
     // Build visitorInfo from validated data

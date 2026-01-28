@@ -760,6 +760,45 @@ Or if you're still exploring, share what problem you'd like to solve and we can 
         const originalBtnText = submitBtn.innerHTML;
         let isSubmitting = false;
 
+        // Handle validation results from AI agent
+        function handleValidationResult(fields) {
+            // Clear all previous errors
+            document.querySelectorAll('.validation-error').forEach(el => el.remove());
+            document.querySelectorAll('.form-input, .form-textarea').forEach(el => {
+                el.style.borderColor = '';
+            });
+
+            // Field ID mapping (name in response → form field ID)
+            const fieldIdMap = {
+                'name': 'fullName',
+                'email': 'email',
+                'productIdea': 'productIdea'
+            };
+
+            // Process each field
+            for (const [fieldKey, data] of Object.entries(fields)) {
+                const fieldId = fieldIdMap[fieldKey] || fieldKey;
+                const field = document.getElementById(fieldId);
+                if (!field) continue;
+
+                if (data.valid === false) {
+                    // Invalid: show error with red border
+                    field.style.borderColor = '#ef4444';
+
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'validation-error text-red-500 text-sm mt-1';
+                    errorDiv.textContent = data.error;
+                    field.parentNode.appendChild(errorDiv);
+                }
+            }
+
+            // Scroll to first error
+            const firstError = document.querySelector('.validation-error');
+            if (firstError) {
+                firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -774,50 +813,58 @@ Or if you're still exploring, share what problem you'd like to solve and we can 
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Submitting...
+                Validating...
             `;
             submitBtn.style.opacity = '0.7';
             submitBtn.style.cursor = 'not-allowed';
 
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData.entries());
+            // Collect form data for validation
+            const formData = {
+                name: document.getElementById('fullName').value,
+                email: document.getElementById('email').value,
+                productIdea: document.getElementById('productIdea').value
+            };
 
-            // Send form data via email (using the chat API)
             try {
                 const response = await fetch(CHAT_API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        messages: [
-                            { role: 'user', content: `PARTNERSHIP APPLICATION SUBMISSION:\n\nName: ${data.fullName}\nEmail: ${data.email}\n\nIdea/Background:\n${data.productIdea}` }
-                        ],
-                        visitorInfo: {
-                            name: data.fullName,
-                            email: data.email
-                        },
-                        page: 'apply-form-submission'
-                    })
+                    body: JSON.stringify({ mode: 'validate', formData })
                 });
 
-                // Show fullscreen Calendly
-                formContainer.classList.add('hidden');
-                successMessage.classList.remove('hidden');
-                document.getElementById('calendly-fullscreen').classList.remove('hidden');
-                document.body.style.overflow = 'hidden'; // Prevent background scroll
+                const result = await response.json();
 
-                // Load Calendly widget with pre-filled user info
-                setTimeout(() => {
-                    if (window.Calendly) {
-                        Calendly.initInlineWidget({
-                            url: 'https://calendly.com/cocreateceo?hide_gdpr_banner=1',
-                            parentElement: document.getElementById('calendly-embed'),
-                            prefill: {
-                                name: data.fullName,
-                                email: data.email
-                            }
-                        });
-                    }
-                }, 300);
+                if (result.success) {
+                    // Validation passed - show fullscreen Calendly
+                    formContainer.classList.add('hidden');
+                    successMessage.classList.remove('hidden');
+                    document.getElementById('calendly-fullscreen').classList.remove('hidden');
+                    document.body.style.overflow = 'hidden'; // Prevent background scroll
+
+                    // Load Calendly widget with pre-filled user info
+                    setTimeout(() => {
+                        if (window.Calendly) {
+                            Calendly.initInlineWidget({
+                                url: 'https://calendly.com/cocreateceo?hide_gdpr_banner=1',
+                                parentElement: document.getElementById('calendly-embed'),
+                                prefill: {
+                                    name: formData.name,
+                                    email: formData.email
+                                }
+                            });
+                        }
+                    }, 300);
+                } else {
+                    // Validation failed - show errors
+                    handleValidationResult(result.fields);
+
+                    // Reset button for retry
+                    isSubmitting = false;
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                    submitBtn.style.opacity = '1';
+                    submitBtn.style.cursor = 'pointer';
+                }
             } catch (error) {
                 console.error('Form submission error:', error);
                 alert('There was an error submitting your application. Please try again or contact us directly.');
