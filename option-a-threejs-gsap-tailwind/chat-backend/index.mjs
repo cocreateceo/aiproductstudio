@@ -2340,6 +2340,69 @@ export const handler = async (event) => {
       }
     }
 
+    // Admin Delete Chats
+    if (action === 'admin-delete-chats') {
+      const { password, sessionIds } = body;
+      if (password !== ADMIN_PASSWORD) {
+        return {
+          statusCode: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'Unauthorized' })
+        };
+      }
+
+      if (!sessionIds || !Array.isArray(sessionIds) || sessionIds.length === 0) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'sessionIds array is required' })
+        };
+      }
+
+      try {
+        const { S3Client, DeleteObjectCommand } = await import('@aws-sdk/client-s3');
+        const s3 = new S3Client({ region: 'ap-south-1' });
+
+        const deletePromises = sessionIds.map(async (sessionInfo) => {
+          const { sessionId, source } = sessionInfo;
+          const key = `chats/${source}/${sessionId}.json`;
+
+          try {
+            await s3.send(new DeleteObjectCommand({
+              Bucket: S3_BUCKET,
+              Key: key
+            }));
+            return { sessionId, success: true };
+          } catch (e) {
+            console.error('Error deleting session:', sessionId, e.message);
+            return { sessionId, success: false, error: e.message };
+          }
+        });
+
+        const results = await Promise.all(deletePromises);
+        const successCount = results.filter(r => r.success).length;
+        const failedCount = results.filter(r => !r.success).length;
+
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            success: true,
+            deleted: successCount,
+            failed: failedCount,
+            results
+          })
+        };
+      } catch (error) {
+        console.error('Delete chats error:', error.message);
+        return {
+          statusCode: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: error.message })
+        };
+      }
+    }
+
     // ========== SESSION LOOKUP ENDPOINT ==========
 
     // Lookup existing session by phone or email (for returning users)
