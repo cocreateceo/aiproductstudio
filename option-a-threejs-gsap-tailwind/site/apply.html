@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <title>Lets CoCreate in 24 Hrs | CoCreate AI</title>
+    <title>Let's CoCreate | CoCreate AI</title>
     <meta name="description" content="Apply to partner with CoCreate AI. Launch your AI-powered product in 2 weeks with our unique co-founder partnership model.">
 
     <!-- Tailwind CSS -->
@@ -616,7 +616,7 @@
             <!-- Header -->
             <div class="text-center mb-12">
                 <h1 class="text-4xl md:text-5xl font-bold mb-4 text-glow">
-                    <span class="gradient-text-animate">Lets CoCreate in 24 Hrs</span>
+                    <span class="gradient-text-animate">Let's CoCreate</span>
                 </h1>
                 <p class="text-xl text-theme-secondary max-w-2xl mx-auto">
                     Ready to build your AI-powered product? Fill out the form below and our team will get back to you within 24 hours.
@@ -625,7 +625,7 @@
                     <svg class="w-5 h-5 text-accent icon-glow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                     </svg>
-                    <span>Need help? Ask our AI assistant to fill the form for you!</span>
+                    <a href="#" class="text-accent hover:text-accent/80 transition-colors underline underline-offset-2" onclick="event.preventDefault(); window.chatWidget?.open();">Need help? Ask our AI assistant to fill the form for you!</a>
                 </div>
             </div>
 
@@ -736,7 +736,7 @@ Example: I'm a restaurant consultant and I want to build an AI tool that helps r
         }
 
         // Initialize Chat Widget for Apply Page
-        const chatWidget = new ChatWidget({
+        window.chatWidget = new ChatWidget({
             title: 'CoCreate AI',
             subtitle: 'Ready to help',
             welcomeMessage: `Hi! 👋 Ready to build something amazing?
