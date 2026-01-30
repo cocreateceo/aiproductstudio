@@ -2831,6 +2831,9 @@ export const handler = async (event) => {
           meetLink
         });
 
+        // Format endTime as HH:MM
+        const endTime = slotEnd.toTimeString().slice(0, 5);
+
         return {
           statusCode: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -2838,9 +2841,12 @@ export const handler = async (event) => {
             success: true,
             booking: {
               eventId: createdEvent.data.id,
+              title: event.summary,
               date,
               time,
-              timezone: userTimezone,
+              endTime,
+              duration: `${SCHEDULER_CONFIG.slotDuration} minutes`,
+              timezone: timezone || SCHEDULER_CONFIG.timezone,
               meetLink,
               htmlLink: createdEvent.data.htmlLink
             }
