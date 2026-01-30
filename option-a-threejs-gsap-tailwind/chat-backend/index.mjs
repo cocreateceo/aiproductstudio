@@ -15,6 +15,7 @@ import pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
 import dns from 'dns';
 import { promisify } from 'util';
+import { google } from 'googleapis';
 
 // DNS MX lookup for email validation
 const resolveMx = promisify(dns.resolveMx);
@@ -52,6 +53,29 @@ const SCHEDULER_CONFIG = {
 // Google Service Account credentials (from environment)
 const GOOGLE_SERVICE_ACCOUNT_EMAIL = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
 const GOOGLE_PRIVATE_KEY = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+
+// ========== GOOGLE CALENDAR AUTH ==========
+let googleCalendar = null;
+
+async function getGoogleCalendar() {
+  if (googleCalendar) {
+    return googleCalendar;
+  }
+
+  if (!GOOGLE_SERVICE_ACCOUNT_EMAIL || !GOOGLE_PRIVATE_KEY) {
+    throw new Error('Google Calendar credentials not configured');
+  }
+
+  const auth = new google.auth.JWT(
+    GOOGLE_SERVICE_ACCOUNT_EMAIL,
+    null,
+    GOOGLE_PRIVATE_KEY,
+    ['https://www.googleapis.com/auth/calendar']
+  );
+
+  googleCalendar = google.calendar({ version: 'v3', auth });
+  return googleCalendar;
+}
 
 // System prompt for the CoCreate AI chat agent with guardrails
 const SYSTEM_PROMPT = `You are a concise AI assistant for CoCreate AI - a venture studio that partners with founders to build AI products.
