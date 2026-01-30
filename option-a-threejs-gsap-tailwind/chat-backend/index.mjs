@@ -2158,6 +2158,10 @@ export const handler = async (event) => {
                      event.headers?.['x-forwarded-for']?.split(',')[0] ||
                      'Unknown';
 
+    // Get path and HTTP method for REST-style endpoints
+    const path = event.requestContext?.http?.path || event.rawPath || '/';
+    const httpMethod = event.requestContext?.http?.method || event.httpMethod || 'POST';
+
     // ========== FORM VALIDATION MODE ==========
     // Handle direct form validation (AI agent validates core fields)
     if (body.mode === 'validate' && body.formData) {
@@ -2635,6 +2639,75 @@ export const handler = async (event) => {
             success: true,
             isDuplicate: false,
             message: 'No existing application found. You can proceed with your new application.'
+          })
+        };
+      }
+    }
+
+    // ========== SCHEDULER ENDPOINTS ==========
+
+    // Get available slots for a month
+    if (path === '/scheduler/slots' && httpMethod === 'POST') {
+      try {
+        const { month, timezone } = body;
+
+        if (!month || !/^\d{4}-\d{2}$/.test(month)) {
+          return {
+            statusCode: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              success: false,
+              error: 'Invalid month format. Use YYYY-MM'
+            })
+          };
+        }
+
+        const [year, monthNum] = month.split('-').map(Number);
+        const userTimezone = timezone || 'America/Chicago';
+
+        // Generate all possible slots based on availability rules
+        const possibleSlots = generatePossibleSlots(year, monthNum, userTimezone);
+
+        // Get busy times from Google Calendar
+        const calendar = await getGoogleCalendar();
+        const timeMin = new Date(year, monthNum - 1, 1).toISOString();
+        const timeMax = new Date(year, monthNum, 0, 23, 59, 59).toISOString();
+
+        const freeBusyResponse = await calendar.freebusy.query({
+          requestBody: {
+            timeMin,
+            timeMax,
+            timeZone: SCHEDULER_CONFIG.timezone,
+            items: [{ id: SCHEDULER_CONFIG.calendarId }]
+          }
+        });
+
+        const busyPeriods = freeBusyResponse.data.calendars[SCHEDULER_CONFIG.calendarId]?.busy || [];
+
+        // Subtract busy times from possible slots
+        const availableSlots = subtractBusyTimes(possibleSlots, busyPeriods);
+
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            success: true,
+            month,
+            timezone: userTimezone,
+            ceoTimezone: SCHEDULER_CONFIG.timezone,
+            slotDuration: SCHEDULER_CONFIG.slotDuration,
+            slots: availableSlots
+          })
+        };
+
+      } catch (error) {
+        console.error('Scheduler slots error:', error);
+        return {
+          statusCode: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            success: false,
+            error: 'Unable to fetch available slots. Please try again.'
           })
         };
       }
