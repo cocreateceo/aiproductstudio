@@ -34,10 +34,6 @@
     <!-- html2canvas for screenshots -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-    <!-- Calendly -->
-    <link href="https://assets.calendly.com/assets/external/widget.css" rel="stylesheet">
-    <script src="https://assets.calendly.com/assets/external/widget.js" type="text/javascript" async></script>
-
     <!-- Centralized Configuration -->
     <script src="js/config.js"></script>
 
@@ -685,21 +681,6 @@ Example: I'm a restaurant consultant and I want to build an AI tool that helps r
         </div>
     </main>
 
-    <!-- Full-screen Calendly (outside container for full width) -->
-    <div id="calendly-fullscreen" class="hidden" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: var(--bg-primary);">
-        <div style="position: absolute; top: 10px; right: 20px; z-index: 10000;">
-            <button id="calendly-close" class="text-theme-secondary hover:text-theme-primary transition p-2" title="Close">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-            </button>
-        </div>
-        <div class="text-center pt-4 pb-2">
-            <h2 class="text-xl font-bold gradient-text">Schedule Your Call</h2>
-        </div>
-        <div id="calendly-embed" style="height: calc(100vh - 80px); width: 100%;"></div>
-    </div>
-
     <!-- Chat Widget Container -->
     <div id="chat-widget-container"></div>
 
@@ -835,25 +816,15 @@ Or if you're still exploring, share what problem you'd like to solve and we can 
                 const result = await response.json();
 
                 if (result.success) {
-                    // Validation passed - show fullscreen Calendly
-                    formContainer.classList.add('hidden');
-                    successMessage.classList.remove('hidden');
-                    document.getElementById('calendly-fullscreen').classList.remove('hidden');
-                    document.body.style.overflow = 'hidden'; // Prevent background scroll
+                    // Validation passed - redirect to custom scheduler
+                    const params = new URLSearchParams({
+                        name: formData.name || '',
+                        email: formData.email || '',
+                        idea: formData.productIdea || ''
+                    });
 
-                    // Load Calendly widget with pre-filled user info
-                    setTimeout(() => {
-                        if (window.Calendly) {
-                            Calendly.initInlineWidget({
-                                url: 'https://calendly.com/cocreateceo?hide_gdpr_banner=1',
-                                parentElement: document.getElementById('calendly-embed'),
-                                prefill: {
-                                    name: formData.name,
-                                    email: formData.email
-                                }
-                            });
-                        }
-                    }, 300);
+                    // Redirect to scheduler
+                    window.location.href = `schedule.html?${params.toString()}`;
                 } else {
                     // Validation failed - show errors
                     handleValidationResult(result.fields);
@@ -876,14 +847,6 @@ Or if you're still exploring, share what problem you'd like to solve and we can 
                 submitBtn.style.opacity = '1';
                 submitBtn.style.cursor = 'pointer';
             }
-        });
-
-        // Close Calendly fullscreen
-        document.getElementById('calendly-close').addEventListener('click', () => {
-            document.getElementById('calendly-fullscreen').classList.add('hidden');
-            document.body.style.overflow = '';
-            // Show a thank you message or redirect
-            window.location.href = 'index.html';
         });
     </script>
 </body>
