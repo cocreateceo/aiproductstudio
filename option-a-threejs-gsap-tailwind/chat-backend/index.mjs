@@ -2743,12 +2743,79 @@ export const handler = async (event) => {
           };
         }
 
+        // Validate date format (YYYY-MM-DD)
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+          return {
+            statusCode: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              success: false,
+              error: 'invalid_date',
+              message: 'Invalid date format. Use YYYY-MM-DD'
+            })
+          };
+        }
+
+        // Validate time format (HH:MM)
+        if (!/^\d{2}:\d{2}$/.test(time)) {
+          return {
+            statusCode: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              success: false,
+              error: 'invalid_time',
+              message: 'Invalid time format. Use HH:MM'
+            })
+          };
+        }
+
         const calendar = await getGoogleCalendar();
 
         // Convert selected time to CEO's timezone for the event
         const userTimezone = timezone || 'America/Chicago';
         const slotStart = new Date(`${date}T${time}:00`);
         const slotEnd = new Date(slotStart.getTime() + SCHEDULER_CONFIG.slotDuration * 60 * 1000);
+
+        // Prevent booking past slots
+        if (slotStart <= new Date()) {
+          return {
+            statusCode: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              success: false,
+              error: 'past_slot',
+              message: 'Cannot book a time slot in the past'
+            })
+          };
+        }
+
+        // Validate slot is within allowed days and hours
+        const dayOfWeek = slotStart.getDay();
+        const hour = slotStart.getHours();
+
+        if (!SCHEDULER_CONFIG.availableDays.includes(dayOfWeek)) {
+          return {
+            statusCode: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              success: false,
+              error: 'invalid_day',
+              message: 'Bookings are only available Monday through Friday'
+            })
+          };
+        }
+
+        if (hour < SCHEDULER_CONFIG.startHour || hour >= SCHEDULER_CONFIG.endHour) {
+          return {
+            statusCode: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              success: false,
+              error: 'invalid_hour',
+              message: `Bookings are only available between ${SCHEDULER_CONFIG.startHour}:00 and ${SCHEDULER_CONFIG.endHour}:00`
+            })
+          };
+        }
 
         // Re-verify slot is still available (prevent race conditions)
         const freeBusyResponse = await calendar.freebusy.query({
