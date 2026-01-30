@@ -37,7 +37,15 @@
       applications: isLocal ? `http://localhost:5000/api/admin/applications` : null,
       approve: isLocal ? `http://localhost:5000/api/admin/approve` : null,
       builds: isLocal ? `http://localhost:5000/api/builds` : null,
-      triggerBuild: isLocal ? `http://localhost:5000/api/admin/trigger-build` : null
+      triggerBuild: isLocal ? `http://localhost:5000/api/admin/trigger-build` : null,
+
+      // Scheduler endpoints
+      schedulerSlots: isLocal
+        ? 'http://localhost:5000/scheduler/slots'
+        : 'https://bx0ywfkona.execute-api.ap-south-1.amazonaws.com/prod/scheduler/slots',
+      schedulerBook: isLocal
+        ? 'http://localhost:5000/scheduler/book'
+        : 'https://bx0ywfkona.execute-api.ap-south-1.amazonaws.com/prod/scheduler/book'
     },
 
     // WebSocket Configuration
