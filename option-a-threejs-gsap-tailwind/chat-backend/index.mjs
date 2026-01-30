@@ -77,6 +77,101 @@ async function getGoogleCalendar() {
   return googleCalendar;
 }
 
+// ========== SCHEDULER HELPERS ==========
+
+/**
+ * Generate all possible time slots for a given month based on availability rules
+ */
+function generatePossibleSlots(year, month, userTimezone) {
+  const slots = {};
+
+  // Get first and last day of the month
+  const firstDay = new Date(year, month - 1, 1);
+  const lastDay = new Date(year, month, 0);
+
+  // Get current time to filter out past slots
+  const now = new Date();
+
+  for (let day = 1; day <= lastDay.getDate(); day++) {
+    const date = new Date(year, month - 1, day);
+    const dayOfWeek = date.getDay();
+
+    // Skip if not an available day (weekend)
+    if (!SCHEDULER_CONFIG.availableDays.includes(dayOfWeek)) {
+      continue;
+    }
+
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    slots[dateStr] = [];
+
+    // Generate slots for this day
+    for (let hour = SCHEDULER_CONFIG.startHour; hour < SCHEDULER_CONFIG.endHour; hour++) {
+      for (let minute = 0; minute < 60; minute += SCHEDULER_CONFIG.slotDuration) {
+        // Create datetime in CEO's timezone
+        const slotTime = new Date(`${dateStr}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`);
+
+        // Skip past slots
+        if (slotTime <= now) {
+          continue;
+        }
+
+        const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+        slots[dateStr].push(timeStr);
+      }
+    }
+
+    // Remove empty dates
+    if (slots[dateStr].length === 0) {
+      delete slots[dateStr];
+    }
+  }
+
+  return slots;
+}
+
+/**
+ * Remove busy times from available slots
+ */
+function subtractBusyTimes(slots, busyPeriods) {
+  const result = { ...slots };
+
+  for (const busy of busyPeriods) {
+    const busyStart = new Date(busy.start);
+    const busyEnd = new Date(busy.end);
+
+    // Check each date's slots
+    for (const dateStr in result) {
+      result[dateStr] = result[dateStr].filter(timeStr => {
+        const [hour, minute] = timeStr.split(':').map(Number);
+        const slotStart = new Date(`${dateStr}T${timeStr}:00`);
+        const slotEnd = new Date(slotStart.getTime() + SCHEDULER_CONFIG.slotDuration * 60 * 1000);
+
+        // Keep slot if it doesn't overlap with busy period
+        return slotEnd <= busyStart || slotStart >= busyEnd;
+      });
+
+      // Remove empty dates
+      if (result[dateStr].length === 0) {
+        delete result[dateStr];
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Convert time from CEO's timezone to user's timezone for display
+ */
+function convertTimezone(dateStr, timeStr, fromTz, toTz) {
+  // Create date in source timezone
+  const dateTimeStr = `${dateStr}T${timeStr}:00`;
+
+  // For now, return as-is (timezone conversion can be added later)
+  // The frontend will handle display conversion
+  return timeStr;
+}
+
 // System prompt for the CoCreate AI chat agent with guardrails
 const SYSTEM_PROMPT = `You are a concise AI assistant for CoCreate AI - a venture studio that partners with founders to build AI products.
 
