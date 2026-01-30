@@ -16,6 +16,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 import { fromIni } from '@aws-sdk/credential-providers';
+import { google } from 'googleapis';
 
 // DNS MX lookup for email validation
 const resolveMx = promisify(dns.resolveMx);
@@ -39,6 +40,32 @@ const SKIP_EMAIL = process.env.SKIP_EMAIL === 'true'; // Skip emails in local de
 const AWS_PROFILE = process.env.AWS_PROFILE || 'sunwaretech';
 const SES_REGION = process.env.SES_REGION || 'us-east-1';
 
+// ========== SCHEDULER CONFIGURATION ==========
+const SCHEDULER_CONFIG = {
+  // Days of week (0=Sunday, 1=Monday, ..., 6=Saturday)
+  availableDays: [1, 2, 3, 4, 5], // Monday-Friday
+
+  // Hours (24-hour format, in CEO's timezone)
+  startHour: 8,   // 8:00 AM
+  endHour: 18,    // 6:00 PM
+
+  // Slot duration in minutes
+  slotDuration: 30,
+
+  // CEO's timezone
+  timezone: 'America/Chicago',
+
+  // Meeting title prefix
+  meetingTitle: 'CoCreate Introduction',
+
+  // Calendar ID (CEO's calendar)
+  calendarId: process.env.GOOGLE_CALENDAR_ID || 'primary',
+};
+
+// Google Service Account credentials (from environment)
+const GOOGLE_SERVICE_ACCOUNT_EMAIL = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+const GOOGLE_PRIVATE_KEY = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+
 // Initialize clients
 const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 const s3 = new S3Client({
@@ -49,6 +76,112 @@ const ses = new SESClient({
   region: SES_REGION,
   credentials: fromIni({ profile: AWS_PROFILE })
 });
+
+// ========== GOOGLE CALENDAR AUTH ==========
+let googleCalendar = null;
+
+async function getGoogleCalendar() {
+  if (googleCalendar) {
+    return googleCalendar;
+  }
+
+  if (!GOOGLE_SERVICE_ACCOUNT_EMAIL || !GOOGLE_PRIVATE_KEY) {
+    throw new Error('Google Calendar credentials not configured');
+  }
+
+  const auth = new google.auth.JWT(
+    GOOGLE_SERVICE_ACCOUNT_EMAIL,
+    null,
+    GOOGLE_PRIVATE_KEY,
+    ['https://www.googleapis.com/auth/calendar']
+  );
+
+  googleCalendar = google.calendar({ version: 'v3', auth });
+  return googleCalendar;
+}
+
+// ========== SCHEDULER HELPERS ==========
+
+/**
+ * Generate all possible time slots for a given month based on availability rules
+ */
+function generatePossibleSlots(year, month, userTimezone) {
+  const slots = {};
+
+  // Get first and last day of the month
+  const firstDay = new Date(year, month - 1, 1);
+  const lastDay = new Date(year, month, 0);
+
+  // Get current time to filter out past slots
+  const now = new Date();
+
+  for (let day = 1; day <= lastDay.getDate(); day++) {
+    const date = new Date(year, month - 1, day);
+    const dayOfWeek = date.getDay();
+
+    // Skip if not an available day (weekend)
+    if (!SCHEDULER_CONFIG.availableDays.includes(dayOfWeek)) {
+      continue;
+    }
+
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    slots[dateStr] = [];
+
+    // Generate slots for this day
+    for (let hour = SCHEDULER_CONFIG.startHour; hour < SCHEDULER_CONFIG.endHour; hour++) {
+      for (let minute = 0; minute < 60; minute += SCHEDULER_CONFIG.slotDuration) {
+        // Create datetime in CEO's timezone
+        const slotTime = new Date(`${dateStr}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`);
+
+        // Skip past slots
+        if (slotTime <= now) {
+          continue;
+        }
+
+        const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+        slots[dateStr].push(timeStr);
+      }
+    }
+
+    // Remove empty dates
+    if (slots[dateStr].length === 0) {
+      delete slots[dateStr];
+    }
+  }
+
+  return slots;
+}
+
+/**
+ * Remove busy times from available slots
+ */
+function subtractBusyTimes(slots, busyPeriods) {
+  const result = { ...slots };
+
+  for (const busy of busyPeriods) {
+    const busyStart = new Date(busy.start);
+    const busyEnd = new Date(busy.end);
+
+    // Check each date's slots
+    for (const dateStr in result) {
+      result[dateStr] = result[dateStr].filter(timeStr => {
+        const [hour, minute] = timeStr.split(':').map(Number);
+        const slotStart = new Date(`${dateStr}T${timeStr}:00`);
+        const slotEnd = new Date(slotStart.getTime() + SCHEDULER_CONFIG.slotDuration * 60 * 1000);
+
+        // Keep slot if it doesn't overlap with busy period
+        return slotEnd <= busyStart || slotStart >= busyEnd;
+      });
+
+      // Remove empty dates
+      if (result[dateStr].length === 0) {
+        delete result[dateStr];
+      }
+    }
+  }
+
+  return result;
+}
 
 // Middleware
 app.use(cors());
@@ -1541,18 +1674,258 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', mode: 'local', timestamp: new Date().toISOString() });
 });
 
+// ========== SCHEDULER ENDPOINTS ==========
+
+// Get available slots for a month
+app.post('/scheduler/slots', async (req, res) => {
+  try {
+    const { month, timezone } = req.body;
+
+    if (!month || !/^\d{4}-\d{2}$/.test(month)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid month format. Use YYYY-MM'
+      });
+    }
+
+    const [year, monthNum] = month.split('-').map(Number);
+    const userTimezone = timezone || 'America/Chicago';
+
+    // Generate all possible slots based on availability rules
+    const possibleSlots = generatePossibleSlots(year, monthNum, userTimezone);
+
+    // Get busy times from Google Calendar
+    const calendar = await getGoogleCalendar();
+    const timeMin = new Date(year, monthNum - 1, 1).toISOString();
+    const timeMax = new Date(year, monthNum, 0, 23, 59, 59).toISOString();
+
+    const freeBusyResponse = await calendar.freebusy.query({
+      requestBody: {
+        timeMin,
+        timeMax,
+        timeZone: SCHEDULER_CONFIG.timezone,
+        items: [{ id: SCHEDULER_CONFIG.calendarId }]
+      }
+    });
+
+    const busyPeriods = freeBusyResponse.data.calendars[SCHEDULER_CONFIG.calendarId]?.busy || [];
+
+    // Subtract busy times from possible slots
+    const availableSlots = subtractBusyTimes(possibleSlots, busyPeriods);
+
+    return res.json({
+      success: true,
+      month,
+      timezone: userTimezone,
+      ceoTimezone: SCHEDULER_CONFIG.timezone,
+      slotDuration: SCHEDULER_CONFIG.slotDuration,
+      slots: availableSlots
+    });
+
+  } catch (error) {
+    console.error('Scheduler slots error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Unable to fetch available slots. Please try again.'
+    });
+  }
+});
+
+// Book a scheduler slot
+app.post('/scheduler/book', async (req, res) => {
+  try {
+    const { date, time, timezone, name, email, productIdea, notes } = req.body;
+
+    // Validate required fields
+    if (!date || !time || !name || !email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: date, time, name, email'
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid email format'
+      });
+    }
+
+    // Validate date format (YYYY-MM-DD)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({
+        success: false,
+        error: 'invalid_date',
+        message: 'Invalid date format. Use YYYY-MM-DD'
+      });
+    }
+
+    // Validate time format (HH:MM)
+    if (!/^\d{2}:\d{2}$/.test(time)) {
+      return res.status(400).json({
+        success: false,
+        error: 'invalid_time',
+        message: 'Invalid time format. Use HH:MM'
+      });
+    }
+
+    const calendar = await getGoogleCalendar();
+
+    // Convert selected time to CEO's timezone for the event
+    const userTimezone = timezone || 'America/Chicago';
+    const slotStart = new Date(`${date}T${time}:00`);
+    const slotEnd = new Date(slotStart.getTime() + SCHEDULER_CONFIG.slotDuration * 60 * 1000);
+
+    // Prevent booking past slots
+    if (slotStart <= new Date()) {
+      return res.status(400).json({
+        success: false,
+        error: 'past_slot',
+        message: 'Cannot book a time slot in the past'
+      });
+    }
+
+    // Validate slot is within allowed days and hours
+    const dayOfWeek = slotStart.getDay();
+    const hour = slotStart.getHours();
+
+    if (!SCHEDULER_CONFIG.availableDays.includes(dayOfWeek)) {
+      return res.status(400).json({
+        success: false,
+        error: 'invalid_day',
+        message: 'Bookings are only available Monday through Friday'
+      });
+    }
+
+    if (hour < SCHEDULER_CONFIG.startHour || hour >= SCHEDULER_CONFIG.endHour) {
+      return res.status(400).json({
+        success: false,
+        error: 'invalid_hour',
+        message: `Bookings are only available between ${SCHEDULER_CONFIG.startHour}:00 and ${SCHEDULER_CONFIG.endHour}:00`
+      });
+    }
+
+    // Re-verify slot is still available (prevent race conditions)
+    const freeBusyResponse = await calendar.freebusy.query({
+      requestBody: {
+        timeMin: slotStart.toISOString(),
+        timeMax: slotEnd.toISOString(),
+        timeZone: SCHEDULER_CONFIG.timezone,
+        items: [{ id: SCHEDULER_CONFIG.calendarId }]
+      }
+    });
+
+    const busyPeriods = freeBusyResponse.data.calendars[SCHEDULER_CONFIG.calendarId]?.busy || [];
+    if (busyPeriods.length > 0) {
+      return res.status(409).json({
+        success: false,
+        error: 'slot_unavailable',
+        message: 'This time slot is no longer available. Please select another time.'
+      });
+    }
+
+    // Build event description
+    let description = `Introduction call with ${name}\n\nEmail: ${email}`;
+    if (productIdea) {
+      description += `\n\nProduct Idea:\n${productIdea}`;
+    }
+    if (notes) {
+      description += `\n\nAdditional Notes:\n${notes}`;
+    }
+
+    // Create Google Calendar event with Google Meet
+    const event = {
+      summary: `CoCreate Introduction - ${name}`,
+      description,
+      start: {
+        dateTime: slotStart.toISOString(),
+        timeZone: SCHEDULER_CONFIG.timezone
+      },
+      end: {
+        dateTime: slotEnd.toISOString(),
+        timeZone: SCHEDULER_CONFIG.timezone
+      },
+      attendees: [{ email }],
+      conferenceData: {
+        createRequest: {
+          requestId: `cocreate-${Date.now()}`,
+          conferenceSolutionKey: { type: 'hangoutsMeet' }
+        }
+      },
+      reminders: {
+        useDefault: false,
+        overrides: [
+          { method: 'email', minutes: 60 },
+          { method: 'popup', minutes: 15 }
+        ]
+      }
+    };
+
+    const createdEvent = await calendar.events.insert({
+      calendarId: SCHEDULER_CONFIG.calendarId,
+      requestBody: event,
+      conferenceDataVersion: 1,
+      sendUpdates: 'all'
+    });
+
+    // Extract Meet link
+    const meetLink = createdEvent.data.conferenceData?.entryPoints?.find(
+      ep => ep.entryPointType === 'video'
+    )?.uri;
+
+    console.log('Meeting booked:', {
+      eventId: createdEvent.data.id,
+      name,
+      email,
+      date,
+      time,
+      meetLink
+    });
+
+    // Format endTime as HH:MM
+    const endTime = slotEnd.toTimeString().slice(0, 5);
+
+    return res.json({
+      success: true,
+      booking: {
+        eventId: createdEvent.data.id,
+        title: event.summary,
+        date,
+        time,
+        endTime,
+        duration: `${SCHEDULER_CONFIG.slotDuration} minutes`,
+        timezone: timezone || SCHEDULER_CONFIG.timezone,
+        meetLink,
+        htmlLink: createdEvent.data.htmlLink
+      }
+    });
+
+  } catch (error) {
+    console.error('Scheduler booking error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Unable to book the meeting. Please try again.'
+    });
+  }
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log('');
-  console.log('🚀 AI Product Studio - Local Development Server');
+  console.log('🚀 CoCreate AI - Local Development Server');
   console.log('================================================');
-  console.log(`   Site:    http://localhost:${PORT}/`);
-  console.log(`   Apply:   http://localhost:${PORT}/apply.html`);
-  console.log(`   Admin:   http://localhost:${PORT}/admin.html`);
-  console.log(`   API:     http://localhost:${PORT}/api/chat`);
-  console.log(`   Builds:  http://localhost:${PORT}/builds/`);
+  console.log(`   Site:      http://localhost:${PORT}/`);
+  console.log(`   Apply:     http://localhost:${PORT}/apply.html`);
+  console.log(`   Schedule:  http://localhost:${PORT}/schedule.html`);
+  console.log(`   Admin:     http://localhost:${PORT}/admin.html`);
+  console.log(`   API:       http://localhost:${PORT}/api/chat`);
+  console.log(`   Scheduler: http://localhost:${PORT}/scheduler/slots`);
+  console.log(`   Builds:    http://localhost:${PORT}/builds/`);
   console.log('');
   console.log('   S3 Bucket:', S3_BUCKET);
   console.log('   Skip Email:', SKIP_EMAIL);
+  console.log('   Google Calendar:', GOOGLE_SERVICE_ACCOUNT_EMAIL ? 'Configured' : 'Not configured');
   console.log('');
 });
