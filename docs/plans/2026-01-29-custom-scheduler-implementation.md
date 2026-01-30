@@ -622,14 +622,57 @@ git commit -m "feat(scheduler): add scheduler endpoints to frontend config"
 **Files:**
 - Create: `option-a-threejs-gsap-tailwind/site/css/scheduler.css`
 
+> **Design Reference:** See `docs/plans/2026-01-29-scheduler-design-tokens.md` for complete design system.
+
 **Step 1: Create the CSS file**
 
 ```css
 /**
  * CoCreate AI - Scheduler Styles
+ * Design: Warm/Dark theme based on brand identity
+ * Reference: /design/Desktop - 6.png
  */
 
-/* Container */
+/* ========== CSS Variables (CoCreate Brand) ========== */
+:root {
+  /* Backgrounds */
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #141414;
+  --bg-tertiary: #1a1a1a;
+  --bg-hover: #242424;
+
+  /* Accent Colors */
+  --primary: #e07830;
+  --primary-hover: #f08840;
+  --primary-light: #f8a060;
+  --secondary: #c04820;
+  --gradient-primary: linear-gradient(135deg, #e07830, #c04820);
+
+  /* Text Colors */
+  --text-primary: #ffffff;
+  --text-secondary: #9a9a9a;
+  --text-disabled: #505050;
+
+  /* Borders */
+  --border-color: #2a2a2a;
+  --border-hover: #3a3a3a;
+  --border-active: #e07830;
+
+  /* Status */
+  --success: #10b981;
+  --error: #ef4444;
+
+  /* Effects */
+  --shadow-glow: 0 0 20px rgba(224, 120, 48, 0.3);
+}
+
+/* ========== Page Layout ========== */
+.scheduler-page {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
 .scheduler-container {
   max-width: 1000px;
   margin: 0 auto;
@@ -645,6 +688,7 @@ git commit -m "feat(scheduler): add scheduler endpoints to frontend config"
   font-size: 1.75rem;
   font-weight: 700;
   margin-bottom: 0.5rem;
+  color: var(--text-primary);
 }
 
 .scheduler-meta {
@@ -661,7 +705,7 @@ git commit -m "feat(scheduler): add scheduler endpoints to frontend config"
   gap: 0.25rem;
 }
 
-/* Main Grid */
+/* ========== Main Grid ========== */
 .scheduler-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
@@ -674,7 +718,7 @@ git commit -m "feat(scheduler): add scheduler endpoints to frontend config"
   }
 }
 
-/* Calendar */
+/* ========== Calendar Section ========== */
 .calendar-section {
   background: var(--bg-secondary);
   border-radius: 12px;
@@ -692,6 +736,7 @@ git commit -m "feat(scheduler): add scheduler endpoints to frontend config"
 .calendar-header h3 {
   font-size: 1rem;
   font-weight: 600;
+  color: var(--text-primary);
 }
 
 .calendar-nav {
@@ -707,11 +752,12 @@ git commit -m "feat(scheduler): add scheduler endpoints to frontend config"
   padding: 0.375rem 0.5rem;
   cursor: pointer;
   color: var(--text-primary);
-  transition: background 0.2s;
+  transition: all 0.2s;
 }
 
 .calendar-nav button:hover {
   background: var(--bg-hover);
+  border-color: var(--border-hover);
 }
 
 .calendar-nav button:disabled {
@@ -723,6 +769,7 @@ git commit -m "feat(scheduler): add scheduler endpoints to frontend config"
   font-weight: 600;
   min-width: 120px;
   text-align: center;
+  color: var(--text-primary);
 }
 
 .calendar-grid {
@@ -749,6 +796,7 @@ git commit -m "feat(scheduler): add scheduler endpoints to frontend config"
   cursor: pointer;
   transition: all 0.2s;
   border: 2px solid transparent;
+  color: var(--text-primary);
 }
 
 .calendar-day:hover:not(.disabled):not(.empty) {
@@ -771,20 +819,22 @@ git commit -m "feat(scheduler): add scheduler endpoints to frontend config"
 
 .calendar-day.available:hover {
   background: var(--primary);
-  color: white;
+  color: var(--text-primary);
+  box-shadow: var(--shadow-glow);
 }
 
 .calendar-day.selected {
   background: var(--primary);
-  color: white;
+  color: var(--text-primary);
   border-color: var(--primary);
+  box-shadow: var(--shadow-glow);
 }
 
 .calendar-day.today {
   border-color: var(--primary);
 }
 
-/* Time Slots */
+/* ========== Time Slots Section ========== */
 .timeslots-section {
   background: var(--bg-secondary);
   border-radius: 12px;
@@ -796,6 +846,7 @@ git commit -m "feat(scheduler): add scheduler endpoints to frontend config"
   font-size: 1rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
+  color: var(--text-primary);
 }
 
 .timeslots-date {
@@ -812,6 +863,25 @@ git commit -m "feat(scheduler): add scheduler endpoints to frontend config"
   overflow-y: auto;
 }
 
+/* Custom scrollbar for dark theme */
+.timeslots-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.timeslots-container::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+}
+
+.timeslots-container::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+.timeslots-container::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hover);
+}
+
 .timeslot {
   padding: 0.75rem 1rem;
   background: var(--bg-tertiary);
@@ -821,6 +891,7 @@ git commit -m "feat(scheduler): add scheduler endpoints to frontend config"
   transition: all 0.2s;
   text-align: center;
   font-weight: 500;
+  color: var(--text-primary);
 }
 
 .timeslot:hover {
@@ -830,8 +901,9 @@ git commit -m "feat(scheduler): add scheduler endpoints to frontend config"
 
 .timeslot.selected {
   background: var(--primary);
-  color: white;
+  color: var(--text-primary);
   border-color: var(--primary);
+  box-shadow: var(--shadow-glow);
 }
 
 .timeslots-empty {
@@ -854,11 +926,17 @@ git commit -m "feat(scheduler): add scheduler endpoints to frontend config"
   padding: 0.5rem;
   border-radius: 6px;
   border: 1px solid var(--border-color);
-  background: var(--bg-primary);
+  background: var(--bg-tertiary);
   color: var(--text-primary);
+  cursor: pointer;
 }
 
-/* Details Form */
+.timezone-select select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+/* ========== Details Form Section ========== */
 .details-section {
   background: var(--bg-secondary);
   border-radius: 12px;
@@ -870,6 +948,7 @@ git commit -m "feat(scheduler): add scheduler endpoints to frontend config"
   font-size: 1rem;
   font-weight: 600;
   margin-bottom: 1rem;
+  color: var(--text-primary);
 }
 
 .form-group {
@@ -890,20 +969,28 @@ git commit -m "feat(scheduler): add scheduler endpoints to frontend config"
   padding: 0.625rem 0.75rem;
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  background: var(--bg-primary);
+  background: var(--bg-tertiary);
   color: var(--text-primary);
   font-size: 0.875rem;
+  transition: border-color 0.2s;
 }
 
 .form-group input:focus,
 .form-group textarea:focus {
   outline: none;
   border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(224, 120, 48, 0.2);
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: var(--text-disabled);
 }
 
 .form-group input[readonly] {
-  background: var(--bg-tertiary);
+  background: var(--bg-primary);
   color: var(--text-secondary);
+  cursor: not-allowed;
 }
 
 .form-group textarea {
@@ -911,11 +998,12 @@ git commit -m "feat(scheduler): add scheduler endpoints to frontend config"
   resize: vertical;
 }
 
+/* Submit Button - Gradient Style */
 .submit-btn {
   width: 100%;
   padding: 0.875rem;
-  background: var(--primary);
-  color: white;
+  background: var(--gradient-primary);
+  color: var(--text-primary);
   border: none;
   border-radius: 8px;
   font-size: 1rem;
@@ -927,14 +1015,16 @@ git commit -m "feat(scheduler): add scheduler endpoints to frontend config"
 
 .submit-btn:hover:not(:disabled) {
   filter: brightness(1.1);
+  box-shadow: var(--shadow-glow);
 }
 
 .submit-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  filter: grayscale(0.5);
 }
 
-/* Confirmation */
+/* ========== Confirmation Section ========== */
 .confirmation-container {
   text-align: center;
   padding: 3rem 2rem;
@@ -943,7 +1033,7 @@ git commit -m "feat(scheduler): add scheduler endpoints to frontend config"
 .confirmation-icon {
   width: 80px;
   height: 80px;
-  background: #10b981;
+  background: var(--success);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -961,6 +1051,7 @@ git commit -m "feat(scheduler): add scheduler endpoints to frontend config"
   font-size: 1.5rem;
   font-weight: 700;
   margin-bottom: 1.5rem;
+  color: var(--text-primary);
 }
 
 .booking-details {
@@ -1003,6 +1094,10 @@ git commit -m "feat(scheduler): add scheduler endpoints to frontend config"
   font-size: 0.875rem;
 }
 
+.meet-link-box a:hover {
+  text-decoration: underline;
+}
+
 .meet-link-box button {
   padding: 0.5rem 0.75rem;
   background: var(--bg-primary);
@@ -1011,6 +1106,13 @@ git commit -m "feat(scheduler): add scheduler endpoints to frontend config"
   cursor: pointer;
   font-size: 0.75rem;
   white-space: nowrap;
+  color: var(--text-primary);
+  transition: all 0.2s;
+}
+
+.meet-link-box button:hover {
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .confirmation-note {
@@ -1039,17 +1141,27 @@ git commit -m "feat(scheduler): add scheduler endpoints to frontend config"
   color: var(--text-primary);
 }
 
-.btn-primary {
-  background: var(--primary);
-  border: none;
-  color: white;
+.btn-secondary:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-hover);
 }
 
-/* Loading State */
+.btn-primary {
+  background: var(--gradient-primary);
+  border: none;
+  color: var(--text-primary);
+}
+
+.btn-primary:hover {
+  filter: brightness(1.1);
+  box-shadow: var(--shadow-glow);
+}
+
+/* ========== Loading State ========== */
 .loading-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(10, 10, 10, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1069,19 +1181,28 @@ git commit -m "feat(scheduler): add scheduler endpoints to frontend config"
   to { transform: rotate(360deg); }
 }
 
-/* Error State */
+/* ========== Error State ========== */
 .error-message {
-  background: #fee2e2;
-  color: #dc2626;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--error);
+  color: var(--error);
   padding: 1rem;
   border-radius: 8px;
   margin-bottom: 1rem;
   text-align: center;
 }
 
-/* Hidden utility */
+/* ========== Utility Classes ========== */
 .hidden {
   display: none !important;
+}
+
+/* Gradient text for headers (optional) */
+.gradient-text {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 ```
 
@@ -1089,7 +1210,7 @@ git commit -m "feat(scheduler): add scheduler endpoints to frontend config"
 
 ```bash
 git add option-a-threejs-gsap-tailwind/site/css/scheduler.css
-git commit -m "feat(scheduler): add scheduler CSS styles"
+git commit -m "feat(scheduler): add scheduler CSS with CoCreate warm/dark theme"
 ```
 
 ---
