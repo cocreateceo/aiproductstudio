@@ -27,6 +27,32 @@ const NOTIFICATION_EMAIL = process.env.NOTIFICATION_EMAIL || 'gopi@sunwaretechno
 // S3 bucket for storing all data
 const S3_BUCKET = 'ai-product-studio-applications';
 
+// ========== SCHEDULER CONFIGURATION ==========
+const SCHEDULER_CONFIG = {
+  // Days of week (0=Sunday, 1=Monday, ..., 6=Saturday)
+  availableDays: [1, 2, 3, 4, 5], // Monday-Friday
+
+  // Hours (24-hour format, in CEO's timezone)
+  startHour: 8,   // 8:00 AM
+  endHour: 18,    // 6:00 PM
+
+  // Slot duration in minutes
+  slotDuration: 30,
+
+  // CEO's timezone
+  timezone: 'America/Chicago',
+
+  // Meeting title prefix
+  meetingTitle: 'CoCreate Introduction',
+
+  // Calendar ID (CEO's calendar)
+  calendarId: process.env.GOOGLE_CALENDAR_ID || 'primary',
+};
+
+// Google Service Account credentials (from environment)
+const GOOGLE_SERVICE_ACCOUNT_EMAIL = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+const GOOGLE_PRIVATE_KEY = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+
 // System prompt for the CoCreate AI chat agent with guardrails
 const SYSTEM_PROMPT = `You are a concise AI assistant for CoCreate AI - a venture studio that partners with founders to build AI products.
 
