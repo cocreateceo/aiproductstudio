@@ -2713,6 +2713,153 @@ export const handler = async (event) => {
       }
     }
 
+    // Book a scheduler slot
+    if (path === '/scheduler/book' && httpMethod === 'POST') {
+      try {
+        const { date, time, timezone, name, email, productIdea, notes } = body;
+
+        // Validate required fields
+        if (!date || !time || !name || !email) {
+          return {
+            statusCode: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              success: false,
+              error: 'Missing required fields: date, time, name, email'
+            })
+          };
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          return {
+            statusCode: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              success: false,
+              error: 'Invalid email format'
+            })
+          };
+        }
+
+        const calendar = await getGoogleCalendar();
+
+        // Convert selected time to CEO's timezone for the event
+        const userTimezone = timezone || 'America/Chicago';
+        const slotStart = new Date(`${date}T${time}:00`);
+        const slotEnd = new Date(slotStart.getTime() + SCHEDULER_CONFIG.slotDuration * 60 * 1000);
+
+        // Re-verify slot is still available (prevent race conditions)
+        const freeBusyResponse = await calendar.freebusy.query({
+          requestBody: {
+            timeMin: slotStart.toISOString(),
+            timeMax: slotEnd.toISOString(),
+            timeZone: SCHEDULER_CONFIG.timezone,
+            items: [{ id: SCHEDULER_CONFIG.calendarId }]
+          }
+        });
+
+        const busyPeriods = freeBusyResponse.data.calendars[SCHEDULER_CONFIG.calendarId]?.busy || [];
+        if (busyPeriods.length > 0) {
+          return {
+            statusCode: 409,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              success: false,
+              error: 'slot_unavailable',
+              message: 'This time slot is no longer available. Please select another time.'
+            })
+          };
+        }
+
+        // Build event description
+        let description = `Introduction call with ${name}\n\nEmail: ${email}`;
+        if (productIdea) {
+          description += `\n\nProduct Idea:\n${productIdea}`;
+        }
+        if (notes) {
+          description += `\n\nAdditional Notes:\n${notes}`;
+        }
+
+        // Create Google Calendar event with Google Meet
+        const event = {
+          summary: `CoCreate Introduction - ${name}`,
+          description,
+          start: {
+            dateTime: slotStart.toISOString(),
+            timeZone: SCHEDULER_CONFIG.timezone
+          },
+          end: {
+            dateTime: slotEnd.toISOString(),
+            timeZone: SCHEDULER_CONFIG.timezone
+          },
+          attendees: [{ email }],
+          conferenceData: {
+            createRequest: {
+              requestId: `cocreate-${Date.now()}`,
+              conferenceSolutionKey: { type: 'hangoutsMeet' }
+            }
+          },
+          reminders: {
+            useDefault: false,
+            overrides: [
+              { method: 'email', minutes: 60 },
+              { method: 'popup', minutes: 15 }
+            ]
+          }
+        };
+
+        const createdEvent = await calendar.events.insert({
+          calendarId: SCHEDULER_CONFIG.calendarId,
+          requestBody: event,
+          conferenceDataVersion: 1,
+          sendUpdates: 'all'
+        });
+
+        // Extract Meet link
+        const meetLink = createdEvent.data.conferenceData?.entryPoints?.find(
+          ep => ep.entryPointType === 'video'
+        )?.uri;
+
+        console.log('Meeting booked:', {
+          eventId: createdEvent.data.id,
+          name,
+          email,
+          date,
+          time,
+          meetLink
+        });
+
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            success: true,
+            booking: {
+              eventId: createdEvent.data.id,
+              date,
+              time,
+              timezone: userTimezone,
+              meetLink,
+              htmlLink: createdEvent.data.htmlLink
+            }
+          })
+        };
+
+      } catch (error) {
+        console.error('Scheduler booking error:', error);
+        return {
+          statusCode: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            success: false,
+            error: 'Unable to book the meeting. Please try again.'
+          })
+        };
+      }
+    }
+
     // ========== CHAT ENDPOINT ==========
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
