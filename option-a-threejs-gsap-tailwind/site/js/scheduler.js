@@ -104,6 +104,7 @@
         timeslotsContainer: document.getElementById('timeslots-container'),
         timeslotsSection: document.getElementById('timeslots-section'),
         timeslotsDate: document.getElementById('timeslots-date'),
+        timezoneSelect: document.getElementById('timezone-select'),
 
         // Form
         nameInput: document.getElementById('scheduler-name'),
@@ -162,6 +163,18 @@
       if (this.elements.notesInput) {
         this.elements.notesInput.addEventListener('input', (e) => {
           this.state.userData.notes = e.target.value;
+        });
+      }
+
+      // Timezone select
+      if (this.elements.timezoneSelect) {
+        // Set initial value to detected timezone
+        this.elements.timezoneSelect.value = this.state.userTimezone;
+
+        this.elements.timezoneSelect.addEventListener('change', (e) => {
+          this.state.userTimezone = e.target.value;
+          // Re-render with new timezone (times may display differently)
+          this.render();
         });
       }
 
