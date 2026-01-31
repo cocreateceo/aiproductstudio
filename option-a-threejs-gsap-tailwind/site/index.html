@@ -2422,7 +2422,18 @@
             }
         };
 
-        let currentTheme = localStorage.getItem('cocreate-theme') || localStorage.getItem('theme') || 'ember';
+        // Migrate old theme names to new CoCreate themes
+        function migrateTheme(oldTheme) {
+            const migrations = {
+                'dark': 'ember',
+                'midnight': 'sunset',
+                'dusk': 'sunset',
+                'light': 'coral'
+            };
+            return migrations[oldTheme] || (themes[oldTheme] ? oldTheme : 'ember');
+        }
+
+        let currentTheme = migrateTheme(localStorage.getItem('cocreate-theme') || localStorage.getItem('theme') || 'ember');
 
         // Theme switcher elements
         const themeToggle = document.getElementById('theme-toggle');
@@ -2433,6 +2444,11 @@
 
         // Initialize theme
         function setTheme(theme) {
+            // Ensure theme exists, fallback to ember
+            if (!themes[theme]) {
+                theme = migrateTheme(theme);
+            }
+
             document.documentElement.setAttribute('data-theme', theme);
             currentTheme = theme;
             localStorage.setItem('cocreate-theme', theme);
