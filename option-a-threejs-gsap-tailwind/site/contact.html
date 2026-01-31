@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="ember">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,12 +9,20 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = { theme: { extend: { colors: { primary: 'var(--primary)', secondary: 'var(--secondary)', accent: 'var(--accent)' } } } }
+        tailwind.config = { theme: { extend: { colors: { primary: 'var(--primary)', secondary: 'var(--secondary)', accent: 'var(--accent)' }, fontFamily: { sans: ['DM Sans', 'system-ui', 'sans-serif'], display: ['Outfit', 'DM Sans', 'system-ui', 'sans-serif'] } } } }
     </script>
 
+    <!-- Google Fonts - CoCreate Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- CoCreate Theme CSS -->
+    <link rel="stylesheet" href="css/themes/ember.css">
+    <link rel="stylesheet" href="css/themes/coral.css">
+    <link rel="stylesheet" href="css/themes/sunset.css">
+    <link rel="stylesheet" href="css/themes/aurora.css">
+    <link rel="stylesheet" href="css/themes/legacy.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
     <script src="js/config.js"></script>
@@ -23,11 +31,10 @@
 
     <style>
         :root { --transition-speed: 0.4s; }
-        [data-theme="dark"] { --bg-primary: #020617; --bg-secondary: #0f172a; --bg-card: rgba(15, 23, 42, 0.7); --text-primary: #f1f5f9; --text-secondary: #94a3b8; --text-muted: #64748b; --border-color: rgba(99, 102, 241, 0.2); --primary: #6366f1; --secondary: #8b5cf6; --accent: #06b6d4; --nav-bg: rgba(2, 6, 23, 0.8); --glow-color: rgba(99, 102, 241, 0.3); }
-        [data-theme="light"] { --bg-primary: #f8fafc; --bg-secondary: #e2e8f0; --bg-card: rgba(255, 255, 255, 0.9); --text-primary: #0f172a; --text-secondary: #475569; --text-muted: #64748b; --border-color: rgba(99, 102, 241, 0.15); --primary: #4f46e5; --secondary: #7c3aed; --accent: #0891b2; --nav-bg: rgba(248, 250, 252, 0.95); --glow-color: rgba(79, 70, 229, 0.2); }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html { scroll-behavior: smooth; }
-        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg-primary); color: var(--text-primary); overflow-x: hidden; }
+        body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg-primary); color: var(--text-primary); overflow-x: hidden; }
+        h1, h2, h3, h4, h5, h6, .font-display { font-family: 'Outfit', 'DM Sans', system-ui, sans-serif; font-weight: 600; letter-spacing: -0.02em; }
         .glass-card { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-color); }
         .gradient-text { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
         .hero-bg { background: linear-gradient(135deg, rgba(2,6,23,0.88) 0%, rgba(15,23,42,0.92) 100%), url('https://images.unsplash.com/photo-1423666639041-f56000c27a9a?w=1920&q=80') center/cover no-repeat; }
@@ -66,11 +73,27 @@
 <body>
     <nav class="fixed top-0 left-0 right-0 glass-card border-b border-theme" style="z-index: 10000;">
         <div class="max-w-7xl mx-auto flex items-center justify-between h-16 px-6 lg:px-10">
-            <a href="index.html" class="flex items-center gap-3 shrink-0">
-                <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                </div>
-                <span class="text-lg font-bold tracking-tight hidden sm:block">CoCreate AI</span>
+            <a href="index.html" class="flex items-center gap-3 shrink-0 group">
+                <svg class="w-10 h-10" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="contactLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:var(--accent, #FFC36A)"/>
+                            <stop offset="50%" style="stop-color:var(--secondary, #FD6C71)"/>
+                            <stop offset="100%" style="stop-color:var(--primary, #FC2A0D)"/>
+                        </linearGradient>
+                    </defs>
+                    <g transform="translate(4, 4)">
+                        <path d="M20 0C8.954 0 0 8.954 0 20s8.954 20 20 20c5.523 0 10.523-2.239 14.142-5.858"
+                              stroke="url(#contactLogoGradient)" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+                        <ellipse cx="20" cy="20" rx="26" ry="10"
+                                 stroke="url(#contactLogoGradient)" stroke-width="2" fill="none"
+                                 transform="rotate(-30, 20, 20)"/>
+                        <circle cx="42" cy="12" r="3.5" fill="url(#contactLogoGradient)"/>
+                    </g>
+                </svg>
+                <span class="text-lg font-display font-bold tracking-tight hidden sm:block">
+                    <span class="text-theme-primary">CO</span><span class="gradient-text">CREATE</span>
+                </span>
             </a>
             <div class="hidden lg:flex items-center gap-1">
                 <div class="nav-item relative">
@@ -93,13 +116,14 @@
                         <svg class="w-4 h-4" id="theme-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
                         </svg>
-                        <span class="text-xs font-medium uppercase tracking-wide" id="theme-label">Dark</span>
+                        <span class="text-xs font-medium uppercase tracking-wide" id="theme-label">Ember</span>
                     </button>
                     <div class="theme-dropdown" id="theme-dropdown">
-                        <div class="theme-option active" data-theme="dark"><div class="theme-preview theme-preview-dark"></div><span>Dark</span></div>
-                        <div class="theme-option" data-theme="midnight"><div class="theme-preview theme-preview-midnight"></div><span>Midnight</span></div>
-                        <div class="theme-option" data-theme="dusk"><div class="theme-preview theme-preview-dusk"></div><span>Dusk</span></div>
-                        <div class="theme-option" data-theme="light"><div class="theme-preview theme-preview-light"></div><span>Light</span></div>
+                        <div class="theme-option active" data-theme="ember"><div class="theme-preview" style="background: linear-gradient(135deg, #1A0A00 50%, #FC2A0D 50%);"></div><span>Ember</span></div>
+                        <div class="theme-option" data-theme="coral"><div class="theme-preview" style="background: linear-gradient(135deg, #FFF8F0 50%, #FD6C71 50%);"></div><span>Coral</span></div>
+                        <div class="theme-option" data-theme="sunset"><div class="theme-preview" style="background: linear-gradient(135deg, #2D1B3D 50%, #FF6B9D 50%);"></div><span>Sunset</span></div>
+                        <div class="theme-option" data-theme="aurora"><div class="theme-preview" style="background: linear-gradient(135deg, #FFF5F8 50%, #E6A4FF 50%);"></div><span>Aurora</span></div>
+                        <div class="theme-option" data-theme="legacy"><div class="theme-preview" style="background: linear-gradient(135deg, #020617 50%, #6366f1 50%);"></div><span>Legacy</span></div>
                     </div>
                 </div>
                 <a href="contact.html" class="nav-cta-btn">Contact</a>

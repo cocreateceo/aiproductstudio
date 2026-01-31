@@ -1,0 +1,120 @@
+/**
+ * CoCreate Theme: Legacy
+ * Original dark indigo/violet theme - preserved for backup
+ * This is the original "Dark" theme from before the CoCreate rebrand
+ */
+
+[data-theme="legacy"] {
+    /* Core Colors - Original Dark Theme */
+    --bg-primary: #020617;
+    --bg-secondary: #0f172a;
+    --bg-card: rgba(15, 23, 42, 0.7);
+    --bg-card-hover: rgba(20, 28, 50, 0.8);
+
+    /* Text */
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+
+    /* Brand Colors - Original Indigo/Violet */
+    --primary: #6366f1;
+    --secondary: #8b5cf6;
+    --accent: #06b6d4;
+
+    /* UI Elements */
+    --border-color: rgba(99, 102, 241, 0.2);
+    --nav-bg: rgba(2, 6, 23, 0.8);
+    --glow-color: rgba(99, 102, 241, 0.3);
+
+    /* Solid background (no gradient) */
+    --gradient-bg: none;
+    --gradient-animation: none;
+
+    /* Particles/Canvas */
+    --particle-opacity: 0.8;
+    --particle-color: #6366f1;
+
+    /* Chat Widget */
+    --chat-primary: var(--primary);
+    --chat-secondary: var(--secondary);
+    --chat-bg: var(--bg-secondary);
+    --chat-messages-bg: var(--bg-primary);
+    --chat-input-bg: var(--bg-card);
+    --chat-border: var(--border-color);
+    --chat-text-primary: var(--text-primary);
+    --chat-text-secondary: var(--text-secondary);
+    --chat-text-muted: var(--text-muted);
+    --chat-msg-assistant-bg: var(--bg-card);
+    --chat-msg-assistant-text: var(--text-primary);
+}
+
+/* Apply solid background to body */
+[data-theme="legacy"] body {
+    background: var(--bg-primary);
+    animation: none;
+}
+
+/* Glass card - original style */
+[data-theme="legacy"] .glass-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.1);
+}
+
+[data-theme="legacy"] .glass-card:hover {
+    background: var(--bg-card-hover);
+    border-color: rgba(139, 92, 246, 0.4);
+    box-shadow: 0 12px 40px rgba(99, 102, 241, 0.25);
+}
+
+/* Button styling - original */
+[data-theme="legacy"] .cta-button,
+[data-theme="legacy"] .btn-premium {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+}
+
+[data-theme="legacy"] .cta-button:hover,
+[data-theme="legacy"] .btn-premium:hover {
+    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.6);
+}
+
+/* Gradient text - original */
+[data-theme="legacy"] .gradient-text {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Nav - original style */
+[data-theme="legacy"] nav {
+    background: var(--nav-bg);
+    backdrop-filter: blur(20px) saturate(180%);
+    box-shadow:
+        0 4px 30px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(139, 92, 246, 0.1);
+}
+
+/* Stat numbers - original */
+[data-theme="legacy"] .stat-number {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Original pulse glow */
+[data-theme="legacy"] .pulse-glow {
+    animation: legacy-pulse 3s ease-in-out infinite;
+}
+
+@keyframes legacy-pulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.3); }
+    50% { box-shadow: 0 0 40px rgba(99, 102, 241, 0.5); }
+}
+
+/* Ensure Three.js canvas works with legacy */
+[data-theme="legacy"] #hero-canvas {
+    opacity: var(--particle-opacity);
+}

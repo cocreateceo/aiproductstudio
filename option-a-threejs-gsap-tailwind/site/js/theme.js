@@ -1,16 +1,103 @@
 /**
- * CoCreate AI - Unified Theme System
+ * CoCreate - Unified Theme System
  * Handles theme persistence across all pages
+ * Themes: Ember (default), Coral, Sunset, Aurora, Legacy
  */
 
 (function() {
     'use strict';
 
-    // Theme definitions - MUST match index.html CSS exactly
+    // Theme definitions for CoCreate brand
     const THEMES = {
-        dark: {
-            name: 'Dark',
-            icon: '🌙',
+        ember: {
+            name: 'Ember',
+            icon: '🔥',
+            description: 'Deep amber warmth',
+            type: 'dark',
+            colors: {
+                '--bg-primary': '#1A0A00',
+                '--bg-secondary': '#2D1408',
+                '--bg-card': 'rgba(45, 20, 8, 0.85)',
+                '--text-primary': '#FFF8F0',
+                '--text-secondary': '#FFCBA4',
+                '--text-muted': '#C4916C',
+                '--border-color': 'rgba(252, 42, 13, 0.25)',
+                '--primary': '#FC2A0D',
+                '--secondary': '#FD6C71',
+                '--accent': '#FFC36A',
+                '--nav-bg': 'rgba(26, 10, 0, 0.9)',
+                '--glow-color': 'rgba(252, 42, 13, 0.35)',
+                '--particle-opacity': '0.6'
+            }
+        },
+        coral: {
+            name: 'Coral',
+            icon: '🪸',
+            description: 'Soft warm light',
+            type: 'light',
+            colors: {
+                '--bg-primary': '#FFF8F0',
+                '--bg-secondary': '#FFEEE0',
+                '--bg-card': 'rgba(255, 255, 255, 0.85)',
+                '--text-primary': '#1A0A00',
+                '--text-secondary': '#5C3D2E',
+                '--text-muted': '#8B6B5A',
+                '--border-color': 'rgba(232, 90, 79, 0.2)',
+                '--primary': '#FC2A0D',
+                '--secondary': '#FD6C71',
+                '--accent': '#E85A4F',
+                '--nav-bg': 'rgba(255, 248, 240, 0.95)',
+                '--glow-color': 'rgba(253, 108, 113, 0.25)',
+                '--particle-opacity': '0.3'
+            }
+        },
+        sunset: {
+            name: 'Sunset',
+            icon: '🌅',
+            description: 'Vibrant pink-orange',
+            type: 'dark',
+            colors: {
+                '--bg-primary': '#2D1B3D',
+                '--bg-secondary': '#3D2650',
+                '--bg-card': 'rgba(61, 38, 80, 0.85)',
+                '--text-primary': '#FFF5F8',
+                '--text-secondary': '#E6C4D4',
+                '--text-muted': '#B8919F',
+                '--border-color': 'rgba(255, 107, 157, 0.25)',
+                '--primary': '#FF6B9D',
+                '--secondary': '#FFC36A',
+                '--accent': '#C084FC',
+                '--nav-bg': 'rgba(45, 27, 61, 0.92)',
+                '--glow-color': 'rgba(255, 107, 157, 0.35)',
+                '--particle-opacity': '0.7'
+            }
+        },
+        aurora: {
+            name: 'Aurora',
+            icon: '✨',
+            description: 'Soft dreamy pastels',
+            type: 'light',
+            colors: {
+                '--bg-primary': '#FFF5F8',
+                '--bg-secondary': '#FFEEF4',
+                '--bg-card': 'rgba(255, 255, 255, 0.8)',
+                '--text-primary': '#2D1B3D',
+                '--text-secondary': '#5C4268',
+                '--text-muted': '#8B7196',
+                '--border-color': 'rgba(230, 164, 255, 0.25)',
+                '--primary': '#E6A4FF',
+                '--secondary': '#FFB6C1',
+                '--accent': '#FFC36A',
+                '--nav-bg': 'rgba(255, 245, 248, 0.95)',
+                '--glow-color': 'rgba(230, 164, 255, 0.3)',
+                '--particle-opacity': '0.25'
+            }
+        },
+        legacy: {
+            name: 'Legacy',
+            icon: '💎',
+            description: 'Classic dark mode',
+            type: 'dark',
             colors: {
                 '--bg-primary': '#020617',
                 '--bg-secondary': '#0f172a',
@@ -26,73 +113,28 @@
                 '--glow-color': 'rgba(99, 102, 241, 0.3)',
                 '--particle-opacity': '0.8'
             }
-        },
-        midnight: {
-            name: 'Midnight',
-            icon: '🌌',
-            colors: {
-                '--bg-primary': '#0c0a1d',
-                '--bg-secondary': '#1a1533',
-                '--bg-card': 'rgba(26, 21, 51, 0.8)',
-                '--text-primary': '#e8e4f3',
-                '--text-secondary': '#a59fc4',
-                '--text-muted': '#7a73a0',
-                '--border-color': 'rgba(167, 139, 250, 0.25)',
-                '--primary': '#a78bfa',
-                '--secondary': '#c084fc',
-                '--accent': '#f472b6',
-                '--nav-bg': 'rgba(12, 10, 29, 0.9)',
-                '--glow-color': 'rgba(167, 139, 250, 0.35)',
-                '--particle-opacity': '0.9'
-            }
-        },
-        dusk: {
-            name: 'Dusk',
-            icon: '🌅',
-            colors: {
-                '--bg-primary': '#1e1b2e',
-                '--bg-secondary': '#2d2844',
-                '--bg-card': 'rgba(45, 40, 68, 0.75)',
-                '--text-primary': '#f5f3ff',
-                '--text-secondary': '#c4b5fd',
-                '--text-muted': '#a78bfa',
-                '--border-color': 'rgba(251, 146, 60, 0.25)',
-                '--primary': '#fb923c',
-                '--secondary': '#f97316',
-                '--accent': '#fbbf24',
-                '--nav-bg': 'rgba(30, 27, 46, 0.9)',
-                '--glow-color': 'rgba(251, 146, 60, 0.3)',
-                '--particle-opacity': '0.85'
-            }
-        },
-        light: {
-            name: 'Light',
-            icon: '☀️',
-            colors: {
-                '--bg-primary': '#f8fafc',
-                '--bg-secondary': '#e2e8f0',
-                '--bg-card': 'rgba(255, 255, 255, 0.9)',
-                '--text-primary': '#0f172a',
-                '--text-secondary': '#475569',
-                '--text-muted': '#64748b',
-                '--border-color': 'rgba(99, 102, 241, 0.15)',
-                '--primary': '#4f46e5',
-                '--secondary': '#7c3aed',
-                '--accent': '#0891b2',
-                '--nav-bg': 'rgba(248, 250, 252, 0.95)',
-                '--glow-color': 'rgba(79, 70, 229, 0.2)',
-                '--particle-opacity': '0.4'
-            }
         }
     };
 
-    const STORAGE_KEY = 'theme';  // Must match index.html for cross-page persistence
-    const DEFAULT_THEME = 'dark';
+    const STORAGE_KEY = 'cocreate-theme';
+    const DEFAULT_THEME = 'ember';
 
     // Get current theme from localStorage
     function getStoredTheme() {
         try {
-            return localStorage.getItem(STORAGE_KEY) || DEFAULT_THEME;
+            const stored = localStorage.getItem(STORAGE_KEY);
+            // Migration: if old theme key exists, migrate to new default
+            if (!stored) {
+                const oldTheme = localStorage.getItem('theme');
+                if (oldTheme === 'dark' || oldTheme === 'midnight') {
+                    return 'ember';
+                } else if (oldTheme === 'light') {
+                    return 'coral';
+                } else if (oldTheme === 'dusk') {
+                    return 'sunset';
+                }
+            }
+            return stored || DEFAULT_THEME;
         } catch (e) {
             return DEFAULT_THEME;
         }
@@ -102,6 +144,8 @@
     function saveTheme(theme) {
         try {
             localStorage.setItem(STORAGE_KEY, theme);
+            // Also set old key for backwards compatibility during transition
+            localStorage.setItem('theme', theme);
         } catch (e) {
             console.warn('Could not save theme to localStorage');
         }
@@ -120,7 +164,7 @@
             root.style.setProperty(property, value);
         });
 
-        // Update chat widget variables if present
+        // Update chat widget variables
         const chatVars = {
             '--chat-primary': theme.colors['--primary'],
             '--chat-secondary': theme.colors['--secondary'],
@@ -139,8 +183,19 @@
             root.style.setProperty(property, value);
         });
 
+        // Update body class for light/dark mode detection
+        document.body.classList.remove('theme-light', 'theme-dark');
+        document.body.classList.add(`theme-${theme.type}`);
+
         // Dispatch event for other scripts to react
-        window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: themeName, colors: theme.colors } }));
+        window.dispatchEvent(new CustomEvent('themechange', {
+            detail: {
+                theme: themeName,
+                colors: theme.colors,
+                type: theme.type,
+                name: theme.name
+            }
+        }));
 
         return theme;
     }
@@ -167,8 +222,26 @@
         return Object.entries(THEMES).map(([key, value]) => ({
             id: key,
             name: value.name,
-            icon: value.icon
+            icon: value.icon,
+            description: value.description,
+            type: value.type
         }));
+    }
+
+    // Get current theme info
+    function getCurrentTheme() {
+        const themeName = getStoredTheme();
+        const theme = THEMES[themeName];
+        return {
+            id: themeName,
+            ...theme
+        };
+    }
+
+    // Check if current theme is light
+    function isLightTheme() {
+        const theme = THEMES[getStoredTheme()];
+        return theme?.type === 'light';
     }
 
     // Expose globally
@@ -178,6 +251,8 @@
         get: getStoredTheme,
         apply: applyTheme,
         themes: getThemes,
+        current: getCurrentTheme,
+        isLight: isLightTheme,
         THEMES: THEMES
     };
 

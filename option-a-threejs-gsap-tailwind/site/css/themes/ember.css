@@ -1,0 +1,129 @@
+/**
+ * CoCreate Theme: Ember
+ * Deep amber/burnt orange gradient - dramatic, premium
+ */
+
+[data-theme="ember"] {
+    /* Core Colors */
+    --bg-primary: #1A0A00;
+    --bg-secondary: #2D1408;
+    --bg-card: rgba(45, 20, 8, 0.85);
+    --bg-card-hover: rgba(60, 28, 12, 0.9);
+
+    /* Text */
+    --text-primary: #FFF8F0;
+    --text-secondary: #FFCBA4;
+    --text-muted: #C4916C;
+
+    /* Brand Colors */
+    --primary: #FC2A0D;
+    --secondary: #FD6C71;
+    --accent: #FFC36A;
+
+    /* UI Elements */
+    --border-color: rgba(252, 42, 13, 0.25);
+    --nav-bg: rgba(26, 10, 0, 0.9);
+    --glow-color: rgba(252, 42, 13, 0.35);
+
+    /* Gradient Background */
+    --gradient-bg:
+        radial-gradient(ellipse 80% 60% at 30% 20%, rgba(255, 195, 106, 0.4) 0%, transparent 50%),
+        radial-gradient(ellipse 70% 80% at 70% 60%, rgba(252, 42, 13, 0.5) 0%, transparent 50%),
+        radial-gradient(ellipse 90% 70% at 50% 90%, rgba(139, 37, 0, 0.6) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 80% 20%, rgba(253, 108, 113, 0.3) 0%, transparent 45%),
+        linear-gradient(180deg, #1A0A00 0%, #0D0500 100%);
+
+    /* Animation */
+    --gradient-animation: ember-shift 20s ease-in-out infinite;
+
+    /* Particles/Canvas */
+    --particle-opacity: 0.6;
+    --particle-color: #FFC36A;
+
+    /* Chat Widget */
+    --chat-primary: var(--primary);
+    --chat-secondary: var(--secondary);
+    --chat-bg: var(--bg-secondary);
+    --chat-messages-bg: var(--bg-primary);
+    --chat-input-bg: var(--bg-card);
+    --chat-border: var(--border-color);
+    --chat-text-primary: var(--text-primary);
+    --chat-text-secondary: var(--text-secondary);
+    --chat-text-muted: var(--text-muted);
+    --chat-msg-assistant-bg: var(--bg-card);
+    --chat-msg-assistant-text: var(--text-primary);
+}
+
+/* Ember Gradient Animation */
+@keyframes ember-shift {
+    0%, 100% {
+        background-position: 0% 0%, 100% 100%, 50% 100%, 80% 0%, 0% 0%;
+    }
+    25% {
+        background-position: 10% 5%, 90% 95%, 45% 95%, 85% 5%, 0% 0%;
+    }
+    50% {
+        background-position: 5% 10%, 95% 90%, 55% 90%, 75% 10%, 0% 0%;
+    }
+    75% {
+        background-position: 15% 5%, 85% 95%, 50% 95%, 80% 5%, 0% 0%;
+    }
+}
+
+/* Apply gradient to body */
+[data-theme="ember"] body {
+    background: var(--gradient-bg);
+    background-attachment: fixed;
+    animation: var(--gradient-animation);
+}
+
+/* Glass card enhancement */
+[data-theme="ember"] .glass-card {
+    background: var(--bg-card);
+    border: 1px solid rgba(255, 195, 106, 0.15);
+    box-shadow:
+        0 8px 32px rgba(252, 42, 13, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="ember"] .glass-card:hover {
+    background: var(--bg-card-hover);
+    border-color: rgba(255, 195, 106, 0.3);
+    box-shadow:
+        0 12px 48px rgba(252, 42, 13, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Button styling */
+[data-theme="ember"] .cta-button,
+[data-theme="ember"] .btn-premium {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    box-shadow: 0 4px 20px rgba(252, 42, 13, 0.4);
+}
+
+[data-theme="ember"] .cta-button:hover,
+[data-theme="ember"] .btn-premium:hover {
+    box-shadow: 0 8px 32px rgba(252, 42, 13, 0.6);
+}
+
+/* Gradient text */
+[data-theme="ember"] .gradient-text {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 50%, var(--secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Nav enhancement */
+[data-theme="ember"] nav {
+    background: var(--nav-bg);
+    backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid rgba(255, 195, 106, 0.1);
+}
+
+/* Stat numbers */
+[data-theme="ember"] .stat-number {
+    background: linear-gradient(135deg, var(--accent), var(--primary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}

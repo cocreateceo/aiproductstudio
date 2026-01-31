@@ -1,0 +1,139 @@
+/**
+ * CoCreate Theme: Sunset
+ * Pink/magenta-to-orange gradient - vibrant, energetic, bold
+ */
+
+[data-theme="sunset"] {
+    /* Core Colors */
+    --bg-primary: #2D1B3D;
+    --bg-secondary: #3D2650;
+    --bg-card: rgba(61, 38, 80, 0.85);
+    --bg-card-hover: rgba(75, 48, 95, 0.9);
+
+    /* Text */
+    --text-primary: #FFF5F8;
+    --text-secondary: #E6C4D4;
+    --text-muted: #B8919F;
+
+    /* Brand Colors */
+    --primary: #FF6B9D;
+    --secondary: #FFC36A;
+    --accent: #C084FC;
+
+    /* UI Elements */
+    --border-color: rgba(255, 107, 157, 0.25);
+    --nav-bg: rgba(45, 27, 61, 0.92);
+    --glow-color: rgba(255, 107, 157, 0.35);
+
+    /* Gradient Background */
+    --gradient-bg:
+        radial-gradient(ellipse 70% 60% at 30% 40%, rgba(255, 107, 157, 0.45) 0%, transparent 55%),
+        radial-gradient(ellipse 60% 50% at 70% 30%, rgba(255, 195, 106, 0.4) 0%, transparent 50%),
+        radial-gradient(ellipse 80% 70% at 50% 80%, rgba(192, 132, 252, 0.4) 0%, transparent 55%),
+        radial-gradient(ellipse 40% 40% at 85% 75%, rgba(255, 107, 157, 0.3) 0%, transparent 45%),
+        linear-gradient(135deg, #2D1B3D 0%, #1A1025 100%);
+
+    /* Animation */
+    --gradient-animation: sunset-shift 18s ease-in-out infinite;
+
+    /* Particles/Canvas */
+    --particle-opacity: 0.7;
+    --particle-color: #FF6B9D;
+
+    /* Chat Widget */
+    --chat-primary: var(--primary);
+    --chat-secondary: var(--secondary);
+    --chat-bg: var(--bg-secondary);
+    --chat-messages-bg: var(--bg-primary);
+    --chat-input-bg: var(--bg-card);
+    --chat-border: var(--border-color);
+    --chat-text-primary: var(--text-primary);
+    --chat-text-secondary: var(--text-secondary);
+    --chat-text-muted: var(--text-muted);
+    --chat-msg-assistant-bg: var(--bg-card);
+    --chat-msg-assistant-text: var(--text-primary);
+}
+
+/* Sunset Gradient Animation */
+@keyframes sunset-shift {
+    0%, 100% {
+        background-position: 0% 0%, 100% 0%, 50% 100%, 100% 80%, 0% 0%;
+    }
+    25% {
+        background-position: 5% 5%, 95% 5%, 55% 95%, 95% 75%, 0% 0%;
+    }
+    50% {
+        background-position: 10% 10%, 90% 10%, 45% 90%, 90% 80%, 0% 0%;
+    }
+    75% {
+        background-position: 5% 5%, 95% 5%, 50% 95%, 95% 75%, 0% 0%;
+    }
+}
+
+/* Apply gradient to body */
+[data-theme="sunset"] body {
+    background: var(--gradient-bg);
+    background-attachment: fixed;
+    animation: var(--gradient-animation);
+}
+
+/* Glass card enhancement */
+[data-theme="sunset"] .glass-card {
+    background: var(--bg-card);
+    border: 1px solid rgba(255, 107, 157, 0.2);
+    box-shadow:
+        0 8px 32px rgba(192, 132, 252, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="sunset"] .glass-card:hover {
+    background: var(--bg-card-hover);
+    border-color: rgba(255, 107, 157, 0.35);
+    box-shadow:
+        0 12px 48px rgba(192, 132, 252, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Button styling */
+[data-theme="sunset"] .cta-button,
+[data-theme="sunset"] .btn-premium {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    box-shadow: 0 4px 20px rgba(255, 107, 157, 0.4);
+}
+
+[data-theme="sunset"] .cta-button:hover,
+[data-theme="sunset"] .btn-premium:hover {
+    box-shadow: 0 8px 32px rgba(255, 107, 157, 0.6);
+}
+
+/* Gradient text */
+[data-theme="sunset"] .gradient-text {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Nav enhancement */
+[data-theme="sunset"] nav {
+    background: var(--nav-bg);
+    backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid rgba(255, 107, 157, 0.15);
+}
+
+/* Stat numbers */
+[data-theme="sunset"] .stat-number {
+    background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Enhanced glow for sunset */
+[data-theme="sunset"] .pulse-glow {
+    animation: sunset-pulse 3s ease-in-out infinite;
+}
+
+@keyframes sunset-pulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(255, 107, 157, 0.4); }
+    50% { box-shadow: 0 0 40px rgba(192, 132, 252, 0.5); }
+}

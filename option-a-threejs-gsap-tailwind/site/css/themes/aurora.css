@@ -1,0 +1,149 @@
+/**
+ * CoCreate Theme: Aurora
+ * Pink/lavender mesh gradient - soft, dreamy, creative
+ */
+
+[data-theme="aurora"] {
+    /* Core Colors */
+    --bg-primary: #FFF5F8;
+    --bg-secondary: #FFEEF4;
+    --bg-card: rgba(255, 255, 255, 0.8);
+    --bg-card-hover: rgba(255, 255, 255, 0.92);
+
+    /* Text */
+    --text-primary: #2D1B3D;
+    --text-secondary: #5C4268;
+    --text-muted: #8B7196;
+
+    /* Brand Colors */
+    --primary: #E6A4FF;
+    --secondary: #FFB6C1;
+    --accent: #FFC36A;
+
+    /* UI Elements */
+    --border-color: rgba(230, 164, 255, 0.25);
+    --nav-bg: rgba(255, 245, 248, 0.95);
+    --glow-color: rgba(230, 164, 255, 0.3);
+
+    /* Gradient Background */
+    --gradient-bg:
+        radial-gradient(ellipse 60% 50% at 40% 20%, rgba(255, 182, 193, 0.4) 0%, transparent 50%),
+        radial-gradient(ellipse 70% 60% at 60% 70%, rgba(230, 164, 255, 0.35) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 45% at 20% 80%, rgba(255, 195, 106, 0.3) 0%, transparent 45%),
+        radial-gradient(ellipse 55% 50% at 85% 30%, rgba(255, 182, 193, 0.25) 0%, transparent 50%),
+        linear-gradient(180deg, #FFF5F8 0%, #FFEEF4 50%, #FFF8F5 100%);
+
+    /* Animation */
+    --gradient-animation: aurora-shift 22s ease-in-out infinite;
+
+    /* Particles/Canvas */
+    --particle-opacity: 0.25;
+    --particle-color: #E6A4FF;
+
+    /* Chat Widget */
+    --chat-primary: #D084E6;
+    --chat-secondary: var(--secondary);
+    --chat-bg: var(--bg-secondary);
+    --chat-messages-bg: var(--bg-primary);
+    --chat-input-bg: var(--bg-card);
+    --chat-border: var(--border-color);
+    --chat-text-primary: var(--text-primary);
+    --chat-text-secondary: var(--text-secondary);
+    --chat-text-muted: var(--text-muted);
+    --chat-msg-assistant-bg: var(--bg-card);
+    --chat-msg-assistant-text: var(--text-primary);
+}
+
+/* Aurora Gradient Animation */
+@keyframes aurora-shift {
+    0%, 100% {
+        background-position: 0% 0%, 100% 100%, 0% 100%, 100% 0%, 0% 0%;
+    }
+    33% {
+        background-position: 5% 5%, 95% 95%, 5% 95%, 95% 5%, 0% 0%;
+    }
+    66% {
+        background-position: 10% 10%, 90% 90%, 10% 90%, 90% 10%, 0% 0%;
+    }
+}
+
+/* Apply gradient to body */
+[data-theme="aurora"] body {
+    background: var(--gradient-bg);
+    background-attachment: fixed;
+    animation: var(--gradient-animation);
+}
+
+/* Glass card enhancement - ethereal for aurora */
+[data-theme="aurora"] .glass-card {
+    background: var(--bg-card);
+    border: 1px solid rgba(230, 164, 255, 0.2);
+    box-shadow:
+        0 8px 32px rgba(230, 164, 255, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="aurora"] .glass-card:hover {
+    background: var(--bg-card-hover);
+    border-color: rgba(230, 164, 255, 0.35);
+    box-shadow:
+        0 12px 48px rgba(230, 164, 255, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+/* Button styling - softer for aurora */
+[data-theme="aurora"] .cta-button,
+[data-theme="aurora"] .btn-premium {
+    background: linear-gradient(135deg, #D084E6 0%, var(--secondary) 100%);
+    box-shadow: 0 4px 20px rgba(230, 164, 255, 0.35);
+    color: #2D1B3D;
+}
+
+[data-theme="aurora"] .cta-button:hover,
+[data-theme="aurora"] .btn-premium:hover {
+    box-shadow: 0 8px 32px rgba(230, 164, 255, 0.5);
+}
+
+/* Gradient text */
+[data-theme="aurora"] .gradient-text {
+    background: linear-gradient(135deg, #D084E6 0%, var(--secondary) 50%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Nav enhancement */
+[data-theme="aurora"] nav {
+    background: var(--nav-bg);
+    backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid rgba(230, 164, 255, 0.12);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+/* Stat numbers */
+[data-theme="aurora"] .stat-number {
+    background: linear-gradient(135deg, #D084E6, var(--secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Override dark text utilities */
+[data-theme="aurora"] .text-slate-300,
+[data-theme="aurora"] .text-slate-400,
+[data-theme="aurora"] .text-white {
+    color: var(--text-primary);
+}
+
+[data-theme="aurora"] .text-slate-500 {
+    color: var(--text-secondary);
+}
+
+/* Softer glow for aurora */
+[data-theme="aurora"] .pulse-glow {
+    animation: aurora-pulse 4s ease-in-out infinite;
+}
+
+@keyframes aurora-pulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(230, 164, 255, 0.3); }
+    50% { box-shadow: 0 0 35px rgba(255, 182, 193, 0.4); }
+}

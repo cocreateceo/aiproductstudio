@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="ember">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,17 +19,25 @@
                         accent: 'var(--accent)',
                     },
                     fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        sans: ['DM Sans', 'system-ui', 'sans-serif'],
+                        display: ['Outfit', 'DM Sans', 'system-ui', 'sans-serif'],
                     }
                 }
             }
         }
     </script>
 
-    <!-- Google Fonts -->
+    <!-- Google Fonts - CoCreate Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- CoCreate Theme CSS -->
+    <link rel="stylesheet" href="css/themes/ember.css">
+    <link rel="stylesheet" href="css/themes/coral.css">
+    <link rel="stylesheet" href="css/themes/sunset.css">
+    <link rel="stylesheet" href="css/themes/aurora.css">
+    <link rel="stylesheet" href="css/themes/legacy.css">
 
     <!-- html2canvas for screenshots -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -45,73 +53,16 @@
     <link rel="stylesheet" href="css/responsive.css?v=20260118a">
 
     <style>
-        /* Theme CSS Variables */
+        /* CoCreate Theme Variables - Base */
         :root {
             --transition-speed: 0.4s;
         }
 
-        /* Dark Theme (Default) */
-        [data-theme="dark"] {
-            --bg-primary: #020617;
-            --bg-secondary: #0f172a;
-            --bg-card: rgba(15, 23, 42, 0.7);
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-            --border-color: rgba(99, 102, 241, 0.2);
-            --primary: #6366f1;
-            --secondary: #8b5cf6;
-            --accent: #06b6d4;
-            --nav-bg: rgba(2, 6, 23, 0.8);
-            --glow-color: rgba(99, 102, 241, 0.3);
-        }
-
-        /* Midnight Theme */
-        [data-theme="midnight"] {
-            --bg-primary: #0c0a1d;
-            --bg-secondary: #1a1533;
-            --bg-card: rgba(26, 21, 51, 0.8);
-            --text-primary: #e8e4f3;
-            --text-secondary: #a59fc4;
-            --text-muted: #7a73a0;
-            --border-color: rgba(167, 139, 250, 0.25);
-            --primary: #a78bfa;
-            --secondary: #c084fc;
-            --accent: #f472b6;
-            --nav-bg: rgba(12, 10, 29, 0.9);
-            --glow-color: rgba(167, 139, 250, 0.35);
-        }
-
-        /* Dusk Theme */
-        [data-theme="dusk"] {
-            --bg-primary: #1e1b2e;
-            --bg-secondary: #2d2844;
-            --bg-card: rgba(45, 40, 68, 0.75);
-            --text-primary: #f5f3ff;
-            --text-secondary: #c4b5fd;
-            --text-muted: #a78bfa;
-            --border-color: rgba(251, 146, 60, 0.25);
-            --primary: #fb923c;
-            --secondary: #f97316;
-            --accent: #fbbf24;
-            --nav-bg: rgba(30, 27, 46, 0.9);
-            --glow-color: rgba(251, 146, 60, 0.3);
-        }
-
-        /* Light Theme */
-        [data-theme="light"] {
-            --bg-primary: #f8fafc;
-            --bg-secondary: #e2e8f0;
-            --bg-card: rgba(255, 255, 255, 0.9);
-            --text-primary: #0f172a;
-            --text-secondary: #475569;
-            --text-muted: #64748b;
-            --border-color: rgba(99, 102, 241, 0.15);
-            --primary: #4f46e5;
-            --secondary: #7c3aed;
-            --accent: #0891b2;
-            --nav-bg: rgba(248, 250, 252, 0.95);
-            --glow-color: rgba(79, 70, 229, 0.2);
+        /* CoCreate Typography */
+        h1, h2, h3, h4, h5, h6, .font-display {
+            font-family: 'Outfit', 'DM Sans', system-ui, sans-serif;
+            font-weight: 600;
+            letter-spacing: -0.02em;
         }
 
         * {
@@ -303,7 +254,7 @@
         /* ============================================ */
 
         /* Animated Gradient Text */
-        .gradient-text-animate {
+        .gradient-text {
             background: linear-gradient(270deg, #667eea, #764ba2, #f857a6, #667eea);
             background-size: 400% 400%;
             -webkit-background-clip: text;
@@ -560,7 +511,7 @@
         }
 
         @media (max-width: 480px) {
-            .gradient-text-animate {
+            .gradient-text {
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 -webkit-background-clip: text;
                 -webkit-text-fill-color: transparent;
@@ -589,13 +540,27 @@
     <!-- Navigation -->
     <nav class="fixed top-0 left-0 right-0 glass-card border-b border-theme" style="z-index: 10000;">
         <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-            <a href="index.html" class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                    </svg>
-                </div>
-                <span class="text-xl font-bold gradient-text">CoCreate AI</span>
+            <a href="index.html" class="flex items-center gap-3 group">
+                <svg class="w-10 h-10" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="applyLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:var(--accent, #FFC36A)"/>
+                            <stop offset="50%" style="stop-color:var(--secondary, #FD6C71)"/>
+                            <stop offset="100%" style="stop-color:var(--primary, #FC2A0D)"/>
+                        </linearGradient>
+                    </defs>
+                    <g transform="translate(4, 4)">
+                        <path d="M20 0C8.954 0 0 8.954 0 20s8.954 20 20 20c5.523 0 10.523-2.239 14.142-5.858"
+                              stroke="url(#applyLogoGradient)" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+                        <ellipse cx="20" cy="20" rx="26" ry="10"
+                                 stroke="url(#applyLogoGradient)" stroke-width="2" fill="none"
+                                 transform="rotate(-30, 20, 20)"/>
+                        <circle cx="42" cy="12" r="3.5" fill="url(#applyLogoGradient)"/>
+                    </g>
+                </svg>
+                <span class="text-xl font-display font-bold">
+                    <span class="text-theme-primary">CO</span><span class="gradient-text">CREATE</span>
+                </span>
             </a>
             <a href="index.html" class="text-theme-secondary hover:text-theme-primary transition flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -612,7 +577,7 @@
             <!-- Header -->
             <div class="text-center mb-12">
                 <h1 class="text-4xl md:text-5xl font-bold mb-4 text-glow">
-                    <span class="gradient-text-animate">Let's CoCreate</span>
+                    <span class="gradient-text">Let's CoCreate</span>
                 </h1>
                 <p class="text-xl text-theme-secondary max-w-2xl mx-auto">
                     Ready to build your AI-powered product? Fill out the form below and our team will get back to you within 24 hours.
@@ -674,7 +639,7 @@ Example: I'm a restaurant consultant and I want to build an AI tool that helps r
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
                     </div>
-                    <h2 class="text-2xl font-bold mb-1 gradient-text-animate">You're In!</h2>
+                    <h2 class="text-2xl font-bold mb-1 gradient-text">You're In!</h2>
                     <p class="text-theme-secondary">Pick a time that works for you</p>
                 </div>
             </div>
