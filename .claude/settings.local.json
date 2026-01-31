@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git submodule:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(aws:*)",
+      "Bash(sudo apt-get update:*)",
+      "Bash(sudo apt-get install:*)",
+      "Bash(pip3 install:*)",
+      "Bash(pip install:*)",
+      "Bash(python3 -c \"import zipfile; zipfile.ZipFile\\(''/tmp/awscliv2.zip'', ''r''\\).extractall\\(''/tmp/''\\)\")",
+      "Bash(/tmp/aws/install:*)",
+      "Bash(chmod:*)",
+      "Bash(export PATH=\"$HOME/.local/bin:$PATH\")",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nSimplify apply form and add Calendly integration\n\n- Rebrand to CoCreate AI\n- Simplify form to 3 fields: Name, Email, Product Idea\n- Add fullscreen Calendly widget after form submission\n- Pre-fill Calendly with user''s name and email\n- Remove AI agent validation in favor of simpler flow\n- Update welcome message and chat configuration\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nUpdate footer copyright to 2026 CoCreate Technologies\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "WebFetch(domain:gamma.app)",
+      "WebSearch",
+      "Bash(xargs basename:*)",
+      "Bash(tree:*)",
+      "Bash(npm install:*)",
+      "Bash(node --check:*)",
+      "Bash(powershell.exe -Command \"Compress-Archive -Path * -DestinationPath function.zip -Force\")",
+      "Bash(xargs:*)"
+    ]
+  }
+}

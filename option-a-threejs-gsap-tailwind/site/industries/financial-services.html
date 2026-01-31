@@ -17,6 +17,8 @@
     <script src="../js/config.js"></script>
     <link rel="stylesheet" href="../css/chat-widget.css">
     <link rel="stylesheet" href="../css/responsive.css">
+    <link rel="stylesheet" href="../css/themes/champagne.css">
+    <link rel="stylesheet" href="../css/themes/zoom.css">
 
     <style>
         /* Fixed Page Background */
@@ -52,11 +54,11 @@
         [data-theme="light"] { --bg-primary: #f8fafc; --bg-secondary: #e2e8f0; --bg-card: rgba(255, 255, 255, 0.9); --text-primary: #0f172a; --text-secondary: #475569; --text-muted: #64748b; --border-color: rgba(99, 102, 241, 0.15); --primary: #4f46e5; --secondary: #7c3aed; --accent: #0891b2; --glow-color: rgba(79, 70, 229, 0.2); }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html { scroll-behavior: smooth; }
-        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg-primary); color: var(--text-primary); overflow-x: hidden; }
+        body { font-family: 'Inter', system-ui, sans-serif; background: transparent; color: var(--text-primary); overflow-x: hidden; }
         .glass-card { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-color); }
         .gradient-text { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-        .hero-bg { background: linear-gradient(135deg, rgba(2,6,23,0.8) 0%, rgba(15,23,42,0.85) 100%), url('https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=1920&q=80') center/cover no-repeat; }
-        [data-theme="light"] .hero-bg { background: linear-gradient(135deg, rgba(248,250,252,0.88) 0%, rgba(226,232,240,0.9) 100%), url('https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=1920&q=80') center/cover no-repeat; }
+        .hero-bg { background: transparent; }
+        [data-theme="light"] .hero-bg { background: transparent; }
         .section-reveal { opacity: 0; transform: translateY(40px); }
         .cta-button { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); box-shadow: 0 4px 20px var(--glow-color); transition: all 0.3s ease; }
         .cta-button:hover { transform: translateY(-2px); box-shadow: 0 8px 30px var(--glow-color); }
@@ -143,7 +145,7 @@
         </div>
     </section>
 
-    <section class="py-24 px-6" style="background: var(--bg-secondary);">
+    <section class="py-24 px-6" style="background: rgba(26, 10, 0, 0.3);">
         <div class="max-w-6xl mx-auto">
             <div class="text-center mb-16 section-reveal">
                 <p class="text-accent font-semibold tracking-wider uppercase mb-4">Solutions</p>
@@ -192,7 +194,7 @@
         </div>
     </section>
 
-    <footer class="py-12 px-6 border-t border-theme">
+    <footer class="py-12 px-6 border-t border-theme" style="background: rgba(26, 10, 0, 0.3);">
         <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
             <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center"><svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div><span class="font-semibold">CoCreate AI</span></div>
             <p class="text-theme-secondary text-sm">© 2026 CoCreate AI. All rights reserved.</p>

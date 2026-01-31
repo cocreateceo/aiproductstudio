@@ -113,6 +113,69 @@
                 '--glow-color': 'rgba(99, 102, 241, 0.3)',
                 '--particle-opacity': '0.8'
             }
+        },
+        sandstone: {
+            name: 'Sandstone',
+            icon: '🏜️',
+            description: 'Warm desert beige',
+            type: 'light',
+            colors: {
+                '--bg-primary': '#FAF6F1',
+                '--bg-secondary': '#F0E8DC',
+                '--bg-card': 'rgba(255, 255, 255, 0.85)',
+                '--text-primary': '#3D2B1F',
+                '--text-secondary': '#6B5344',
+                '--text-muted': '#9C8575',
+                '--border-color': 'rgba(156, 133, 117, 0.25)',
+                '--primary': '#FC2A0D',
+                '--secondary': '#FD6C71',
+                '--accent': '#E07B39',
+                '--nav-bg': 'rgba(250, 246, 241, 0.95)',
+                '--glow-color': 'rgba(224, 123, 57, 0.25)',
+                '--particle-opacity': '0.25'
+            }
+        },
+        champagne: {
+            name: 'Champagne',
+            icon: '🥂',
+            description: 'Soft golden cream',
+            type: 'light',
+            colors: {
+                '--bg-primary': '#FFFDF8',
+                '--bg-secondary': '#FFF8E7',
+                '--bg-card': 'rgba(255, 255, 255, 0.88)',
+                '--text-primary': '#2D1F0E',
+                '--text-secondary': '#5C4A2E',
+                '--text-muted': '#8B7355',
+                '--border-color': 'rgba(212, 165, 53, 0.2)',
+                '--primary': '#FC2A0D',
+                '--secondary': '#FD6C71',
+                '--accent': '#D4A535',
+                '--nav-bg': 'rgba(255, 253, 248, 0.95)',
+                '--glow-color': 'rgba(212, 165, 53, 0.25)',
+                '--particle-opacity': '0.2'
+            }
+        },
+        zoom: {
+            name: 'Zoom',
+            icon: '💼',
+            description: 'Clean professional blue',
+            type: 'light',
+            colors: {
+                '--bg-primary': '#FFFFFF',
+                '--bg-secondary': '#F3F8FF',
+                '--bg-card': 'rgba(255, 255, 255, 0.92)',
+                '--text-primary': '#00053D',
+                '--text-secondary': '#696B6E',
+                '--text-muted': '#8B8D91',
+                '--border-color': 'rgba(11, 92, 255, 0.15)',
+                '--primary': '#0B5CFF',
+                '--secondary': '#6CB0FF',
+                '--accent': '#8D5DF7',
+                '--nav-bg': 'rgba(255, 255, 255, 0.95)',
+                '--glow-color': 'rgba(11, 92, 255, 0.25)',
+                '--particle-opacity': '0.15'
+            }
         }
     };
 

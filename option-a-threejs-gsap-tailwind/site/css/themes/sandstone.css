@@ -1,0 +1,145 @@
+/**
+ * CoCreate Theme: Sandstone
+ * Warm desert beige - earthy, grounded, professional
+ */
+
+[data-theme="sandstone"] {
+    /* Core Colors */
+    --bg-primary: #FAF6F1;
+    --bg-secondary: #F0E8DC;
+    --bg-card: rgba(255, 255, 255, 0.85);
+    --bg-card-hover: rgba(255, 255, 255, 0.95);
+
+    /* Text */
+    --text-primary: #3D2B1F;
+    --text-secondary: #6B5344;
+    --text-muted: #9C8575;
+
+    /* Brand Colors */
+    --primary: #FC2A0D;
+    --secondary: #FD6C71;
+    --accent: #E07B39;
+
+    /* UI Elements */
+    --border-color: rgba(156, 133, 117, 0.25);
+    --nav-bg: rgba(250, 246, 241, 0.95);
+    --glow-color: rgba(224, 123, 57, 0.25);
+
+    /* Gradient Background */
+    --gradient-bg:
+        radial-gradient(ellipse 70% 50% at 25% 25%, rgba(224, 123, 57, 0.12) 0%, transparent 50%),
+        radial-gradient(ellipse 60% 60% at 75% 70%, rgba(252, 42, 13, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse 80% 40% at 50% 95%, rgba(156, 133, 117, 0.15) 0%, transparent 45%),
+        linear-gradient(180deg, #FAF6F1 0%, #F0E8DC 50%, #EBE1D3 100%);
+
+    /* Animation */
+    --gradient-animation: sandstone-shift 28s ease-in-out infinite;
+
+    /* Particles/Canvas */
+    --particle-opacity: 0.25;
+    --particle-color: #E07B39;
+
+    /* Chat Widget */
+    --chat-primary: var(--primary);
+    --chat-secondary: var(--secondary);
+    --chat-bg: var(--bg-secondary);
+    --chat-messages-bg: var(--bg-primary);
+    --chat-input-bg: var(--bg-card);
+    --chat-border: var(--border-color);
+    --chat-text-primary: var(--text-primary);
+    --chat-text-secondary: var(--text-secondary);
+    --chat-text-muted: var(--text-muted);
+    --chat-msg-assistant-bg: var(--bg-card);
+    --chat-msg-assistant-text: var(--text-primary);
+}
+
+/* Sandstone Gradient Animation */
+@keyframes sandstone-shift {
+    0%, 100% {
+        background-position: 0% 0%, 100% 100%, 50% 100%, 0% 0%;
+    }
+    50% {
+        background-position: 10% 10%, 90% 90%, 50% 90%, 0% 0%;
+    }
+}
+
+/* Apply gradient to body */
+[data-theme="sandstone"] body {
+    background: var(--gradient-bg);
+    background-attachment: fixed;
+    animation: var(--gradient-animation);
+}
+
+/* Glass card enhancement */
+[data-theme="sandstone"] .glass-card {
+    background: var(--bg-card);
+    border: 1px solid rgba(156, 133, 117, 0.2);
+    box-shadow:
+        0 8px 32px rgba(61, 43, 31, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="sandstone"] .glass-card:hover {
+    background: var(--bg-card-hover);
+    border-color: rgba(224, 123, 57, 0.3);
+    box-shadow:
+        0 12px 48px rgba(61, 43, 31, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+/* Button styling */
+[data-theme="sandstone"] .cta-button,
+[data-theme="sandstone"] .btn-premium {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    box-shadow: 0 4px 20px rgba(252, 42, 13, 0.3);
+    color: white;
+}
+
+[data-theme="sandstone"] .cta-button:hover,
+[data-theme="sandstone"] .btn-premium:hover {
+    box-shadow: 0 8px 32px rgba(252, 42, 13, 0.45);
+}
+
+/* Gradient text */
+[data-theme="sandstone"] .gradient-text {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 50%, var(--secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Nav enhancement */
+[data-theme="sandstone"] nav {
+    background: var(--nav-bg);
+    backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid rgba(156, 133, 117, 0.15);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Stat numbers */
+[data-theme="sandstone"] .stat-number {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Override dark text utilities */
+[data-theme="sandstone"] .text-slate-300,
+[data-theme="sandstone"] .text-slate-400,
+[data-theme="sandstone"] .text-white {
+    color: var(--text-primary);
+}
+
+[data-theme="sandstone"] .text-slate-500 {
+    color: var(--text-secondary);
+}
+
+/* Softer glow for sandstone */
+[data-theme="sandstone"] .pulse-glow {
+    animation: sandstone-pulse 4s ease-in-out infinite;
+}
+
+@keyframes sandstone-pulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(224, 123, 57, 0.2); }
+    50% { box-shadow: 0 0 35px rgba(252, 42, 13, 0.3); }
+}

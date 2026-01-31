@@ -38,6 +38,9 @@
     <link rel="stylesheet" href="css/themes/sunset.css">
     <link rel="stylesheet" href="css/themes/aurora.css">
     <link rel="stylesheet" href="css/themes/legacy.css">
+    <link rel="stylesheet" href="css/themes/sandstone.css">
+    <link rel="stylesheet" href="css/themes/champagne.css">
+    <link rel="stylesheet" href="css/themes/zoom.css">
 
     <!-- Unified Theme System (MUST be before any rendering) -->
     <script src="js/theme.js"></script>
@@ -92,7 +95,7 @@
 
         body {
             font-family: 'DM Sans', system-ui, sans-serif;
-            background: var(--bg-primary);
+            background: transparent;
             color: var(--text-primary);
             overflow-x: hidden;
             transition: background var(--transition-speed) ease, color var(--transition-speed) ease;
@@ -124,8 +127,8 @@
         .text-theme-primary { color: var(--text-primary); }
         .text-theme-secondary { color: var(--text-secondary); }
         .text-theme-muted { color: var(--text-muted); }
-        .bg-theme-primary { background: var(--bg-primary); }
-        .bg-theme-secondary { background: var(--bg-secondary); }
+        .bg-theme-primary { background: transparent; }
+        .bg-theme-secondary { background: rgba(26, 10, 0, 0.3); }
         .border-theme { border-color: var(--border-color); }
 
         .section-reveal { opacity: 0; transform: translateY(40px); }
@@ -295,7 +298,7 @@
             align-items: center;
             justify-content: center;
             padding: 120px 24px 80px;
-            background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            background: transparent;
             overflow: hidden;
         }
 
@@ -442,7 +445,7 @@
 
         /* Footer */
         footer {
-            background: var(--bg-secondary);
+            background: rgba(26, 10, 0, 0.3);
             border-top: 1px solid var(--border-color);
         }
     </style>
@@ -668,7 +671,7 @@
     </section>
 
     <!-- Values Section -->
-    <section class="py-24 px-6" style="background: var(--bg-secondary);">
+    <section class="py-24 px-6" style="background: transparent;">
         <div class="max-w-6xl mx-auto">
             <div class="text-center mb-16 section-reveal">
                 <p class="text-accent font-display font-semibold tracking-widest uppercase mb-4">Our Values</p>

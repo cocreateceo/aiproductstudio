@@ -21,6 +21,8 @@
     <script src="../js/config.js"></script>
     <link rel="stylesheet" href="../css/chat-widget.css">
     <link rel="stylesheet" href="../css/responsive.css">
+    <link rel="stylesheet" href="../css/themes/champagne.css">
+    <link rel="stylesheet" href="../css/themes/zoom.css">
 
     <style>
         /* Fixed Page Background */
@@ -66,17 +68,11 @@
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html { scroll-behavior: smooth; }
-        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg-primary); color: var(--text-primary); overflow-x: hidden; }
+        body { font-family: 'Inter', system-ui, sans-serif; background: transparent; color: var(--text-primary); overflow-x: hidden; }
         .glass-card { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-color); }
         .gradient-text { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-        .hero-bg {
-            background: linear-gradient(135deg, rgba(2,6,23,0.8) 0%, rgba(15,23,42,0.85) 100%),
-                        url('https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1920&q=80') center/cover no-repeat;
-        }
-        [data-theme="light"] .hero-bg {
-            background: linear-gradient(135deg, rgba(248,250,252,0.88) 0%, rgba(226,232,240,0.9) 100%),
-                        url('https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1920&q=80') center/cover no-repeat;
-        }
+        .hero-bg { background: transparent; }
+        [data-theme="light"] .hero-bg { background: transparent; }
         .section-reveal { opacity: 0; transform: translateY(40px); }
         .cta-button { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); box-shadow: 0 4px 20px var(--glow-color); transition: all 0.3s ease; }
         .cta-button:hover { transform: translateY(-2px); box-shadow: 0 8px 30px var(--glow-color); }
@@ -204,7 +200,7 @@
     </section>
 
     <!-- Solutions -->
-    <section class="py-24 px-6" style="background: var(--bg-secondary);">
+    <section class="py-24 px-6" style="background: rgba(26, 10, 0, 0.3);">
         <div class="max-w-6xl mx-auto">
             <div class="text-center mb-16 section-reveal">
                 <p class="text-accent font-semibold tracking-wider uppercase mb-4">Solutions</p>
@@ -287,7 +283,7 @@
     </section>
 
     <!-- CTA -->
-    <section class="py-24 px-6" style="background: var(--bg-secondary);">
+    <section class="py-24 px-6" style="background: rgba(26, 10, 0, 0.3);">
         <div class="max-w-4xl mx-auto text-center section-reveal">
             <h2 class="text-3xl md:text-4xl font-bold mb-6">Ready to Transform Healthcare?</h2>
             <p class="text-xl text-theme-secondary mb-8">Let's discuss how AI can improve patient outcomes for your organization.</p>
@@ -296,7 +292,7 @@
     </section>
 
     <!-- Footer -->
-    <footer class="py-12 px-6 border-t border-theme">
+    <footer class="py-12 px-6 border-t border-theme" style="background: rgba(26, 10, 0, 0.3);">
         <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
             <div class="flex items-center gap-3">
                 <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">

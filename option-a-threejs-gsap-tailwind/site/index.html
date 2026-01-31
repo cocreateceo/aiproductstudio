@@ -38,12 +38,12 @@
     <link rel="stylesheet" href="css/themes/sunset.css">
     <link rel="stylesheet" href="css/themes/aurora.css">
     <link rel="stylesheet" href="css/themes/legacy.css">
-    
+    <link rel="stylesheet" href="css/themes/sandstone.css">
+    <link rel="stylesheet" href="css/themes/champagne.css">
+    <link rel="stylesheet" href="css/themes/zoom.css">
+
     <!-- Unified Theme System (MUST be before any rendering) -->
     <script src="js/theme.js"></script>
-
-    <!-- Three.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <!-- GSAP -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
@@ -96,18 +96,6 @@
         h1, .text-6xl, .text-7xl, .text-8xl {
             font-weight: 700;
             letter-spacing: -0.03em;
-        }
-
-        #hero-canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-            pointer-events: none;
-            transition: opacity var(--transition-speed) ease;
-            opacity: 0.7;
         }
 
         /* Fixed Page Background - visible throughout entire page */
@@ -1786,9 +1774,6 @@
     </style>
 </head>
 <body>
-    <!-- Three.js Canvas -->
-    <canvas id="hero-canvas"></canvas>
-
     <!-- Navigation -->
     <nav class="fixed top-0 left-0 glass-card border-b border-theme nav-main" style="z-index: 10000;">
         <div class="nav-inner flex items-center justify-between h-16 px-6 lg:px-10">
@@ -1896,6 +1881,18 @@
                             <div class="theme-preview" style="background: linear-gradient(135deg, #020617 50%, #6366f1 50%);"></div>
                             <span>Legacy</span>
                         </div>
+                        <div class="theme-option" data-theme="sandstone">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #FAF6F1 50%, #E07B39 50%);"></div>
+                            <span>Sandstone</span>
+                        </div>
+                        <div class="theme-option" data-theme="champagne">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #FFFDF8 50%, #D4A535 50%);"></div>
+                            <span>Champagne</span>
+                        </div>
+                        <div class="theme-option" data-theme="zoom">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #FFFFFF 50%, #0B5CFF 50%);"></div>
+                            <span>Zoom</span>
+                        </div>
                     </div>
                 </div>
 
@@ -1975,8 +1972,8 @@
             <div class="section-reveal">
                 <p class="text-accent font-display font-semibold tracking-widest uppercase mb-6 text-glow">Your AI Co-Founder Awaits</p>
                 <h1 class="text-4xl md:text-6xl lg:text-7xl font-display font-bold mb-6 leading-tight">
-                    <span class="text-theme-primary">Elevate Your</span><br>
-                    <span class="gradient-text">Vision to Reality</span>
+                    <span class="text-theme-primary">Imagine.</span> <span class="gradient-text">CoCreate.</span><br>
+                    <span class="text-theme-primary">Done!</span>
                 </h1>
                 <p class="text-lg md:text-xl text-theme-secondary mb-10 max-w-xl leading-relaxed">
                     AI-powered co-founder model — we accelerate your ideas to market.
@@ -2057,8 +2054,8 @@
                     </p>
                 </div>
 
-                <!-- Problem Card 3 -->
-                <div class="glass-card-premium rounded-2xl p-8 md:col-span-2 section-reveal card-3d shimmer">
+                <!-- Problem Card 3 - Hidden -->
+                <div class="glass-card-premium rounded-2xl p-8 md:col-span-2 section-reveal card-3d shimmer" style="display: none;">
                     <div class="w-14 h-14 rounded-xl bg-yellow-500/20 flex items-center justify-center mb-6 icon-glow">
                         <svg class="w-7 h-7 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -2461,6 +2458,16 @@
                 icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>`,
                 label: 'Legacy',
                 particleColors: { r1: 0.39, g1: 0.4, b1: 0.95, r2: 0.02, g2: 0.71, b2: 0.83 }
+            },
+            sandstone: {
+                icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/>`,
+                label: 'Sandstone',
+                particleColors: { r1: 0.88, g1: 0.48, b1: 0.22, r2: 0.99, g2: 0.16, b2: 0.05 }
+            },
+            champagne: {
+                icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>`,
+                label: 'Champagne',
+                particleColors: { r1: 0.83, g1: 0.65, b1: 0.21, r2: 0.99, g2: 0.16, b2: 0.05 }
             }
         };
 
@@ -2515,16 +2522,6 @@
                 option.classList.toggle('active', option.dataset.theme === theme);
             });
 
-            // Update particles
-            if (themes[theme]) {
-                updateParticleColors(themes[theme].particleColors);
-            }
-
-            // Update particle opacity
-            if (particlesMaterial) {
-                const opacity = getComputedStyle(document.documentElement).getPropertyValue('--particle-opacity');
-                particlesMaterial.opacity = parseFloat(opacity) || 0.4;
-            }
         }
 
         // Toggle dropdown
@@ -2545,138 +2542,6 @@
                 setTheme(option.dataset.theme);
                 themeDropdown.classList.remove('active');
             });
-        });
-
-        // Three.js Particle System
-        const canvas = document.getElementById('hero-canvas');
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-        // Create particles
-        const particlesGeometry = new THREE.BufferGeometry();
-        const particlesCount = 2000;
-        const posArray = new Float32Array(particlesCount * 3);
-        const colorsArray = new Float32Array(particlesCount * 3);
-
-        for (let i = 0; i < particlesCount * 3; i += 3) {
-            posArray[i] = (Math.random() - 0.5) * 10;
-            posArray[i + 1] = (Math.random() - 0.5) * 10;
-            posArray[i + 2] = (Math.random() - 0.5) * 10;
-
-            const t = Math.random();
-            colorsArray[i] = 0.39 + t * 0.02;
-            colorsArray[i + 1] = 0.4 + t * 0.31;
-            colorsArray[i + 2] = 0.95 - t * 0.12;
-        }
-
-        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-        particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colorsArray, 3));
-
-        const particlesMaterial = new THREE.PointsMaterial({
-            size: 0.02,
-            vertexColors: true,
-            transparent: true,
-            opacity: 0.8,
-            blending: THREE.AdditiveBlending
-        });
-
-        const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
-        scene.add(particlesMesh);
-
-        // Add connecting lines
-        const linesGeometry = new THREE.BufferGeometry();
-        const linePositions = [];
-        const lineColors = [];
-
-        for (let i = 0; i < 100; i++) {
-            const x1 = (Math.random() - 0.5) * 8;
-            const y1 = (Math.random() - 0.5) * 8;
-            const z1 = (Math.random() - 0.5) * 8;
-            const x2 = x1 + (Math.random() - 0.5) * 2;
-            const y2 = y1 + (Math.random() - 0.5) * 2;
-            const z2 = z1 + (Math.random() - 0.5) * 2;
-
-            linePositions.push(x1, y1, z1, x2, y2, z2);
-            lineColors.push(0.39, 0.4, 0.95, 0.02, 0.71, 0.83);
-        }
-
-        linesGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
-        linesGeometry.setAttribute('color', new THREE.Float32BufferAttribute(lineColors, 3));
-
-        const linesMaterial = new THREE.LineBasicMaterial({
-            vertexColors: true,
-            transparent: true,
-            opacity: 0.15,
-            blending: THREE.AdditiveBlending
-        });
-
-        const linesMesh = new THREE.LineSegments(linesGeometry, linesMaterial);
-        scene.add(linesMesh);
-
-        camera.position.z = 5;
-
-        // Update particle colors based on theme
-        function updateParticleColors(colors) {
-            const colorsAttr = particlesGeometry.getAttribute('color');
-            const lineColorsAttr = linesGeometry.getAttribute('color');
-
-            for (let i = 0; i < particlesCount * 3; i += 3) {
-                const t = Math.random();
-                colorsAttr.array[i] = colors.r1 + t * (colors.r2 - colors.r1);
-                colorsAttr.array[i + 1] = colors.g1 + t * (colors.g2 - colors.g1);
-                colorsAttr.array[i + 2] = colors.b1 + t * (colors.b2 - colors.b1);
-            }
-            colorsAttr.needsUpdate = true;
-
-            // Update line colors
-            for (let i = 0; i < lineColorsAttr.array.length; i += 6) {
-                lineColorsAttr.array[i] = colors.r1;
-                lineColorsAttr.array[i + 1] = colors.g1;
-                lineColorsAttr.array[i + 2] = colors.b1;
-                lineColorsAttr.array[i + 3] = colors.r2;
-                lineColorsAttr.array[i + 4] = colors.g2;
-                lineColorsAttr.array[i + 5] = colors.b2;
-            }
-            lineColorsAttr.needsUpdate = true;
-        }
-
-        // Mouse interaction
-        let mouseX = 0;
-        let mouseY = 0;
-
-        document.addEventListener('mousemove', (e) => {
-            mouseX = (e.clientX / window.innerWidth) * 2 - 1;
-            mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
-        });
-
-        // Animation
-        function animate() {
-            requestAnimationFrame(animate);
-
-            particlesMesh.rotation.x += 0.0003;
-            particlesMesh.rotation.y += 0.0005;
-
-            linesMesh.rotation.x += 0.0002;
-            linesMesh.rotation.y += 0.0003;
-
-            camera.position.x += (mouseX * 0.5 - camera.position.x) * 0.02;
-            camera.position.y += (mouseY * 0.5 - camera.position.y) * 0.02;
-            camera.lookAt(scene.position);
-
-            renderer.render(scene, camera);
-        }
-
-        animate();
-
-        // Resize handler
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
         // Initialize theme on load
@@ -2713,16 +2578,6 @@
                 },
                 delay: i % 3 * 0.1
             });
-        });
-
-        gsap.to('#hero-canvas', {
-            opacity: 0.3,
-            scrollTrigger: {
-                trigger: '#problem',
-                start: 'top center',
-                end: 'top top',
-                scrub: true
-            }
         });
 
         ScrollTrigger.create({

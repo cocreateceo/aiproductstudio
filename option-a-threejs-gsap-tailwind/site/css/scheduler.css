@@ -40,7 +40,7 @@
 /* ========== Page Layout ========== */
 .scheduler-page {
   min-height: 100vh;
-  background: var(--bg-primary);
+  background: transparent;
   color: var(--text-primary);
 }
 
@@ -91,7 +91,8 @@
 
 /* ========== Calendar Section ========== */
 .calendar-section {
-  background: var(--bg-secondary);
+  background: rgba(20, 20, 20, 0.85);
+  backdrop-filter: blur(12px);
   border-radius: 12px;
   padding: 1.25rem;
   border: 1px solid var(--border-color);
@@ -207,7 +208,8 @@
 
 /* ========== Time Slots Section ========== */
 .timeslots-section {
-  background: var(--bg-secondary);
+  background: rgba(20, 20, 20, 0.85);
+  backdrop-filter: blur(12px);
   border-radius: 12px;
   padding: 1.25rem;
   border: 1px solid var(--border-color);
@@ -309,7 +311,8 @@
 
 /* ========== Details Form Section ========== */
 .details-section {
-  background: var(--bg-secondary);
+  background: rgba(20, 20, 20, 0.85);
+  backdrop-filter: blur(12px);
   border-radius: 12px;
   padding: 1.25rem;
   border: 1px solid var(--border-color);
@@ -426,7 +429,8 @@
 }
 
 .booking-details {
-  background: var(--bg-secondary);
+  background: rgba(20, 20, 20, 0.85);
+  backdrop-filter: blur(12px);
   border-radius: 12px;
   padding: 1.5rem;
   max-width: 400px;

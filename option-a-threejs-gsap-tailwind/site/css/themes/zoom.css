@@ -1,0 +1,154 @@
+/**
+ * CoCreate Theme: Zoom
+ * Clean professional blue - inspired by Zoom's modern design
+ */
+
+[data-theme="zoom"] {
+    /* Core Colors */
+    --bg-primary: #FFFFFF;
+    --bg-secondary: #F3F8FF;
+    --bg-card: rgba(255, 255, 255, 0.92);
+    --bg-card-hover: rgba(255, 255, 255, 0.98);
+
+    /* Text */
+    --text-primary: #00053D;
+    --text-secondary: #696B6E;
+    --text-muted: #8B8D91;
+
+    /* Brand Colors */
+    --primary: #0B5CFF;
+    --secondary: #6CB0FF;
+    --accent: #8D5DF7;
+
+    /* UI Elements */
+    --border-color: rgba(11, 92, 255, 0.15);
+    --nav-bg: rgba(255, 255, 255, 0.95);
+    --glow-color: rgba(11, 92, 255, 0.25);
+
+    /* Gradient Background */
+    --gradient-bg:
+        radial-gradient(ellipse 60% 50% at 20% 30%, rgba(11, 92, 255, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse 70% 55% at 80% 70%, rgba(141, 93, 247, 0.06) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 40% at 70% 20%, rgba(108, 176, 255, 0.08) 0%, transparent 45%),
+        radial-gradient(ellipse 65% 50% at 30% 85%, rgba(11, 92, 255, 0.05) 0%, transparent 50%),
+        linear-gradient(180deg, #FFFFFF 0%, #F3F8FF 50%, #EBF3FF 100%);
+
+    /* Animation */
+    --gradient-animation: zoom-shift 30s ease-in-out infinite;
+
+    /* Particles/Canvas */
+    --particle-opacity: 0.15;
+    --particle-color: #0B5CFF;
+
+    /* Chat Widget */
+    --chat-primary: var(--primary);
+    --chat-secondary: var(--secondary);
+    --chat-bg: var(--bg-secondary);
+    --chat-messages-bg: var(--bg-primary);
+    --chat-input-bg: var(--bg-card);
+    --chat-border: var(--border-color);
+    --chat-text-primary: var(--text-primary);
+    --chat-text-secondary: var(--text-secondary);
+    --chat-text-muted: var(--text-muted);
+    --chat-msg-assistant-bg: var(--bg-card);
+    --chat-msg-assistant-text: var(--text-primary);
+}
+
+/* Zoom Gradient Animation */
+@keyframes zoom-shift {
+    0%, 100% {
+        background-position: 0% 0%, 100% 100%, 100% 0%, 0% 100%, 0% 0%;
+    }
+    33% {
+        background-position: 3% 5%, 97% 95%, 95% 3%, 5% 97%, 0% 0%;
+    }
+    66% {
+        background-position: 5% 3%, 95% 97%, 97% 5%, 3% 95%, 0% 0%;
+    }
+}
+
+/* Apply gradient to body */
+[data-theme="zoom"] body {
+    background: var(--gradient-bg);
+    background-attachment: fixed;
+    animation: var(--gradient-animation);
+}
+
+/* Glass card enhancement - clean blue accent */
+[data-theme="zoom"] .glass-card {
+    background: var(--bg-card);
+    border: 1px solid rgba(11, 92, 255, 0.12);
+    box-shadow:
+        0 8px 32px rgba(0, 5, 61, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+[data-theme="zoom"] .glass-card:hover {
+    background: var(--bg-card-hover);
+    border-color: rgba(11, 92, 255, 0.25);
+    box-shadow:
+        0 12px 48px rgba(11, 92, 255, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+/* Button styling - Zoom blue */
+[data-theme="zoom"] .cta-button,
+[data-theme="zoom"] .btn-premium {
+    background: linear-gradient(135deg, var(--primary) 0%, #1A6FFF 50%, var(--secondary) 100%);
+    box-shadow: 0 4px 20px rgba(11, 92, 255, 0.35);
+    color: white;
+}
+
+[data-theme="zoom"] .cta-button:hover,
+[data-theme="zoom"] .btn-premium:hover {
+    box-shadow: 0 8px 32px rgba(11, 92, 255, 0.5);
+}
+
+/* Gradient text - blue to purple */
+[data-theme="zoom"] .gradient-text {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 50%, var(--secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Nav enhancement */
+[data-theme="zoom"] nav {
+    background: var(--nav-bg);
+    backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid rgba(11, 92, 255, 0.08);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+/* Stat numbers */
+[data-theme="zoom"] .stat-number {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Override dark text utilities */
+[data-theme="zoom"] .text-slate-300,
+[data-theme="zoom"] .text-slate-400,
+[data-theme="zoom"] .text-white {
+    color: var(--text-primary);
+}
+
+[data-theme="zoom"] .text-slate-500 {
+    color: var(--text-secondary);
+}
+
+/* Professional blue glow */
+[data-theme="zoom"] .pulse-glow {
+    animation: zoom-pulse 4s ease-in-out infinite;
+}
+
+@keyframes zoom-pulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(11, 92, 255, 0.2); }
+    50% { box-shadow: 0 0 35px rgba(108, 176, 255, 0.35); }
+}
+
+/* Special blue accent */
+[data-theme="zoom"] .text-accent {
+    color: var(--primary);
+}
