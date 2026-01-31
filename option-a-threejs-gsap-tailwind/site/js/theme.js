@@ -184,8 +184,19 @@
         });
 
         // Update body class for light/dark mode detection
-        document.body.classList.remove('theme-light', 'theme-dark');
-        document.body.classList.add(`theme-${theme.type}`);
+        function updateBodyClass() {
+            if (document.body) {
+                document.body.classList.remove('theme-light', 'theme-dark');
+                document.body.classList.add(`theme-${theme.type}`);
+            }
+        }
+
+        if (document.body) {
+            updateBodyClass();
+        } else {
+            // Body doesn't exist yet (script in <head>), defer until DOM ready
+            document.addEventListener('DOMContentLoaded', updateBodyClass, { once: true });
+        }
 
         // Dispatch event for other scripts to react
         window.dispatchEvent(new CustomEvent('themechange', {

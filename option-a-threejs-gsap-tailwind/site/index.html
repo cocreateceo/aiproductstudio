@@ -60,78 +60,10 @@
     <link rel="stylesheet" href="css/responsive.css">
 
     <style>
-        /* Theme CSS Variables */
+        /* Theme CSS Variables - themes defined in css/themes/*.css and applied via ThemeManager */
         :root {
             --transition-speed: 0.4s;
             --nav-height: 80px;
-        }
-
-        /* Dark Theme (Default) */
-        [data-theme="ember"] {
-            --bg-primary: #020617;
-            --bg-secondary: #0f172a;
-            --bg-card: rgba(15, 23, 42, 0.7);
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-            --border-color: rgba(99, 102, 241, 0.2);
-            --primary: #6366f1;
-            --secondary: #8b5cf6;
-            --accent: #06b6d4;
-            --nav-bg: rgba(2, 6, 23, 0.8);
-            --glow-color: rgba(99, 102, 241, 0.3);
-            --particle-opacity: 0.8;
-        }
-
-        /* Midnight Theme */
-        [data-theme="midnight"] {
-            --bg-primary: #0c0a1d;
-            --bg-secondary: #1a1533;
-            --bg-card: rgba(26, 21, 51, 0.8);
-            --text-primary: #e8e4f3;
-            --text-secondary: #a59fc4;
-            --text-muted: #7a73a0;
-            --border-color: rgba(167, 139, 250, 0.25);
-            --primary: #a78bfa;
-            --secondary: #c084fc;
-            --accent: #f472b6;
-            --nav-bg: rgba(12, 10, 29, 0.9);
-            --glow-color: rgba(167, 139, 250, 0.35);
-            --particle-opacity: 0.9;
-        }
-
-        /* Dusk Theme (In-between) */
-        [data-theme="dusk"] {
-            --bg-primary: #1e1b2e;
-            --bg-secondary: #2d2844;
-            --bg-card: rgba(45, 40, 68, 0.75);
-            --text-primary: #f5f3ff;
-            --text-secondary: #c4b5fd;
-            --text-muted: #a78bfa;
-            --border-color: rgba(251, 146, 60, 0.25);
-            --primary: #fb923c;
-            --secondary: #f97316;
-            --accent: #fbbf24;
-            --nav-bg: rgba(30, 27, 46, 0.9);
-            --glow-color: rgba(251, 146, 60, 0.3);
-            --particle-opacity: 0.85;
-        }
-
-        /* Light Theme */
-        [data-theme="ember"] {
-            --bg-primary: #f8fafc;
-            --bg-secondary: #e2e8f0;
-            --bg-card: rgba(255, 255, 255, 0.9);
-            --text-primary: #0f172a;
-            --text-secondary: #475569;
-            --text-muted: #64748b;
-            --border-color: rgba(99, 102, 241, 0.15);
-            --primary: #4f46e5;
-            --secondary: #7c3aed;
-            --accent: #0891b2;
-            --nav-bg: rgba(248, 250, 252, 0.95);
-            --glow-color: rgba(79, 70, 229, 0.2);
-            --particle-opacity: 0.4;
         }
 
         * {
@@ -172,9 +104,117 @@
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: 0;
+            z-index: 1;
             pointer-events: none;
             transition: opacity var(--transition-speed) ease;
+            opacity: 0.7;
+        }
+
+        /* Fixed Page Background - visible throughout entire page */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('assets/cocreate_bg.png') center bottom / cover no-repeat;
+            z-index: -2;
+            pointer-events: none;
+        }
+
+        /* Fixed gradient overlay for readability */
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(ellipse 120% 100% at 50% 100%, transparent 30%, rgba(26, 10, 0, 0.6) 100%),
+                linear-gradient(90deg, rgba(26, 10, 0, 0.65) 0%, rgba(26, 10, 0, 0.3) 40%, transparent 60%),
+                linear-gradient(180deg, rgba(26, 10, 0, 0.5) 0%, transparent 40%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* Hero Section */
+        #hero {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            align-items: flex-start;
+            padding-top: 140px;
+        }
+
+        /* All hero content above background layers */
+        #hero > * {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Hero content - left aligned to show walking figure */
+        #hero .hero-content {
+            text-align: left;
+            max-width: 600px;
+            margin-left: 0;
+            padding-left: 5%;
+        }
+
+        #hero .hero-content h1 {
+            text-align: left;
+            text-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        #hero .hero-content p {
+            text-shadow: 0 1px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        #hero .hero-content .flex {
+            justify-content: flex-start;
+        }
+
+        /* Stats positioned at bottom left */
+        #hero .stats-row {
+            position: absolute;
+            bottom: 40px;
+            left: 5%;
+            right: auto;
+            max-width: 700px;
+        }
+
+        #hero .stats-row .glass-card {
+            background: rgba(26, 10, 0, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 195, 106, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            #hero {
+                padding-top: 100px;
+            }
+            #hero::before {
+                background-position: 70% bottom;
+            }
+            #hero .hero-content {
+                text-align: center;
+                padding-left: 0;
+                max-width: 100%;
+            }
+            #hero .hero-content h1 {
+                text-align: center;
+            }
+            #hero .hero-content .flex {
+                justify-content: center;
+            }
+            #hero .stats-row {
+                position: relative;
+                bottom: auto;
+                left: auto;
+                max-width: 100%;
+                margin-top: 2rem;
+            }
         }
 
         .gradient-text {
@@ -1930,19 +1970,19 @@
     </nav>
 
     <!-- Hero Section -->
-    <section id="hero" class="relative min-h-screen flex items-center justify-center px-6">
-        <div class="relative z-10 text-center max-w-5xl mx-auto pt-20">
+    <section id="hero" class="relative px-6">
+        <div class="relative z-10 hero-content max-w-2xl">
             <div class="section-reveal">
                 <p class="text-accent font-display font-semibold tracking-widest uppercase mb-6 text-glow">Your AI Co-Founder Awaits</p>
-                <h1 class="text-5xl md:text-7xl lg:text-8xl font-display font-bold mb-8 leading-tight">
+                <h1 class="text-4xl md:text-6xl lg:text-7xl font-display font-bold mb-6 leading-tight">
                     <span class="text-theme-primary">Elevate Your</span><br>
                     <span class="gradient-text">Vision to Reality</span>
                 </h1>
-                <p class="text-xl md:text-2xl text-theme-secondary mb-12 max-w-3xl mx-auto leading-relaxed">
+                <p class="text-lg md:text-xl text-theme-secondary mb-10 max-w-xl leading-relaxed">
                     AI-powered co-founder model — we accelerate your ideas to market.
                     First draft review in 2 days. You bring your idea; We build the product for you.
                 </p>
-                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <div class="flex flex-col sm:flex-row gap-4">
                     <a href="apply.html" class="cta-button px-8 py-4 rounded-full text-lg font-display font-semibold text-white">
                         Let's CoCreate
                     </a>
@@ -1951,27 +1991,26 @@
                     </a>
                 </div>
             </div>
+        </div>
 
-            <!-- Stats -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-20 section-reveal">
-                <div class="glass-card p-6 rounded-2xl text-center pulse-glow">
-                    <p class="text-4xl md:text-5xl font-display font-bold stat-number">2</p>
-                    <p class="text-theme-secondary mt-2 font-medium">Weeks to Launch</p>
-                </div>
-                <div class="glass-card p-6 rounded-2xl text-center pulse-glow" style="animation-delay: 0.2s;">
-                    <p class="text-4xl md:text-5xl font-display font-bold stat-number">Equal</p>
-                    <p class="text-theme-secondary mt-2 font-medium">Partnership Share</p>
-                </div>
-                <div class="glass-card p-6 rounded-2xl text-center pulse-glow" style="animation-delay: 0.4s;">
-                    <p class="text-4xl md:text-5xl font-display font-bold stat-number">$0</p>
-                    <p class="text-theme-secondary mt-2 font-medium">Upfront Cost</p>
-                </div>
+        <!-- Stats - positioned at bottom -->
+        <div class="stats-row grid grid-cols-3 gap-4 section-reveal">
+            <div class="glass-card p-4 rounded-xl text-center pulse-glow">
+                <p class="text-3xl md:text-4xl font-display font-bold stat-number">2</p>
+                <p class="text-theme-secondary text-sm mt-1 font-medium">Weeks to Launch</p>
+            </div>
+            <div class="glass-card p-4 rounded-xl text-center pulse-glow" style="animation-delay: 0.2s;">
+                <p class="text-3xl md:text-4xl font-display font-bold stat-number">Equal</p>
+                <p class="text-theme-secondary text-sm mt-1 font-medium">Partnership Share</p>
+            </div>
+            <div class="glass-card p-4 rounded-xl text-center pulse-glow" style="animation-delay: 0.4s;">
+                <p class="text-3xl md:text-4xl font-display font-bold stat-number">$0</p>
+                <p class="text-theme-secondary text-sm mt-1 font-medium">Upfront Cost</p>
             </div>
         </div>
 
         <!-- Scroll Indicator -->
-        <div class="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-theme-muted scroll-indicator">
-            <span class="text-sm font-medium">Scroll to explore</span>
+        <div class="absolute bottom-10 right-10 flex flex-col items-center gap-2 text-theme-muted scroll-indicator">
             <div class="w-6 h-10 border-2 border-primary rounded-full flex justify-center pt-2 glow">
                 <div class="w-1.5 h-3 bg-primary rounded-full"></div>
             </div>
@@ -2452,14 +2491,24 @@
                 theme = migrateTheme(theme);
             }
 
-            document.documentElement.setAttribute('data-theme', theme);
+            // Use ThemeManager if available (applies CSS variables properly)
+            if (window.ThemeManager && window.ThemeManager.set) {
+                window.ThemeManager.set(theme);
+            } else {
+                document.documentElement.setAttribute('data-theme', theme);
+                localStorage.setItem('cocreate-theme', theme);
+                localStorage.setItem('theme', theme);
+            }
+
             currentTheme = theme;
-            localStorage.setItem('cocreate-theme', theme);
-            localStorage.setItem('theme', theme); // backwards compatibility
 
             // Update icon and label
-            themeIcon.innerHTML = themes[theme].icon;
-            themeLabel.textContent = themes[theme].label;
+            if (themeIcon && themes[theme]) {
+                themeIcon.innerHTML = themes[theme].icon;
+            }
+            if (themeLabel && themes[theme]) {
+                themeLabel.textContent = themes[theme].label;
+            }
 
             // Update active state
             themeOptions.forEach(option => {
@@ -2467,12 +2516,14 @@
             });
 
             // Update particles
-            updateParticleColors(themes[theme].particleColors);
+            if (themes[theme]) {
+                updateParticleColors(themes[theme].particleColors);
+            }
 
             // Update particle opacity
             if (particlesMaterial) {
                 const opacity = getComputedStyle(document.documentElement).getPropertyValue('--particle-opacity');
-                particlesMaterial.opacity = parseFloat(opacity) || 0.8;
+                particlesMaterial.opacity = parseFloat(opacity) || 0.4;
             }
         }
 
