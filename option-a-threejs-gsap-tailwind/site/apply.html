@@ -39,59 +39,42 @@
     <link rel="stylesheet" href="css/themes/aurora.css">
     <link rel="stylesheet" href="css/themes/legacy.css">
 
-    <!-- html2canvas for screenshots -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
-    <!-- Centralized Configuration -->
-    <script src="js/config.js"></script>
-
-    <!-- Unified Theme System (MUST be before any rendering) -->
+    <!-- Unified Theme System -->
     <script src="js/theme.js"></script>
 
-    <!-- Chat Widget -->
-    <link rel="stylesheet" href="css/chat-widget.css?v=20260118a">
-    <link rel="stylesheet" href="css/responsive.css?v=20260118a">
+    <!-- GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <script src="js/config.js"></script>
+    <link rel="stylesheet" href="css/chat-widget.css">
+    <link rel="stylesheet" href="css/responsive.css">
 
     <style>
-        /* CoCreate Theme Variables - Base */
         :root {
             --transition-speed: 0.4s;
+            --nav-height: 80px;
         }
 
-        /* CoCreate Typography */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'DM Sans', system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            transition: background var(--transition-speed) ease, color var(--transition-speed) ease;
+        }
+
+        /* CoCreate Typography - Outfit for headings */
         h1, h2, h3, h4, h5, h6, .font-display {
             font-family: 'Outfit', 'DM Sans', system-ui, sans-serif;
             font-weight: 600;
             letter-spacing: -0.02em;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        html {
-            scroll-behavior: smooth;
-        }
-
-        body {
-            font-family: 'Inter', system-ui, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            overflow-x: hidden;
-            min-height: 100vh;
-            transition: background var(--transition-speed) ease, color var(--transition-speed) ease;
-        }
-
-        /* Light theme specific overrides */
-        [data-theme="light"] .glass-card {
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-        }
-
-        [data-theme="light"] nav {
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
+        h1 { font-weight: 700; letter-spacing: -0.03em; }
 
         .gradient-text {
             background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%);
@@ -104,27 +87,284 @@
             background: var(--bg-card);
             backdrop-filter: blur(20px);
             border: 1px solid var(--border-color);
-        }
-
-        .cta-button {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            box-shadow: 0 4px 20px var(--glow-color);
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-
-        .cta-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 30px var(--glow-color);
-        }
-
-        .border-theme {
-            border-color: var(--border-color);
+            transition: background var(--transition-speed) ease, border-color var(--transition-speed) ease;
         }
 
         .text-theme-primary { color: var(--text-primary); }
         .text-theme-secondary { color: var(--text-secondary); }
         .text-theme-muted { color: var(--text-muted); }
+        .bg-theme-primary { background: var(--bg-primary); }
         .bg-theme-secondary { background: var(--bg-secondary); }
+        .border-theme { border-color: var(--border-color); }
+
+        .section-reveal { opacity: 0; transform: translateY(40px); }
+
+        /* Navigation Styles */
+        .nav-main {
+            width: 100%;
+            backdrop-filter: blur(20px) saturate(180%);
+            transition: all 0.3s ease;
+        }
+
+        .nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .nav-item {
+            position: relative;
+        }
+
+        .nav-link-new {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: color 0.2s ease;
+            white-space: nowrap;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        .nav-link-new:hover { color: var(--text-primary); }
+
+        .nav-dropdown-new {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            min-width: 200px;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            padding: 0.75rem 0;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(8px);
+            transition: all 0.2s ease;
+            z-index: 9999;
+            border-radius: 12px;
+        }
+
+        .nav-item:hover .nav-dropdown-new {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .nav-dropdown-new a {
+            display: block;
+            padding: 0.625rem 1.25rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            transition: all 0.15s ease;
+        }
+
+        .nav-dropdown-new a:hover {
+            color: var(--text-primary);
+            background: var(--bg-secondary);
+        }
+
+        .nav-cta-btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1.25rem;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .nav-cta-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px var(--glow-color);
+        }
+
+        /* Theme Switcher */
+        .theme-switcher { position: relative; }
+
+        .theme-toggle-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0.5rem 0.75rem;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+
+        .theme-toggle-btn:hover { color: var(--text-primary); }
+
+        .theme-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 8px;
+            min-width: 180px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .theme-dropdown.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .theme-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-secondary);
+        }
+
+        .theme-option:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .theme-option.active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+
+        .theme-preview {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid var(--border-color);
+        }
+
+        /* Hero Section */
+        .hero-section {
+            position: relative;
+            min-height: 40vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 120px 24px 60px;
+            background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            overflow: hidden;
+        }
+
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(var(--primary-rgb, 252, 42, 13), 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(var(--secondary-rgb, 253, 108, 113), 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 50% 80%, rgba(var(--accent-rgb, 255, 195, 106), 0.08) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        /* CTA Button */
+        .cta-button {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            box-shadow: 0 4px 20px var(--glow-color);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .cta-button:hover::before { left: 100%; }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px var(--glow-color);
+        }
+
+        /* Mobile Menu */
+        .mobile-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .mobile-menu.active { display: block; }
+
+        .mobile-nav-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 1rem;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .mobile-dropdown {
+            display: none;
+            padding-left: 1rem;
+        }
+
+        .mobile-dropdown.active { display: block; }
+
+        .mobile-dropdown a {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: var(--text-secondary);
+        }
+
+        .mobile-nav-cta {
+            display: block;
+            margin: 1rem;
+            padding: 1rem;
+            text-align: center;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+        }
 
         /* Form Styles */
         .form-group {
@@ -165,21 +405,6 @@
             resize: vertical;
         }
 
-        .form-select {
-            cursor: pointer;
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 12px center;
-            background-size: 20px;
-            padding-right: 45px;
-        }
-
-        .form-select option {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-        }
-
         .form-help {
             font-size: 13px;
             color: var(--text-muted);
@@ -200,44 +425,20 @@
             text-align: center;
         }
 
-        /* Chat widget theme variable overrides */
-        :root {
-            --chat-primary: var(--primary);
-            --chat-secondary: var(--secondary);
-            --chat-bg: var(--bg-secondary);
-            --chat-messages-bg: var(--bg-primary);
-            --chat-input-bg: var(--bg-card);
-            --chat-border: var(--border-color);
-            --chat-text-primary: var(--text-primary);
-            --chat-text-secondary: var(--text-secondary);
-            --chat-text-muted: var(--text-muted);
-            --chat-msg-assistant-bg: var(--bg-card);
-            --chat-msg-assistant-text: var(--text-primary);
+        /* Value Cards */
+        .value-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 1.5rem;
+            padding: 2.5rem;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .ai-fill-btn {
-            background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 500;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .ai-fill-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);
-        }
-
-        .ai-fill-btn svg {
-            width: 16px;
-            height: 16px;
+        .value-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 50px var(--glow-color);
+            border-color: var(--primary);
         }
 
         /* Spin animation for loading */
@@ -249,158 +450,7 @@
             animation: spin 1s linear infinite;
         }
 
-        /* ============================================ */
-        /* PREMIUM ENHANCEMENTS - FULL TRANSFORMATION */
-        /* ============================================ */
-
-        /* Animated Gradient Text */
-        .gradient-text {
-            background: linear-gradient(270deg, #667eea, #764ba2, #f857a6, #667eea);
-            background-size: 400% 400%;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: gradientText 8s ease infinite;
-        }
-
-        @keyframes gradientText {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-        }
-
-        /* Text Glow Effects */
-        .text-glow {
-            text-shadow:
-                0 0 10px rgba(99, 102, 241, 0.5),
-                0 0 20px rgba(99, 102, 241, 0.3),
-                0 0 30px rgba(99, 102, 241, 0.2);
-        }
-
-        /* Premium Glass Card */
-        .glass-card-premium {
-            background: rgba(15, 23, 42, 0.4);
-            backdrop-filter: blur(30px) saturate(180%);
-            border: 1px solid rgba(139, 92, 246, 0.3);
-            box-shadow:
-                0 8px 32px 0 rgba(99, 102, 241, 0.2),
-                inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        /* Neural Network Background */
-        .neural-bg {
-            background-image:
-                radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
-                radial-gradient(circle at 40% 20%, rgba(248, 87, 166, 0.15) 0%, transparent 50%);
-        }
-
-        /* Matrix Background */
-        .matrix-bg {
-            background-image:
-                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(99, 102, 241, 0.03) 2px, rgba(99, 102, 241, 0.03) 4px),
-                repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(99, 102, 241, 0.03) 2px, rgba(99, 102, 241, 0.03) 4px);
-        }
-
-        /* Shimmer Effect */
-        .shimmer {
-            position: relative;
-            overflow: hidden;
-        }
-
-        .shimmer::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            animation: shimmer 3s infinite;
-        }
-
-        @keyframes shimmer {
-            0% { left: -100%; }
-            100% { left: 100%; }
-        }
-
-        /* Pulse Glow */
-        .pulse-glow {
-            animation: pulseGlow 2s ease-in-out infinite;
-        }
-
-        @keyframes pulseGlow {
-            0%, 100% {
-                box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
-            }
-            50% {
-                box-shadow: 0 0 40px rgba(99, 102, 241, 0.8);
-            }
-        }
-
-        /* Enhanced Form Input Styles */
-        .form-input-premium,
-        .form-textarea-premium,
-        .form-select-premium {
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(139, 92, 246, 0.2);
-            transition: all 0.3s ease;
-        }
-
-        .form-input-premium:focus,
-        .form-textarea-premium:focus,
-        .form-select-premium:focus {
-            border-color: rgba(139, 92, 246, 0.6);
-            box-shadow:
-                0 0 0 3px rgba(99, 102, 241, 0.2),
-                0 0 20px rgba(99, 102, 241, 0.3);
-            background: rgba(15, 23, 42, 0.8);
-        }
-
-        /* Floating Label Animation */
-        .form-group-float {
-            position: relative;
-        }
-
-        .form-label-float {
-            position: absolute;
-            left: 18px;
-            top: 16px;
-            color: var(--text-muted);
-            pointer-events: none;
-            transition: all 0.3s ease;
-            font-size: 16px;
-        }
-
-        .form-input-float:focus + .form-label-float,
-        .form-input-float:not(:placeholder-shown) + .form-label-float {
-            top: -10px;
-            left: 14px;
-            font-size: 12px;
-            color: var(--primary);
-            background: var(--bg-primary);
-            padding: 0 6px;
-            border-radius: 4px;
-        }
-
-        /* Section Number Badge Enhanced */
-        .section-badge {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
-            animation: badgePulse 3s ease-in-out infinite;
-        }
-
-        @keyframes badgePulse {
-            0%, 100% {
-                box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
-            }
-            50% {
-                box-shadow: 0 4px 25px rgba(99, 102, 241, 0.6);
-            }
-        }
-
-        /* Success Message Celebration */
+        /* Celebration Icon */
         .celebration-icon {
             animation: celebrate 0.6s ease-out;
         }
@@ -418,191 +468,207 @@
                 opacity: 1;
             }
         }
-
-        /* Submit Button Enhanced */
-        .submit-btn-premium {
-            position: relative;
-            overflow: hidden;
-        }
-
-        .submit-btn-premium::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            transition: left 0.5s;
-        }
-
-        .submit-btn-premium:hover::before {
-            left: 100%;
-        }
-
-        /* Icon Glow */
-        .icon-glow {
-            transition: all 0.3s ease;
-        }
-
-        .icon-glow:hover {
-            filter: drop-shadow(0 0 10px currentColor);
-            transform: scale(1.1);
-        }
-
-        /* Light theme adjustments */
-        [data-theme="light"] .glass-card-premium {
-            background: rgba(255, 255, 255, 0.6);
-            border-color: rgba(99, 102, 241, 0.2);
-            box-shadow:
-                0 8px 32px 0 rgba(0, 0, 0, 0.1),
-                inset 0 1px 0 0 rgba(255, 255, 255, 0.8);
-        }
-
-        [data-theme="light"] .neural-bg {
-            background-image:
-                radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 40% 20%, rgba(248, 87, 166, 0.08) 0%, transparent 50%);
-        }
-
-        [data-theme="light"] .form-input-premium,
-        [data-theme="light"] .form-textarea-premium,
-        [data-theme="light"] .form-select-premium {
-            background: rgba(255, 255, 255, 0.8);
-        }
-
-        /* Mobile Optimizations */
-        @media (max-width: 768px) {
-            .shimmer::after {
-                animation: none;
-            }
-
-            .pulse-glow {
-                animation: none;
-                box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
-            }
-
-            .text-glow {
-                text-shadow: 0 0 5px rgba(99, 102, 241, 0.3);
-            }
-
-            .neural-bg {
-                background-image:
-                    radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
-                    radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 50%);
-            }
-
-            .matrix-bg {
-                background-image: none;
-            }
-
-            .glass-card-premium {
-                backdrop-filter: blur(15px);
-            }
-
-            h1 {
-                font-size: 2.5rem !important;
-            }
-
-            h2 {
-                font-size: 1.5rem !important;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .gradient-text {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                background-clip: text;
-                animation: none;
-            }
-
-            h1 {
-                font-size: 2rem !important;
-            }
-        }
-
-        /* Reduced motion */
-        @media (prefers-reduced-motion: reduce) {
-            *,
-            *::before,
-            *::after {
-                animation-duration: 0.01ms !important;
-                animation-iteration-count: 1 !important;
-                transition-duration: 0.01ms !important;
-            }
-        }
     </style>
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="fixed top-0 left-0 right-0 glass-card border-b border-theme" style="z-index: 10000;">
-        <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-            <a href="index.html" class="flex items-center gap-3 group">
-                <svg class="w-10 h-10" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <linearGradient id="applyLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:var(--accent, #FFC36A)"/>
-                            <stop offset="50%" style="stop-color:var(--secondary, #FD6C71)"/>
-                            <stop offset="100%" style="stop-color:var(--primary, #FC2A0D)"/>
-                        </linearGradient>
-                    </defs>
-                    <g transform="translate(4, 4)">
-                        <path d="M20 0C8.954 0 0 8.954 0 20s8.954 20 20 20c5.523 0 10.523-2.239 14.142-5.858"
-                              stroke="url(#applyLogoGradient)" stroke-width="3.5" fill="none" stroke-linecap="round"/>
-                        <ellipse cx="20" cy="20" rx="26" ry="10"
-                                 stroke="url(#applyLogoGradient)" stroke-width="2" fill="none"
-                                 transform="rotate(-30, 20, 20)"/>
-                        <circle cx="42" cy="12" r="3.5" fill="url(#applyLogoGradient)"/>
-                    </g>
-                </svg>
-                <span class="text-xl font-display font-bold">
+    <nav class="fixed top-0 left-0 glass-card border-b border-theme nav-main" style="z-index: 10000;">
+        <div class="nav-inner flex items-center justify-between h-16 px-6 lg:px-10">
+            <!-- CoCreate Logo -->
+            <a href="index.html" class="flex items-center gap-3 shrink-0 group">
+                <div class="w-10 h-10 flex items-center justify-center transition-transform group-hover:scale-105">
+                    <svg class="w-10 h-10" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="navLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:var(--accent, #FFC36A)"/>
+                                <stop offset="50%" style="stop-color:var(--secondary, #FD6C71)"/>
+                                <stop offset="100%" style="stop-color:var(--primary, #FC2A0D)"/>
+                            </linearGradient>
+                        </defs>
+                        <g transform="translate(4, 4)">
+                            <path d="M20 0C8.954 0 0 8.954 0 20s8.954 20 20 20c5.523 0 10.523-2.239 14.142-5.858"
+                                  stroke="url(#navLogoGradient)" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+                            <ellipse cx="20" cy="20" rx="26" ry="10"
+                                     stroke="url(#navLogoGradient)" stroke-width="2" fill="none"
+                                     transform="rotate(-30, 20, 20)"/>
+                            <circle cx="42" cy="12" r="3.5" fill="url(#navLogoGradient)"/>
+                        </g>
+                    </svg>
+                </div>
+                <span class="text-lg font-display font-bold tracking-tight hidden sm:block">
                     <span class="text-theme-primary">CO</span><span class="gradient-text">CREATE</span>
                 </span>
             </a>
-            <a href="index.html" class="text-theme-secondary hover:text-theme-primary transition flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+
+            <!-- Desktop Navigation -->
+            <div class="hidden lg:flex items-center gap-1">
+                <div class="nav-item">
+                    <button class="nav-link-new" type="button">
+                        Who We Are
+                        <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="nav-dropdown-new">
+                        <a href="who-we-are.html">Who We Are</a>
+                        <a href="partners.html">Partners</a>
+                        <a href="culture.html">Culture</a>
+                    </div>
+                </div>
+                <div class="nav-item">
+                    <button class="nav-link-new" type="button">
+                        What We Do
+                        <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="nav-dropdown-new">
+                        <a href="what-we-do.html">Overview</a>
+                        <a href="ai.html">AI Solutions</a>
+                        <a href="product.html">Product Development</a>
+                        <a href="platforms.html">Platforms</a>
+                    </div>
+                </div>
+                <div class="nav-item">
+                    <button class="nav-link-new" type="button">
+                        Insights
+                        <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="nav-dropdown-new">
+                        <a href="insights.html">All Insights</a>
+                        <a href="blogs.html">Blog</a>
+                        <a href="success-stories.html">Success Stories</a>
+                    </div>
+                </div>
+
+                <!-- Theme Switcher -->
+                <div class="theme-switcher">
+                    <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle theme">
+                        <svg class="w-4 h-4" id="theme-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+                        </svg>
+                        <span class="text-xs font-medium uppercase tracking-wide" id="theme-label">Ember</span>
+                    </button>
+                    <div class="theme-dropdown" id="theme-dropdown">
+                        <div class="theme-option active" data-theme="ember">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #1A0A00 50%, #FC2A0D 50%);"></div>
+                            <span>Ember</span>
+                        </div>
+                        <div class="theme-option" data-theme="coral">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #FFF8F0 50%, #FD6C71 50%);"></div>
+                            <span>Coral</span>
+                        </div>
+                        <div class="theme-option" data-theme="sunset">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #2D1B3D 50%, #FF6B9D 50%);"></div>
+                            <span>Sunset</span>
+                        </div>
+                        <div class="theme-option" data-theme="aurora">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #FFF5F8 50%, #E6A4FF 50%);"></div>
+                            <span>Aurora</span>
+                        </div>
+                        <div class="theme-option" data-theme="legacy">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #020617 50%, #6366f1 50%);"></div>
+                            <span>Legacy</span>
+                        </div>
+                    </div>
+                </div>
+
+                <a href="contact.html" class="nav-cta-btn">Contact</a>
+            </div>
+
+            <!-- Mobile Menu Button -->
+            <button class="lg:hidden flex items-center justify-center w-10 h-10 rounded-lg hover:bg-white/10 transition" id="mobile-menu-btn" aria-label="Open menu">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                 </svg>
-                Back to Home
-            </a>
+            </button>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div class="lg:hidden mobile-menu" id="mobile-menu">
+            <div class="px-6 py-4 space-y-1 border-t border-theme">
+                <div class="mobile-nav-item">
+                    <button class="mobile-nav-btn" data-dropdown="mobile-who">
+                        Who We Are
+                        <svg class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="mobile-dropdown" id="mobile-who">
+                        <a href="who-we-are.html">Who We Are</a>
+                        <a href="partners.html">Partners</a>
+                        <a href="culture.html">Culture</a>
+                    </div>
+                </div>
+                <div class="mobile-nav-item">
+                    <button class="mobile-nav-btn" data-dropdown="mobile-what">
+                        What We Do
+                        <svg class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="mobile-dropdown" id="mobile-what">
+                        <a href="what-we-do.html">Overview</a>
+                        <a href="ai.html">AI Solutions</a>
+                        <a href="product.html">Product Development</a>
+                        <a href="platforms.html">Platforms</a>
+                    </div>
+                </div>
+                <div class="mobile-nav-item">
+                    <button class="mobile-nav-btn" data-dropdown="mobile-insights">
+                        Insights
+                        <svg class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="mobile-dropdown" id="mobile-insights">
+                        <a href="insights.html">All Insights</a>
+                        <a href="blogs.html">Blog</a>
+                        <a href="success-stories.html">Success Stories</a>
+                    </div>
+                </div>
+                <a href="contact.html" class="mobile-nav-cta">Contact Us</a>
+            </div>
         </div>
     </nav>
 
-    <!-- Main Content -->
-    <main class="pt-24 pb-16 px-6 neural-bg matrix-bg">
-        <div class="max-w-3xl mx-auto">
-            <!-- Header -->
-            <div class="text-center mb-12">
-                <h1 class="text-4xl md:text-5xl font-bold mb-4 text-glow">
-                    <span class="gradient-text">Let's CoCreate</span>
-                </h1>
-                <p class="text-xl text-theme-secondary max-w-2xl mx-auto">
-                    Ready to build your AI-powered product? Fill out the form below and our team will get back to you within 24 hours.
-                </p>
-                <div class="mt-4 flex items-center justify-center gap-2 text-theme-muted">
-                    <svg class="w-5 h-5 text-accent icon-glow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                    </svg>
-                    <a href="#" class="text-accent hover:text-accent/80 transition-colors underline underline-offset-2" onclick="event.preventDefault(); window.chatWidget?.open();">Need help? Ask our AI assistant to fill the form for you!</a>
-                </div>
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="max-w-3xl mx-auto text-center section-reveal relative z-10">
+            <p class="text-accent font-display font-semibold tracking-widest uppercase mb-4">Partner With Us</p>
+            <h1 class="text-4xl md:text-5xl lg:text-6xl font-display font-bold mb-6 leading-tight">
+                <span class="gradient-text">Let's CoCreate</span>
+            </h1>
+            <p class="text-xl text-theme-secondary max-w-2xl mx-auto leading-relaxed">
+                Ready to build your AI-powered product? Fill out the form below and our team will get back to you within 24 hours.
+            </p>
+            <div class="mt-4 flex items-center justify-center gap-2 text-theme-muted">
+                <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                <a href="#" class="text-accent hover:text-accent/80 transition-colors underline underline-offset-2" onclick="event.preventDefault(); window.chatWidget?.open();">Need help? Ask our AI assistant to fill the form for you!</a>
             </div>
+        </div>
+    </section>
 
-            <!-- Application Form - Simplified -->
-            <div id="form-container" class="glass-card-premium rounded-2xl p-8 md:p-10 shimmer">
+    <!-- Main Content -->
+    <main class="py-16 px-6">
+        <div class="max-w-3xl mx-auto">
+            <!-- Application Form -->
+            <div id="form-container" class="value-card section-reveal">
                 <form id="partnership-form">
                     <!-- Contact Info -->
                     <div class="mb-8">
                         <div class="grid md:grid-cols-2 gap-6">
                             <div class="form-group">
                                 <label class="form-label" for="fullName">Your Name *</label>
-                                <input type="text" id="fullName" name="fullName" class="form-input form-input-premium" placeholder="John Smith" required>
+                                <input type="text" id="fullName" name="fullName" class="form-input" placeholder="John Smith" required>
                             </div>
                             <div class="form-group">
                                 <label class="form-label" for="email">Email *</label>
-                                <input type="email" id="email" name="email" class="form-input form-input-premium" placeholder="john@example.com" required>
+                                <input type="email" id="email" name="email" class="form-input" placeholder="john@example.com" required>
                             </div>
                         </div>
                     </div>
@@ -611,7 +677,7 @@
                     <div class="mb-8">
                         <div class="form-group">
                             <label class="form-label" for="productIdea">Tell us about your idea *</label>
-                            <textarea id="productIdea" name="productIdea" class="form-textarea form-textarea-premium" style="min-height: 180px;" placeholder="What's the problem you want to solve? Who would use it? What's your background?
+                            <textarea id="productIdea" name="productIdea" class="form-textarea" style="min-height: 180px;" placeholder="What's the problem you want to solve? Who would use it? What's your background?
 
 Example: I'm a restaurant consultant and I want to build an AI tool that helps restaurant owners optimize their menu pricing based on ingredient costs and local competition..." required></textarea>
                             <p class="form-help">Share as much or as little as you'd like - we'll follow up for details</p>
@@ -620,7 +686,7 @@ Example: I'm a restaurant consultant and I want to build an AI tool that helps r
 
                     <!-- Submit Button -->
                     <div class="flex flex-col sm:flex-row gap-4 items-center justify-center">
-                        <button type="submit" class="cta-button submit-btn-premium pulse-glow px-12 py-4 rounded-full text-lg font-semibold text-white">
+                        <button type="submit" class="cta-button px-12 py-4 rounded-full text-lg font-display font-semibold text-white">
                             Submit & Get Started
                         </button>
                     </div>
@@ -631,7 +697,7 @@ Example: I'm a restaurant consultant and I want to build an AI tool that helps r
                 </form>
             </div>
 
-            <!-- Success Message with Calendly (hidden by default) -->
+            <!-- Success Message (hidden by default) -->
             <div id="success-message" class="hidden">
                 <div class="text-center mb-6">
                     <div class="w-14 h-14 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mx-auto mb-3 celebration-icon">
@@ -639,19 +705,124 @@ Example: I'm a restaurant consultant and I want to build an AI tool that helps r
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
                     </div>
-                    <h2 class="text-2xl font-bold mb-1 gradient-text">You're In!</h2>
+                    <h2 class="text-2xl font-display font-bold mb-1 gradient-text">You're In!</h2>
                     <p class="text-theme-secondary">Pick a time that works for you</p>
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- Chat Widget Container -->
-    <div id="chat-widget-container"></div>
+    <!-- Footer -->
+    <footer class="py-16 px-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-8">
+                <div class="flex items-center gap-3">
+                    <svg class="w-8 h-8" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="footerLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:var(--accent, #FFC36A)"/>
+                                <stop offset="50%" style="stop-color:var(--secondary, #FD6C71)"/>
+                                <stop offset="100%" style="stop-color:var(--primary, #FC2A0D)"/>
+                            </linearGradient>
+                        </defs>
+                        <g transform="translate(4, 4)">
+                            <path d="M20 0C8.954 0 0 8.954 0 20s8.954 20 20 20c5.523 0 10.523-2.239 14.142-5.858"
+                                  stroke="url(#footerLogoGradient)" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+                            <ellipse cx="20" cy="20" rx="26" ry="10"
+                                     stroke="url(#footerLogoGradient)" stroke-width="2" fill="none"
+                                     transform="rotate(-30, 20, 20)"/>
+                            <circle cx="42" cy="12" r="3.5" fill="url(#footerLogoGradient)"/>
+                        </g>
+                    </svg>
+                    <span class="font-display font-bold text-lg">
+                        <span class="text-theme-primary">CO</span><span class="gradient-text">CREATE</span>
+                    </span>
+                </div>
+                <p class="text-theme-secondary text-sm">&copy; 2026 CoCreate AI. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
 
     <!-- Chat Widget -->
-    <script src="js/chat-widget.js?v=20260118a"></script>
+    <script src="js/chat-widget.js"></script>
+    <script src="js/chat-loader.js"></script>
+
     <script>
+        // GSAP Animations
+        gsap.registerPlugin(ScrollTrigger);
+
+        gsap.utils.toArray('.section-reveal').forEach((elem, i) => {
+            const isHero = elem.closest('.hero-section');
+            if (isHero) {
+                gsap.to(elem, { opacity: 1, y: 0, duration: 1, ease: 'power3.out', delay: 0.3 });
+            } else {
+                gsap.to(elem, {
+                    opacity: 1, y: 0, duration: 0.8, ease: 'power3.out',
+                    scrollTrigger: { trigger: elem, start: 'top 85%' }
+                });
+            }
+        });
+
+        // Theme Switcher
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeDropdown = document.getElementById('theme-dropdown');
+        const themeLabel = document.getElementById('theme-label');
+        const themeOptions = document.querySelectorAll('.theme-option');
+
+        // Update UI based on current theme
+        function updateThemeUI() {
+            const current = window.ThemeManager?.get() || 'ember';
+            themeLabel.textContent = current.charAt(0).toUpperCase() + current.slice(1);
+            themeOptions.forEach(opt => {
+                opt.classList.toggle('active', opt.dataset.theme === current);
+            });
+        }
+
+        themeToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            themeDropdown.classList.toggle('active');
+        });
+
+        document.addEventListener('click', () => {
+            themeDropdown.classList.remove('active');
+        });
+
+        themeOptions.forEach(option => {
+            option.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const theme = option.dataset.theme;
+                if (window.ThemeManager) {
+                    window.ThemeManager.set(theme);
+                }
+                updateThemeUI();
+                themeDropdown.classList.remove('active');
+            });
+        });
+
+        // Listen for theme changes from ThemeManager
+        window.addEventListener('themechange', updateThemeUI);
+
+        // Initial UI update
+        updateThemeUI();
+
+        // Mobile Menu
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const mobileNavBtns = document.querySelectorAll('.mobile-nav-btn');
+
+        mobileMenuBtn?.addEventListener('click', () => {
+            mobileMenu.classList.toggle('active');
+        });
+
+        mobileNavBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const dropdownId = btn.dataset.dropdown;
+                const dropdown = document.getElementById(dropdownId);
+                dropdown?.classList.toggle('active');
+                btn.querySelector('svg')?.classList.toggle('rotate-180');
+            });
+        });
+
         // Form elements
         const form = document.getElementById('partnership-form');
         const formContainer = document.getElementById('form-container');
@@ -685,7 +856,7 @@ Example: I'm a restaurant consultant and I want to build an AI tool that helps r
         window.chatWidget = new ChatWidget({
             title: 'CoCreate AI',
             subtitle: 'Ready to help',
-            welcomeMessage: `Hi! 👋 Ready to build something amazing?
+            welcomeMessage: `Hi! Ready to build something amazing?
 
 Just tell me your name, email, and your product idea - I'll help you get started!
 
@@ -714,7 +885,7 @@ Or if you're still exploring, share what problem you'd like to solve and we can 
                 el.style.borderColor = '';
             });
 
-            // Field ID mapping (name in response → form field ID)
+            // Field ID mapping (name in response -> form field ID)
             const fieldIdMap = {
                 'name': 'fullName',
                 'email': 'email',

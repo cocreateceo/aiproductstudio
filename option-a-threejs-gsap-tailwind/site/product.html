@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="ember">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,198 +7,693 @@
     <title>Product Development | CoCreate AI</title>
     <meta name="description" content="End-to-end product development services powered by AI. From concept to launch in 2 weeks.">
 
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = { theme: { extend: { colors: { primary: 'var(--primary)', secondary: 'var(--secondary)', accent: 'var(--accent)' } } } }
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: 'var(--primary)',
+                        secondary: 'var(--secondary)',
+                        accent: 'var(--accent)',
+                    },
+                    fontFamily: {
+                        sans: ['DM Sans', 'system-ui', 'sans-serif'],
+                        display: ['Outfit', 'DM Sans', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
     </script>
 
+    <!-- Google Fonts - CoCreate Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- CoCreate Theme CSS -->
+    <link rel="stylesheet" href="css/themes/ember.css">
+    <link rel="stylesheet" href="css/themes/coral.css">
+    <link rel="stylesheet" href="css/themes/sunset.css">
+    <link rel="stylesheet" href="css/themes/aurora.css">
+    <link rel="stylesheet" href="css/themes/legacy.css">
+
+    <!-- Unified Theme System (MUST be before any rendering) -->
+    <script src="js/theme.js"></script>
+
+    <!-- GSAP -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
     <script src="js/config.js"></script>
     <link rel="stylesheet" href="css/chat-widget.css">
     <link rel="stylesheet" href="css/responsive.css">
 
     <style>
-        :root { --transition-speed: 0.4s; }
-        [data-theme="dark"] { --bg-primary: #020617; --bg-secondary: #0f172a; --bg-card: rgba(15, 23, 42, 0.7); --text-primary: #f1f5f9; --text-secondary: #94a3b8; --text-muted: #64748b; --border-color: rgba(99, 102, 241, 0.2); --primary: #6366f1; --secondary: #8b5cf6; --accent: #06b6d4; --nav-bg: rgba(2, 6, 23, 0.8); --glow-color: rgba(99, 102, 241, 0.3); }
-        [data-theme="light"] { --bg-primary: #f8fafc; --bg-secondary: #e2e8f0; --bg-card: rgba(255, 255, 255, 0.9); --text-primary: #0f172a; --text-secondary: #475569; --text-muted: #64748b; --border-color: rgba(99, 102, 241, 0.15); --primary: #4f46e5; --secondary: #7c3aed; --accent: #0891b2; --nav-bg: rgba(248, 250, 252, 0.95); --glow-color: rgba(79, 70, 229, 0.2); }
+        :root {
+            --transition-speed: 0.4s;
+            --nav-height: 80px;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html { scroll-behavior: smooth; }
-        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg-primary); color: var(--text-primary); overflow-x: hidden; }
-        .glass-card { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-color); }
-        .gradient-text { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-        .hero-bg { background: linear-gradient(135deg, rgba(2,6,23,0.8) 0%, rgba(15,23,42,0.85) 100%), url('https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1920&q=80') center/cover no-repeat; }
-        [data-theme="light"] .hero-bg { background: linear-gradient(135deg, rgba(248,250,252,0.9) 0%, rgba(226,232,240,0.92) 100%), url('https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1920&q=80') center/cover no-repeat; }
+
+        body {
+            font-family: 'DM Sans', system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            transition: background var(--transition-speed) ease, color var(--transition-speed) ease;
+        }
+
+        /* CoCreate Typography - Outfit for headings */
+        h1, h2, h3, h4, h5, h6, .font-display {
+            font-family: 'Outfit', 'DM Sans', system-ui, sans-serif;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        h1 { font-weight: 700; letter-spacing: -0.03em; }
+
+        .gradient-text {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .glass-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            transition: background var(--transition-speed) ease, border-color var(--transition-speed) ease;
+        }
+
+        .text-theme-primary { color: var(--text-primary); }
+        .text-theme-secondary { color: var(--text-secondary); }
+        .text-theme-muted { color: var(--text-muted); }
+        .bg-theme-primary { background: var(--bg-primary); }
+        .bg-theme-secondary { background: var(--bg-secondary); }
+        .border-theme { border-color: var(--border-color); }
+
         .section-reveal { opacity: 0; transform: translateY(40px); }
-        .cta-button { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); box-shadow: 0 4px 20px var(--glow-color); transition: all 0.3s ease; }
-        .cta-button:hover { transform: translateY(-2px); box-shadow: 0 8px 30px var(--glow-color); }
-        .nav-link-new { display: inline-flex; align-items: center; padding: 0.5rem 1rem; font-size: 0.8125rem; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; transition: color 0.2s ease; white-space: nowrap; background: none; border: none; cursor: pointer; }
+
+        /* Navigation Styles */
+        .nav-main {
+            width: 100%;
+            backdrop-filter: blur(20px) saturate(180%);
+            transition: all 0.3s ease;
+        }
+
+        .nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .nav-item {
+            position: relative;
+        }
+
+        .nav-link-new {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: color 0.2s ease;
+            white-space: nowrap;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
         .nav-link-new:hover { color: var(--text-primary); }
-        .nav-cta-btn { display: inline-flex; align-items: center; padding: 0.5rem 1.25rem; font-size: 0.8125rem; font-weight: 600; color: white; text-transform: uppercase; letter-spacing: 0.05em; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); border-radius: 2px; transition: all 0.2s ease; }
-        .nav-dropdown-new { position: absolute; top: 100%; left: 0; min-width: 200px; background: rgba(15, 15, 20, 0.98); border: 1px solid rgba(255, 255, 255, 0.08); padding: 0.75rem 0; opacity: 0; visibility: hidden; transform: translateY(8px); transition: all 0.2s ease; z-index: 9999; }
-        .nav-item:hover .nav-dropdown-new { opacity: 1; visibility: visible; transform: translateY(0); }
-        .nav-dropdown-new a { display: block; padding: 0.625rem 1.25rem; font-size: 0.875rem; color: rgba(255, 255, 255, 0.7); transition: all 0.15s ease; }
-        .nav-dropdown-new a:hover { color: white; background: rgba(255, 255, 255, 0.05); }
-        .service-card { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-color); border-radius: 1rem; padding: 2rem; transition: all 0.3s ease; }
-        .service-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px var(--glow-color); }
-        .process-step { position: relative; padding-left: 3rem; }
-        .process-step::before { content: attr(data-step); position: absolute; left: 0; top: 0; width: 2rem; height: 2rem; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.875rem; }
-        /* Theme Switcher Styles */
+
+        .nav-dropdown-new {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            min-width: 200px;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            padding: 0.75rem 0;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(8px);
+            transition: all 0.2s ease;
+            z-index: 9999;
+            border-radius: 12px;
+        }
+
+        .nav-item:hover .nav-dropdown-new {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .nav-dropdown-new a {
+            display: block;
+            padding: 0.625rem 1.25rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            transition: all 0.15s ease;
+        }
+
+        .nav-dropdown-new a:hover {
+            color: var(--text-primary);
+            background: var(--bg-secondary);
+        }
+
+        .nav-cta-btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1.25rem;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .nav-cta-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px var(--glow-color);
+        }
+
+        /* Theme Switcher */
         .theme-switcher { position: relative; }
-        .theme-toggle-btn { display: flex; align-items: center; gap: 6px; padding: 0.5rem 0.75rem; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; transition: color 0.2s ease; }
+
+        .theme-toggle-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0.5rem 0.75rem;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+
         .theme-toggle-btn:hover { color: var(--text-primary); }
-        .theme-dropdown { position: absolute; top: calc(100% + 8px); right: 0; background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-color); border-radius: 16px; padding: 8px; min-width: 180px; opacity: 0; visibility: hidden; transform: translateY(-10px); transition: all 0.3s ease; z-index: 100; }
-        .theme-dropdown.active { opacity: 1; visibility: visible; transform: translateY(0); }
-        .theme-option { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 12px; cursor: pointer; transition: all 0.2s ease; color: var(--text-secondary); }
-        .theme-option:hover { background: var(--bg-secondary); color: var(--text-primary); }
-        .theme-option.active { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; }
-        .theme-preview { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--border-color); position: relative; overflow: hidden; }
-        .theme-preview-dark { background: linear-gradient(135deg, #020617 50%, #6366f1 50%); }
-        .theme-preview-midnight { background: linear-gradient(135deg, #0c0a1d 50%, #a78bfa 50%); }
-        .theme-preview-dusk { background: linear-gradient(135deg, #1e1b2e 50%, #fb923c 50%); }
-        .theme-preview-light { background: linear-gradient(135deg, #f8fafc 50%, #4f46e5 50%); }
+
+        .theme-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 8px;
+            min-width: 180px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .theme-dropdown.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .theme-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-secondary);
+        }
+
+        .theme-option:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .theme-option.active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+
+        .theme-preview {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid var(--border-color);
+        }
+
+        /* Hero Section */
+        .hero-section {
+            position: relative;
+            min-height: 70vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 120px 24px 80px;
+            background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            overflow: hidden;
+        }
+
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(var(--primary-rgb, 252, 42, 13), 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(var(--secondary-rgb, 253, 108, 113), 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 50% 80%, rgba(var(--accent-rgb, 255, 195, 106), 0.08) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        /* Value Cards */
+        .value-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 1.5rem;
+            padding: 2.5rem;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .value-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 50px var(--glow-color);
+            border-color: var(--primary);
+        }
+
+        .value-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+        }
+
+        /* Service Cards */
+        .service-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .service-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px var(--glow-color);
+            border-color: var(--primary);
+        }
+
+        /* Process Steps */
+        .process-step {
+            position: relative;
+            padding-left: 3rem;
+        }
+
+        .process-step::before {
+            content: attr(data-step);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 2rem;
+            height: 2rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.875rem;
+            color: white;
+        }
+
+        /* CTA Button */
+        .cta-button {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            box-shadow: 0 4px 20px var(--glow-color);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .cta-button:hover::before { left: 100%; }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px var(--glow-color);
+        }
+
+        /* Mobile Menu */
+        .mobile-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .mobile-menu.active { display: block; }
+
+        .mobile-nav-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 1rem;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .mobile-dropdown {
+            display: none;
+            padding-left: 1rem;
+        }
+
+        .mobile-dropdown.active { display: block; }
+
+        .mobile-dropdown a {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: var(--text-secondary);
+        }
+
+        .mobile-nav-cta {
+            display: block;
+            margin: 1rem;
+            padding: 1rem;
+            text-align: center;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+        }
     </style>
 </head>
 <body>
-    <nav class="fixed top-0 left-0 right-0 glass-card border-b border-theme" style="z-index: 10000;">
-        <div class="max-w-7xl mx-auto flex items-center justify-between h-16 px-6 lg:px-10">
-            <a href="index.html" class="flex items-center gap-3 shrink-0">
-                <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 glass-card border-b border-theme nav-main" style="z-index: 10000;">
+        <div class="nav-inner flex items-center justify-between h-16 px-6 lg:px-10">
+            <!-- CoCreate Logo -->
+            <a href="index.html" class="flex items-center gap-3 shrink-0 group">
+                <div class="w-10 h-10 flex items-center justify-center transition-transform group-hover:scale-105">
+                    <svg class="w-10 h-10" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="navLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:var(--accent, #FFC36A)"/>
+                                <stop offset="50%" style="stop-color:var(--secondary, #FD6C71)"/>
+                                <stop offset="100%" style="stop-color:var(--primary, #FC2A0D)"/>
+                            </linearGradient>
+                        </defs>
+                        <g transform="translate(4, 4)">
+                            <path d="M20 0C8.954 0 0 8.954 0 20s8.954 20 20 20c5.523 0 10.523-2.239 14.142-5.858"
+                                  stroke="url(#navLogoGradient)" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+                            <ellipse cx="20" cy="20" rx="26" ry="10"
+                                     stroke="url(#navLogoGradient)" stroke-width="2" fill="none"
+                                     transform="rotate(-30, 20, 20)"/>
+                            <circle cx="42" cy="12" r="3.5" fill="url(#navLogoGradient)"/>
+                        </g>
+                    </svg>
                 </div>
-                <span class="text-lg font-bold tracking-tight hidden sm:block">CoCreate AI</span>
+                <span class="text-lg font-display font-bold tracking-tight hidden sm:block">
+                    <span class="text-theme-primary">CO</span><span class="gradient-text">CREATE</span>
+                </span>
             </a>
+
+            <!-- Desktop Navigation -->
             <div class="hidden lg:flex items-center gap-1">
-                <div class="nav-item relative">
-                    <button class="nav-link-new">Who We Are <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button>
-                    <div class="nav-dropdown-new"><a href="who-we-are.html">Who We Are</a><a href="partners.html">Partners</a><!-- Hidden for now: <a href="leadership.html">Leadership</a> --><a href="culture.html">Culture</a><!-- Hidden for now: <a href="careers.html">Careers</a> --></div>
+                <div class="nav-item">
+                    <button class="nav-link-new" type="button">
+                        Who We Are
+                        <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="nav-dropdown-new">
+                        <a href="who-we-are.html">Who We Are</a>
+                        <a href="partners.html">Partners</a>
+                        <a href="culture.html">Culture</a>
+                    </div>
                 </div>
-                <div class="nav-item relative">
-                    <button class="nav-link-new">What We Do <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button>
-                    <div class="nav-dropdown-new"><a href="what-we-do.html">Overview</a><a href="ai.html">AI Solutions</a><a href="product.html">Product Development</a><a href="platforms.html">Platforms</a></div>
+                <div class="nav-item">
+                    <button class="nav-link-new" type="button">
+                        What We Do
+                        <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="nav-dropdown-new">
+                        <a href="what-we-do.html">Overview</a>
+                        <a href="ai.html">AI Solutions</a>
+                        <a href="product.html">Product Development</a>
+                        <a href="platforms.html">Platforms</a>
+                    </div>
                 </div>
-                <!-- Hidden: Industries nav -->
-                <div class="nav-item relative">
-                    <button class="nav-link-new">Insights <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button>
-                    <div class="nav-dropdown-new"><a href="insights.html">All Insights</a><a href="blogs.html">Blog</a><a href="success-stories.html">Success Stories</a></div>
+                <div class="nav-item">
+                    <button class="nav-link-new" type="button">
+                        Insights
+                        <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="nav-dropdown-new">
+                        <a href="insights.html">All Insights</a>
+                        <a href="blogs.html">Blog</a>
+                        <a href="success-stories.html">Success Stories</a>
+                    </div>
                 </div>
-                <!-- Hidden for now: <a href="careers.html" class="nav-link-new">Careers</a> -->
+
                 <!-- Theme Switcher -->
                 <div class="theme-switcher">
                     <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle theme">
                         <svg class="w-4 h-4" id="theme-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
                         </svg>
-                        <span class="text-xs font-medium uppercase tracking-wide" id="theme-label">Dark</span>
+                        <span class="text-xs font-medium uppercase tracking-wide" id="theme-label">Ember</span>
                     </button>
                     <div class="theme-dropdown" id="theme-dropdown">
-                        <div class="theme-option active" data-theme="dark"><div class="theme-preview theme-preview-dark"></div><span>Dark</span></div>
-                        <div class="theme-option" data-theme="midnight"><div class="theme-preview theme-preview-midnight"></div><span>Midnight</span></div>
-                        <div class="theme-option" data-theme="dusk"><div class="theme-preview theme-preview-dusk"></div><span>Dusk</span></div>
-                        <div class="theme-option" data-theme="light"><div class="theme-preview theme-preview-light"></div><span>Light</span></div>
+                        <div class="theme-option active" data-theme="ember">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #1A0A00 50%, #FC2A0D 50%);"></div>
+                            <span>Ember</span>
+                        </div>
+                        <div class="theme-option" data-theme="coral">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #FFF8F0 50%, #FD6C71 50%);"></div>
+                            <span>Coral</span>
+                        </div>
+                        <div class="theme-option" data-theme="sunset">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #2D1B3D 50%, #FF6B9D 50%);"></div>
+                            <span>Sunset</span>
+                        </div>
+                        <div class="theme-option" data-theme="aurora">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #FFF5F8 50%, #E6A4FF 50%);"></div>
+                            <span>Aurora</span>
+                        </div>
+                        <div class="theme-option" data-theme="legacy">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #020617 50%, #6366f1 50%);"></div>
+                            <span>Legacy</span>
+                        </div>
                     </div>
                 </div>
+
                 <a href="contact.html" class="nav-cta-btn">Contact</a>
+            </div>
+
+            <!-- Mobile Menu Button -->
+            <button class="lg:hidden flex items-center justify-center w-10 h-10 rounded-lg hover:bg-white/10 transition" id="mobile-menu-btn" aria-label="Open menu">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div class="lg:hidden mobile-menu" id="mobile-menu">
+            <div class="px-6 py-4 space-y-1 border-t border-theme">
+                <div class="mobile-nav-item">
+                    <button class="mobile-nav-btn" data-dropdown="mobile-who">
+                        Who We Are
+                        <svg class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="mobile-dropdown" id="mobile-who">
+                        <a href="who-we-are.html">Who We Are</a>
+                        <a href="partners.html">Partners</a>
+                        <a href="culture.html">Culture</a>
+                    </div>
+                </div>
+                <div class="mobile-nav-item">
+                    <button class="mobile-nav-btn" data-dropdown="mobile-what">
+                        What We Do
+                        <svg class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="mobile-dropdown" id="mobile-what">
+                        <a href="what-we-do.html">Overview</a>
+                        <a href="ai.html">AI Solutions</a>
+                        <a href="product.html">Product Development</a>
+                        <a href="platforms.html">Platforms</a>
+                    </div>
+                </div>
+                <div class="mobile-nav-item">
+                    <button class="mobile-nav-btn" data-dropdown="mobile-insights">
+                        Insights
+                        <svg class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="mobile-dropdown" id="mobile-insights">
+                        <a href="insights.html">All Insights</a>
+                        <a href="blogs.html">Blog</a>
+                        <a href="success-stories.html">Success Stories</a>
+                    </div>
+                </div>
+                <a href="contact.html" class="mobile-nav-cta">Contact Us</a>
             </div>
         </div>
     </nav>
 
-    <section class="hero-bg min-h-[70vh] flex items-center justify-center px-6 pt-20">
-        <div class="max-w-5xl mx-auto text-center section-reveal">
-            <p class="text-accent font-semibold tracking-wider uppercase mb-4">Product Development</p>
-            <h1 class="text-4xl md:text-6xl font-bold mb-6 leading-tight">
-                From Idea to <span class="gradient-text">Launch</span> in 2 Weeks
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="max-w-5xl mx-auto text-center section-reveal relative z-10">
+            <p class="text-accent font-display font-semibold tracking-widest uppercase mb-6">Product Development</p>
+            <h1 class="text-4xl md:text-6xl lg:text-7xl font-display font-bold mb-8 leading-tight">
+                <span class="text-theme-primary">From Idea to</span><br>
+                <span class="gradient-text">Launch in 2 Weeks</span>
             </h1>
-            <p class="text-xl text-theme-secondary max-w-3xl mx-auto leading-relaxed">
+            <p class="text-xl md:text-2xl text-theme-secondary max-w-3xl mx-auto leading-relaxed">
                 End-to-end product development powered by AI. We handle everything from design to deployment.
             </p>
         </div>
     </section>
 
+    <!-- Services Section -->
     <section class="py-24 px-6">
         <div class="max-w-6xl mx-auto">
             <div class="text-center mb-16 section-reveal">
-                <p class="text-accent font-semibold tracking-wider uppercase mb-4">Our Services</p>
-                <h2 class="text-3xl md:text-4xl font-bold">Full-Stack Product Development</h2>
+                <p class="text-accent font-display font-semibold tracking-widest uppercase mb-4">Our Services</p>
+                <h2 class="text-3xl md:text-5xl font-display font-bold">Full-Stack Product Development</h2>
             </div>
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <div class="service-card section-reveal">
-                    <div class="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mb-6">
-                        <svg class="w-7 h-7 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                    <div class="value-icon">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
                     </div>
-                    <h3 class="text-xl font-bold mb-3">Product Strategy</h3>
-                    <p class="text-theme-secondary">Market research, competitive analysis, and product roadmap development to ensure market fit.</p>
+                    <h3 class="text-2xl font-display font-bold mb-4">Product Strategy</h3>
+                    <p class="text-theme-secondary leading-relaxed">Market research, competitive analysis, and product roadmap development to ensure market fit.</p>
                 </div>
                 <div class="service-card section-reveal">
-                    <div class="w-14 h-14 rounded-xl bg-secondary/20 flex items-center justify-center mb-6">
-                        <svg class="w-7 h-7 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
+                    <div class="value-icon">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
                     </div>
-                    <h3 class="text-xl font-bold mb-3">UI/UX Design</h3>
-                    <p class="text-theme-secondary">Beautiful, intuitive interfaces designed for conversion and user engagement.</p>
+                    <h3 class="text-2xl font-display font-bold mb-4">UI/UX Design</h3>
+                    <p class="text-theme-secondary leading-relaxed">Beautiful, intuitive interfaces designed for conversion and user engagement.</p>
                 </div>
                 <div class="service-card section-reveal">
-                    <div class="w-14 h-14 rounded-xl bg-accent/20 flex items-center justify-center mb-6">
-                        <svg class="w-7 h-7 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    <div class="value-icon">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
                     </div>
-                    <h3 class="text-xl font-bold mb-3">Development</h3>
-                    <p class="text-theme-secondary">Full-stack development using modern technologies and AI-powered tools.</p>
+                    <h3 class="text-2xl font-display font-bold mb-4">Development</h3>
+                    <p class="text-theme-secondary leading-relaxed">Full-stack development using modern technologies and AI-powered tools.</p>
                 </div>
                 <div class="service-card section-reveal">
-                    <div class="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mb-6">
-                        <svg class="w-7 h-7 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                    <div class="value-icon">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                     </div>
-                    <h3 class="text-xl font-bold mb-3">QA & Testing</h3>
-                    <p class="text-theme-secondary">Comprehensive testing including automated tests, security audits, and performance optimization.</p>
+                    <h3 class="text-2xl font-display font-bold mb-4">QA & Testing</h3>
+                    <p class="text-theme-secondary leading-relaxed">Comprehensive testing including automated tests, security audits, and performance optimization.</p>
                 </div>
                 <div class="service-card section-reveal">
-                    <div class="w-14 h-14 rounded-xl bg-secondary/20 flex items-center justify-center mb-6">
-                        <svg class="w-7 h-7 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                    <div class="value-icon">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
                     </div>
-                    <h3 class="text-xl font-bold mb-3">Deployment</h3>
-                    <p class="text-theme-secondary">Cloud deployment with CI/CD pipelines, monitoring, and scalable infrastructure.</p>
+                    <h3 class="text-2xl font-display font-bold mb-4">Deployment</h3>
+                    <p class="text-theme-secondary leading-relaxed">Cloud deployment with CI/CD pipelines, monitoring, and scalable infrastructure.</p>
                 </div>
                 <div class="service-card section-reveal">
-                    <div class="w-14 h-14 rounded-xl bg-accent/20 flex items-center justify-center mb-6">
-                        <svg class="w-7 h-7 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                    <div class="value-icon">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
                     </div>
-                    <h3 class="text-xl font-bold mb-3">Growth Support</h3>
-                    <p class="text-theme-secondary">Post-launch analytics, iteration support, and growth optimization strategies.</p>
+                    <h3 class="text-2xl font-display font-bold mb-4">Growth Support</h3>
+                    <p class="text-theme-secondary leading-relaxed">Post-launch analytics, iteration support, and growth optimization strategies.</p>
                 </div>
             </div>
         </div>
     </section>
 
+    <!-- Process Section -->
     <section class="py-24 px-6" style="background: var(--bg-secondary);">
         <div class="max-w-6xl mx-auto">
             <div class="grid md:grid-cols-2 gap-16 items-center">
                 <div class="section-reveal">
-                    <p class="text-accent font-semibold tracking-wider uppercase mb-4">Our Process</p>
-                    <h2 class="text-3xl md:text-4xl font-bold mb-8">How We Build Products</h2>
+                    <p class="text-accent font-display font-semibold tracking-widest uppercase mb-4">Our Process</p>
+                    <h2 class="text-3xl md:text-5xl font-display font-bold mb-8">How We Build Products</h2>
                     <div class="space-y-8">
                         <div class="process-step section-reveal" data-step="1">
-                            <h3 class="text-lg font-bold mb-2">Discovery & Strategy</h3>
+                            <h3 class="text-xl font-display font-bold mb-2">Discovery & Strategy</h3>
                             <p class="text-theme-secondary">We dive deep into your vision, market, and users to create a winning strategy.</p>
                         </div>
                         <div class="process-step section-reveal" data-step="2">
-                            <h3 class="text-lg font-bold mb-2">Design Sprint</h3>
+                            <h3 class="text-xl font-display font-bold mb-2">Design Sprint</h3>
                             <p class="text-theme-secondary">Rapid prototyping and user testing to validate concepts before development.</p>
                         </div>
                         <div class="process-step section-reveal" data-step="3">
-                            <h3 class="text-lg font-bold mb-2">AI-Powered Build</h3>
+                            <h3 class="text-xl font-display font-bold mb-2">AI-Powered Build</h3>
                             <p class="text-theme-secondary">Our AI-augmented development process delivers production-ready code fast.</p>
                         </div>
                         <div class="process-step section-reveal" data-step="4">
-                            <h3 class="text-lg font-bold mb-2">Launch & Iterate</h3>
+                            <h3 class="text-xl font-display font-bold mb-2">Launch & Iterate</h3>
                             <p class="text-theme-secondary">Deploy to production and continuously improve based on real user data.</p>
                         </div>
                     </div>
                 </div>
                 <div class="section-reveal">
-                    <div class="glass-card rounded-2xl p-8">
-                        <h3 class="text-2xl font-bold mb-6 text-center">Why 2 Weeks?</h3>
+                    <div class="glass-card rounded-3xl p-8">
+                        <h3 class="text-2xl font-display font-bold mb-6 text-center">Why 2 Weeks?</h3>
                         <div class="space-y-4">
                             <div class="flex items-start gap-4">
                                 <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
@@ -231,65 +726,127 @@
         </div>
     </section>
 
+    <!-- CTA Section -->
     <section class="py-24 px-6">
         <div class="max-w-4xl mx-auto text-center section-reveal">
-            <h2 class="text-3xl md:text-4xl font-bold mb-6">Ready to Build Your Product?</h2>
-            <p class="text-xl text-theme-secondary mb-8">Let's turn your idea into reality. Schedule a free consultation today.</p>
-            <a href="contact.html" class="cta-button inline-block px-8 py-4 rounded-full text-lg font-semibold text-white">Start Your Project</a>
+            <h2 class="text-3xl md:text-5xl font-display font-bold mb-8">Ready to Build Your Product?</h2>
+            <p class="text-xl text-theme-secondary mb-10">Let's turn your idea into reality. Schedule a free consultation today.</p>
+            <a href="contact.html" class="cta-button inline-block px-10 py-5 rounded-full text-lg font-display font-semibold text-white">
+                Start Your Project
+            </a>
         </div>
     </section>
 
-    <footer class="py-12 px-6 border-t border-theme">
-        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+    <!-- Footer -->
+    <footer class="py-16 px-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-8">
+                <div class="flex items-center gap-3">
+                    <svg class="w-8 h-8" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="footerLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:var(--accent, #FFC36A)"/>
+                                <stop offset="50%" style="stop-color:var(--secondary, #FD6C71)"/>
+                                <stop offset="100%" style="stop-color:var(--primary, #FC2A0D)"/>
+                            </linearGradient>
+                        </defs>
+                        <g transform="translate(4, 4)">
+                            <path d="M20 0C8.954 0 0 8.954 0 20s8.954 20 20 20c5.523 0 10.523-2.239 14.142-5.858"
+                                  stroke="url(#footerLogoGradient)" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+                            <ellipse cx="20" cy="20" rx="26" ry="10"
+                                     stroke="url(#footerLogoGradient)" stroke-width="2" fill="none"
+                                     transform="rotate(-30, 20, 20)"/>
+                            <circle cx="42" cy="12" r="3.5" fill="url(#footerLogoGradient)"/>
+                        </g>
+                    </svg>
+                    <span class="font-display font-bold text-lg">
+                        <span class="text-theme-primary">CO</span><span class="gradient-text">CREATE</span>
+                    </span>
                 </div>
-                <span class="font-semibold">CoCreate AI</span>
+                <p class="text-theme-secondary text-sm">&copy; 2026 CoCreate AI. All rights reserved.</p>
             </div>
-            <p class="text-theme-secondary text-sm">&copy; 2026 CoCreate AI. All rights reserved.</p>
         </div>
     </footer>
 
-    <!-- Chat Widget (iframe-based, persists across pages) -->
+    <!-- Chat Widget -->
     <script src="js/chat-widget.js"></script>
     <script src="js/chat-loader.js"></script>
+
     <script>
+        // GSAP Animations
         gsap.registerPlugin(ScrollTrigger);
-        gsap.utils.toArray('.section-reveal').forEach((elem) => {
-            const isHero = elem.closest('section')?.classList.contains('hero-bg');
-            if (isHero) { gsap.to(elem, { opacity: 1, y: 0, duration: 1, ease: 'power3.out', delay: 0.3 }); }
-            else { gsap.to(elem, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', scrollTrigger: { trigger: elem, start: 'top 85%' } }); }
+
+        gsap.utils.toArray('.section-reveal').forEach((elem, i) => {
+            const isHero = elem.closest('.hero-section');
+            if (isHero) {
+                gsap.to(elem, { opacity: 1, y: 0, duration: 1, ease: 'power3.out', delay: 0.3 });
+            } else {
+                gsap.to(elem, {
+                    opacity: 1, y: 0, duration: 0.8, ease: 'power3.out',
+                    scrollTrigger: { trigger: elem, start: 'top 85%' }
+                });
+            }
         });
-        // Theme Management
-        const themes = {
-            dark: { icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>`, label: 'Dark' },
-            midnight: { icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>`, label: 'Midnight' },
-            dusk: { icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>`, label: 'Dusk' },
-            light: { icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>`, label: 'Light' }
-        };
-        let currentTheme = localStorage.getItem('theme') || 'dark';
+
+        // Theme Switcher
         const themeToggle = document.getElementById('theme-toggle');
         const themeDropdown = document.getElementById('theme-dropdown');
-        const themeIcon = document.getElementById('theme-icon');
         const themeLabel = document.getElementById('theme-label');
         const themeOptions = document.querySelectorAll('.theme-option');
 
-        function setTheme(theme) {
-            document.documentElement.setAttribute('data-theme', theme);
-            currentTheme = theme;
-            localStorage.setItem('theme', theme);
-            themeIcon.innerHTML = themes[theme].icon;
-            themeLabel.textContent = themes[theme].label;
-            themeOptions.forEach(option => { option.classList.toggle('active', option.dataset.theme === theme); });
+        // Update UI based on current theme
+        function updateThemeUI() {
+            const current = window.ThemeManager?.get() || 'ember';
+            themeLabel.textContent = current.charAt(0).toUpperCase() + current.slice(1);
+            themeOptions.forEach(opt => {
+                opt.classList.toggle('active', opt.dataset.theme === current);
+            });
         }
 
-        themeToggle.addEventListener('click', (e) => { e.stopPropagation(); themeDropdown.classList.toggle('active'); });
-        document.addEventListener('click', () => { themeDropdown.classList.remove('active'); });
-        themeOptions.forEach(option => {
-            option.addEventListener('click', (e) => { e.stopPropagation(); setTheme(option.dataset.theme); themeDropdown.classList.remove('active'); });
+        themeToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            themeDropdown.classList.toggle('active');
         });
-        setTheme(currentTheme);
+
+        document.addEventListener('click', () => {
+            themeDropdown.classList.remove('active');
+        });
+
+        themeOptions.forEach(option => {
+            option.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const theme = option.dataset.theme;
+                if (window.ThemeManager) {
+                    window.ThemeManager.set(theme);
+                }
+                updateThemeUI();
+                themeDropdown.classList.remove('active');
+            });
+        });
+
+        // Listen for theme changes from ThemeManager
+        window.addEventListener('themechange', updateThemeUI);
+
+        // Initial UI update
+        updateThemeUI();
+
+        // Mobile Menu
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const mobileNavBtns = document.querySelectorAll('.mobile-nav-btn');
+
+        mobileMenuBtn?.addEventListener('click', () => {
+            mobileMenu.classList.toggle('active');
+        });
+
+        mobileNavBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const dropdownId = btn.dataset.dropdown;
+                const dropdown = document.getElementById(dropdownId);
+                dropdown?.classList.toggle('active');
+                btn.querySelector('svg')?.classList.toggle('rotate-180');
+            });
+        });
     </script>
 </body>
 </html>

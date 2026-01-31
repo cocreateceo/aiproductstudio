@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="ember">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,30 +19,39 @@
                         accent: 'var(--accent)',
                     },
                     fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        sans: ['DM Sans', 'system-ui', 'sans-serif'],
+                        display: ['Outfit', 'DM Sans', 'system-ui', 'sans-serif'],
                     }
                 }
             }
         }
     </script>
 
-    <!-- Google Fonts -->
+    <!-- Google Fonts - CoCreate Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- CoCreate Theme CSS -->
+    <link rel="stylesheet" href="css/themes/ember.css">
+    <link rel="stylesheet" href="css/themes/coral.css">
+    <link rel="stylesheet" href="css/themes/sunset.css">
+    <link rel="stylesheet" href="css/themes/aurora.css">
+    <link rel="stylesheet" href="css/themes/legacy.css">
+
+    <!-- Unified Theme System (MUST be before any rendering) -->
+    <script src="js/theme.js"></script>
 
     <!-- GSAP -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
-
-    <!-- html2canvas for screenshots -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <!-- Centralized Configuration -->
     <script src="js/config.js"></script>
 
     <!-- Chat Widget -->
     <link rel="stylesheet" href="css/chat-widget.css">
+    <link rel="stylesheet" href="css/responsive.css">
 
     <style>
         :root {
@@ -50,37 +59,25 @@
             --nav-height: 80px;
         }
 
-        [data-theme="dark"] {
-            --bg-primary: #020617;
-            --bg-secondary: #0f172a;
-            --bg-card: rgba(15, 23, 42, 0.7);
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-            --border-color: rgba(99, 102, 241, 0.2);
-            --primary: #6366f1;
-            --secondary: #8b5cf6;
-            --accent: #06b6d4;
-            --nav-bg: rgba(2, 6, 23, 0.8);
-            --glow-color: rgba(99, 102, 241, 0.3);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        html {
-            scroll-behavior: smooth;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
 
         body {
-            font-family: 'Inter', system-ui, sans-serif;
+            font-family: 'DM Sans', system-ui, sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
             overflow-x: hidden;
+            transition: background var(--transition-speed) ease, color var(--transition-speed) ease;
         }
+
+        /* CoCreate Typography - Outfit for headings */
+        h1, h2, h3, h4, h5, h6, .font-display {
+            font-family: 'Outfit', 'DM Sans', system-ui, sans-serif;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        h1 { font-weight: 700; letter-spacing: -0.03em; }
 
         .gradient-text {
             background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%);
@@ -93,33 +90,283 @@
             background: var(--bg-card);
             backdrop-filter: blur(20px);
             border: 1px solid var(--border-color);
+            transition: background var(--transition-speed) ease, border-color var(--transition-speed) ease;
         }
 
-        .glow {
-            box-shadow: 0 0 60px var(--glow-color);
-        }
+        .text-theme-primary { color: var(--text-primary); }
+        .text-theme-secondary { color: var(--text-secondary); }
+        .text-theme-muted { color: var(--text-muted); }
+        .bg-theme-primary { background: var(--bg-primary); }
+        .bg-theme-secondary { background: var(--bg-secondary); }
+        .border-theme { border-color: var(--border-color); }
 
-        .cta-button {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        .section-reveal { opacity: 0; transform: translateY(40px); }
+
+        /* Navigation Styles */
+        .nav-main {
+            width: 100%;
+            backdrop-filter: blur(20px) saturate(180%);
             transition: all 0.3s ease;
         }
+
+        .nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .nav-item {
+            position: relative;
+        }
+
+        .nav-link-new {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: color 0.2s ease;
+            white-space: nowrap;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        .nav-link-new:hover { color: var(--text-primary); }
+
+        .nav-dropdown-new {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            min-width: 200px;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            padding: 0.75rem 0;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(8px);
+            transition: all 0.2s ease;
+            z-index: 9999;
+            border-radius: 12px;
+        }
+
+        .nav-item:hover .nav-dropdown-new {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .nav-dropdown-new a {
+            display: block;
+            padding: 0.625rem 1.25rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            transition: all 0.15s ease;
+        }
+
+        .nav-dropdown-new a:hover {
+            color: var(--text-primary);
+            background: var(--bg-secondary);
+        }
+
+        .nav-cta-btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1.25rem;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .nav-cta-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px var(--glow-color);
+        }
+
+        /* Theme Switcher */
+        .theme-switcher { position: relative; }
+
+        .theme-toggle-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0.5rem 0.75rem;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+
+        .theme-toggle-btn:hover { color: var(--text-primary); }
+
+        .theme-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 8px;
+            min-width: 180px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .theme-dropdown.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .theme-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-secondary);
+        }
+
+        .theme-option:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .theme-option.active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+
+        .theme-preview {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid var(--border-color);
+        }
+
+        /* Hero Section */
+        .hero-section {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 120px 24px 80px;
+            background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            overflow: hidden;
+        }
+
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(var(--primary-rgb, 252, 42, 13), 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(var(--secondary-rgb, 253, 108, 113), 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 50% 80%, rgba(var(--accent-rgb, 255, 195, 106), 0.08) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        /* Value Cards */
+        .value-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .value-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 50px var(--glow-color);
+            border-color: var(--primary);
+        }
+
+        .value-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+        }
+
+        /* Stats Card */
+        .stat-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            box-shadow: 0 20px 50px var(--glow-color);
+        }
+
+        .stat-number {
+            font-family: 'Outfit', sans-serif;
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* CTA Button */
+        .cta-button {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            box-shadow: 0 4px 20px var(--glow-color);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .cta-button:hover::before { left: 100%; }
 
         .cta-button:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 40px var(--glow-color);
         }
 
-        .feature-card {
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .feature-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 25px 50px var(--glow-color);
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, var(--bg-card) 0%, rgba(99, 102, 241, 0.1) 100%);
+        /* Timeline */
+        .timeline-item {
+            position: relative;
         }
 
         .timeline-item::before {
@@ -143,15 +390,13 @@
             background: linear-gradient(to bottom, var(--primary), var(--accent));
         }
 
-        .hero-gradient {
-            background: radial-gradient(ellipse at center, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
-        }
-
+        /* Section Divider */
         .section-divider {
             height: 1px;
             background: linear-gradient(90deg, transparent, var(--border-color), transparent);
         }
 
+        /* Pulse Badge */
         .pulse-badge {
             animation: pulse 2s infinite;
         }
@@ -161,49 +406,252 @@
             50% { opacity: 0.7; }
         }
 
+        /* Testimonial Card */
         .testimonial-card {
-            background: linear-gradient(135deg, var(--bg-card) 0%, rgba(139, 92, 246, 0.1) 100%);
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 1.5rem;
+            padding: 2rem;
+        }
+
+        /* Mobile Menu */
+        .mobile-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .mobile-menu.active { display: block; }
+
+        .mobile-nav-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 1rem;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .mobile-dropdown {
+            display: none;
+            padding-left: 1rem;
+        }
+
+        .mobile-dropdown.active { display: block; }
+
+        .mobile-dropdown a {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: var(--text-secondary);
+        }
+
+        .mobile-nav-cta {
+            display: block;
+            margin: 1rem;
+            padding: 1rem;
+            text-align: center;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
         }
     </style>
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="fixed top-0 left-0 right-0 z-50 px-6 py-4" style="background: var(--nav-bg); backdrop-filter: blur(20px);">
-        <div class="max-w-7xl mx-auto flex items-center justify-between">
-            <a href="index.html" class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+    <nav class="fixed top-0 left-0 glass-card border-b border-theme nav-main" style="z-index: 10000;">
+        <div class="nav-inner flex items-center justify-between h-16 px-6 lg:px-10">
+            <!-- CoCreate Logo -->
+            <a href="index.html" class="flex items-center gap-3 shrink-0 group">
+                <div class="w-10 h-10 flex items-center justify-center transition-transform group-hover:scale-105">
+                    <svg class="w-10 h-10" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="navLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:var(--accent, #FFC36A)"/>
+                                <stop offset="50%" style="stop-color:var(--secondary, #FD6C71)"/>
+                                <stop offset="100%" style="stop-color:var(--primary, #FC2A0D)"/>
+                            </linearGradient>
+                        </defs>
+                        <g transform="translate(4, 4)">
+                            <path d="M20 0C8.954 0 0 8.954 0 20s8.954 20 20 20c5.523 0 10.523-2.239 14.142-5.858"
+                                  stroke="url(#navLogoGradient)" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+                            <ellipse cx="20" cy="20" rx="26" ry="10"
+                                     stroke="url(#navLogoGradient)" stroke-width="2" fill="none"
+                                     transform="rotate(-30, 20, 20)"/>
+                            <circle cx="42" cy="12" r="3.5" fill="url(#navLogoGradient)"/>
+                        </g>
                     </svg>
                 </div>
-                <span class="text-xl font-bold gradient-text">CoCreate AI</span>
+                <span class="text-lg font-display font-bold tracking-tight hidden sm:block">
+                    <span class="text-theme-primary">CO</span><span class="gradient-text">CREATE</span>
+                </span>
             </a>
-            <div class="flex items-center gap-6">
-                <a href="index.html" class="text-theme-secondary hover:text-theme-primary transition">Home</a>
-                <a href="#opportunity" class="text-theme-secondary hover:text-theme-primary transition">Opportunity</a>
-                <a href="#services" class="text-theme-secondary hover:text-theme-primary transition">Services</a>
-                <a href="#results" class="text-theme-secondary hover:text-theme-primary transition">Results</a>
-                <a href="apply.html" class="cta-button px-6 py-2 rounded-full text-white font-semibold">Get Started</a>
+
+            <!-- Desktop Navigation -->
+            <div class="hidden lg:flex items-center gap-1">
+                <div class="nav-item">
+                    <button class="nav-link-new" type="button">
+                        Who We Are
+                        <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="nav-dropdown-new">
+                        <a href="who-we-are.html">Who We Are</a>
+                        <a href="partners.html">Partners</a>
+                        <a href="culture.html">Culture</a>
+                    </div>
+                </div>
+                <div class="nav-item">
+                    <button class="nav-link-new" type="button">
+                        What We Do
+                        <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="nav-dropdown-new">
+                        <a href="what-we-do.html">Overview</a>
+                        <a href="ai.html">AI Solutions</a>
+                        <a href="product.html">Product Development</a>
+                        <a href="platforms.html">Platforms</a>
+                    </div>
+                </div>
+                <div class="nav-item">
+                    <button class="nav-link-new" type="button">
+                        Insights
+                        <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="nav-dropdown-new">
+                        <a href="insights.html">All Insights</a>
+                        <a href="blogs.html">Blog</a>
+                        <a href="success-stories.html">Success Stories</a>
+                    </div>
+                </div>
+
+                <!-- Theme Switcher -->
+                <div class="theme-switcher">
+                    <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle theme">
+                        <svg class="w-4 h-4" id="theme-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+                        </svg>
+                        <span class="text-xs font-medium uppercase tracking-wide" id="theme-label">Ember</span>
+                    </button>
+                    <div class="theme-dropdown" id="theme-dropdown">
+                        <div class="theme-option active" data-theme="ember">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #1A0A00 50%, #FC2A0D 50%);"></div>
+                            <span>Ember</span>
+                        </div>
+                        <div class="theme-option" data-theme="coral">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #FFF8F0 50%, #FD6C71 50%);"></div>
+                            <span>Coral</span>
+                        </div>
+                        <div class="theme-option" data-theme="sunset">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #2D1B3D 50%, #FF6B9D 50%);"></div>
+                            <span>Sunset</span>
+                        </div>
+                        <div class="theme-option" data-theme="aurora">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #FFF5F8 50%, #E6A4FF 50%);"></div>
+                            <span>Aurora</span>
+                        </div>
+                        <div class="theme-option" data-theme="legacy">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #020617 50%, #6366f1 50%);"></div>
+                            <span>Legacy</span>
+                        </div>
+                    </div>
+                </div>
+
+                <a href="contact.html" class="nav-cta-btn">Contact</a>
+            </div>
+
+            <!-- Mobile Menu Button -->
+            <button class="lg:hidden flex items-center justify-center w-10 h-10 rounded-lg hover:bg-white/10 transition" id="mobile-menu-btn" aria-label="Open menu">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div class="lg:hidden mobile-menu" id="mobile-menu">
+            <div class="px-6 py-4 space-y-1 border-t border-theme">
+                <div class="mobile-nav-item">
+                    <button class="mobile-nav-btn" data-dropdown="mobile-who">
+                        Who We Are
+                        <svg class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="mobile-dropdown" id="mobile-who">
+                        <a href="who-we-are.html">Who We Are</a>
+                        <a href="partners.html">Partners</a>
+                        <a href="culture.html">Culture</a>
+                    </div>
+                </div>
+                <div class="mobile-nav-item">
+                    <button class="mobile-nav-btn" data-dropdown="mobile-what">
+                        What We Do
+                        <svg class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="mobile-dropdown" id="mobile-what">
+                        <a href="what-we-do.html">Overview</a>
+                        <a href="ai.html">AI Solutions</a>
+                        <a href="product.html">Product Development</a>
+                        <a href="platforms.html">Platforms</a>
+                    </div>
+                </div>
+                <div class="mobile-nav-item">
+                    <button class="mobile-nav-btn" data-dropdown="mobile-insights">
+                        Insights
+                        <svg class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="mobile-dropdown" id="mobile-insights">
+                        <a href="insights.html">All Insights</a>
+                        <a href="blogs.html">Blog</a>
+                        <a href="success-stories.html">Success Stories</a>
+                    </div>
+                </div>
+                <a href="contact.html" class="mobile-nav-cta">Contact Us</a>
             </div>
         </div>
     </nav>
 
     <!-- Hero Section -->
-    <section class="min-h-screen flex items-center justify-center relative pt-20">
-        <div class="hero-gradient absolute inset-0"></div>
-        <div class="max-w-6xl mx-auto px-6 text-center relative z-10">
+    <section class="hero-section">
+        <div class="max-w-6xl mx-auto text-center section-reveal relative z-10">
             <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card mb-8 pulse-badge">
                 <span class="w-2 h-2 rounded-full bg-green-500"></span>
                 <span class="text-sm text-theme-secondary">AI Agency Portfolio Investing</span>
             </div>
 
-            <h1 class="text-5xl md:text-7xl font-bold mb-6">
+            <h1 class="text-5xl md:text-7xl font-display font-bold mb-6">
                 <span class="gradient-text">Done-For-You</span><br>
-                <span class="text-white">A.I. Agency Build</span>
+                <span class="text-theme-primary">A.I. Agency Build</span>
             </h1>
 
             <p class="text-xl md:text-2xl text-theme-secondary max-w-3xl mx-auto mb-8">
-                High-margin, recurring-revenue A.I. service businesses built for <strong class="text-white">investors, operators & professionals</strong>.
+                High-margin, recurring-revenue A.I. service businesses built for <strong class="text-theme-primary">investors, operators & professionals</strong>.
             </p>
 
             <p class="text-lg text-theme-muted mb-12">
@@ -211,10 +659,10 @@
             </p>
 
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="apply.html" class="cta-button px-10 py-4 rounded-full text-white font-semibold text-lg">
+                <a href="apply.html" class="cta-button px-10 py-4 rounded-full text-white font-display font-semibold text-lg">
                     Start Your Agency
                 </a>
-                <a href="#opportunity" class="px-10 py-4 rounded-full border border-theme-border text-white font-semibold text-lg hover:bg-white/5 transition">
+                <a href="#opportunity" class="px-10 py-4 rounded-full border border-theme text-theme-primary font-display font-semibold text-lg hover:bg-white/5 transition">
                     Learn More
                 </a>
             </div>
@@ -222,109 +670,110 @@
     </section>
 
     <!-- The Opportunity Section -->
-    <section id="opportunity" class="py-24 relative">
-        <div class="max-w-7xl mx-auto px-6">
-            <div class="text-center mb-16">
-                <h2 class="text-4xl md:text-5xl font-bold mb-6">
-                    <span class="gradient-text">The Opportunity</span>
+    <section id="opportunity" class="py-24 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16 section-reveal">
+                <p class="text-accent font-display font-semibold tracking-widest uppercase mb-4">The Opportunity</p>
+                <h2 class="text-4xl md:text-5xl font-display font-bold mb-6">
+                    <span class="gradient-text">Artificial Intelligence</span>
                 </h2>
                 <p class="text-xl text-theme-secondary max-w-3xl mx-auto">
-                    Artificial Intelligence is reshaping every industry
+                    is reshaping every industry
                 </p>
             </div>
 
             <!-- Industries Grid -->
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-16">
-                <div class="glass-card rounded-xl p-4 text-center feature-card">
-                    <div class="text-3xl mb-2">🏠</div>
+                <div class="value-card text-center section-reveal">
+                    <div class="text-3xl mb-2">&#127968;</div>
                     <p class="text-sm text-theme-secondary">Home Services</p>
                 </div>
-                <div class="glass-card rounded-xl p-4 text-center feature-card">
-                    <div class="text-3xl mb-2">🏥</div>
+                <div class="value-card text-center section-reveal">
+                    <div class="text-3xl mb-2">&#127973;</div>
                     <p class="text-sm text-theme-secondary">Medical & Wellness</p>
                 </div>
-                <div class="glass-card rounded-xl p-4 text-center feature-card">
-                    <div class="text-3xl mb-2">⚖️</div>
+                <div class="value-card text-center section-reveal">
+                    <div class="text-3xl mb-2">&#9878;&#65039;</div>
                     <p class="text-sm text-theme-secondary">Legal</p>
                 </div>
-                <div class="glass-card rounded-xl p-4 text-center feature-card">
-                    <div class="text-3xl mb-2">💰</div>
+                <div class="value-card text-center section-reveal">
+                    <div class="text-3xl mb-2">&#128176;</div>
                     <p class="text-sm text-theme-secondary">Financial Services</p>
                 </div>
-                <div class="glass-card rounded-xl p-4 text-center feature-card">
-                    <div class="text-3xl mb-2">💼</div>
+                <div class="value-card text-center section-reveal">
+                    <div class="text-3xl mb-2">&#128188;</div>
                     <p class="text-sm text-theme-secondary">Professional Services</p>
                 </div>
-                <div class="glass-card rounded-xl p-4 text-center feature-card">
-                    <div class="text-3xl mb-2">🏗️</div>
+                <div class="value-card text-center section-reveal">
+                    <div class="text-3xl mb-2">&#127959;&#65039;</div>
                     <p class="text-sm text-theme-secondary">Real Estate</p>
                 </div>
             </div>
 
             <!-- What SMBs Are Buying -->
-            <div class="glass-card rounded-2xl p-8 mb-16">
-                <h3 class="text-2xl font-bold mb-6 text-center">SMBs are buying:</h3>
+            <div class="glass-card rounded-2xl p-8 mb-16 section-reveal">
+                <h3 class="text-2xl font-display font-bold mb-6 text-center">SMBs are buying:</h3>
                 <div class="grid md:grid-cols-5 gap-6">
                     <div class="text-center">
-                        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center mx-auto mb-3">
+                        <div class="value-icon mx-auto mb-3">
                             <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                             </svg>
                         </div>
-                        <p class="font-semibold">A.I. Agents</p>
+                        <p class="font-display font-semibold">A.I. Agents</p>
                     </div>
                     <div class="text-center">
-                        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center mx-auto mb-3">
+                        <div class="value-icon mx-auto mb-3">
                             <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                             </svg>
                         </div>
-                        <p class="font-semibold">Workflow Automations</p>
+                        <p class="font-display font-semibold">Workflow Automations</p>
                     </div>
                     <div class="text-center">
-                        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center mx-auto mb-3">
+                        <div class="value-icon mx-auto mb-3">
                             <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
                             </svg>
                         </div>
-                        <p class="font-semibold">SDR Systems</p>
+                        <p class="font-display font-semibold">SDR Systems</p>
                     </div>
                     <div class="text-center">
-                        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center mx-auto mb-3">
+                        <div class="value-icon mx-auto mb-3">
                             <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/>
                             </svg>
                         </div>
-                        <p class="font-semibold">Data Enrichment</p>
+                        <p class="font-display font-semibold">Data Enrichment</p>
                     </div>
                     <div class="text-center">
-                        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center mx-auto mb-3">
+                        <div class="value-icon mx-auto mb-3">
                             <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/>
                             </svg>
                         </div>
-                        <p class="font-semibold">A.I. Web Redesigns</p>
+                        <p class="font-display font-semibold">A.I. Web Redesigns</p>
                     </div>
                 </div>
                 <p class="text-center text-theme-secondary mt-8 text-lg">
-                    These are <strong class="text-white">high-ticket, recurring services</strong> with explosive demand and minimal overhead.
+                    These are <strong class="text-theme-primary">high-ticket, recurring services</strong> with explosive demand and minimal overhead.
                 </p>
             </div>
 
             <!-- Market Stats -->
-            <div class="grid md:grid-cols-2 gap-8">
-                <div class="stat-card glass-card rounded-2xl p-8 text-center glow">
-                    <div class="text-5xl font-bold gradient-text mb-2">33M+</div>
+            <div class="grid md:grid-cols-2 gap-8 section-reveal">
+                <div class="stat-card">
+                    <div class="stat-number mb-2">33M+</div>
                     <p class="text-theme-secondary">Businesses in the US could leverage AI services</p>
                 </div>
-                <div class="stat-card glass-card rounded-2xl p-8 text-center glow">
-                    <div class="text-5xl font-bold gradient-text mb-2">&lt;5%</div>
+                <div class="stat-card">
+                    <div class="stat-number mb-2">&lt;5%</div>
                     <p class="text-theme-secondary">Current AI adoption rate among SMBs</p>
                 </div>
             </div>
 
-            <p class="text-center text-xl text-theme-secondary mt-8">
-                This creates a <strong class="text-white">massive, largely untapped market</strong> ready for scalable AI solutions.
+            <p class="text-center text-xl text-theme-secondary mt-8 section-reveal">
+                This creates a <strong class="text-theme-primary">massive, largely untapped market</strong> ready for scalable AI solutions.
             </p>
         </div>
     </section>
@@ -332,80 +781,80 @@
     <div class="section-divider"></div>
 
     <!-- What SMBs Need Section -->
-    <section id="services" class="py-24">
-        <div class="max-w-7xl mx-auto px-6">
-            <div class="text-center mb-16">
-                <h2 class="text-4xl md:text-5xl font-bold mb-6">
-                    <span class="gradient-text">Why This Model Exists Now</span>
+    <section id="services" class="py-24 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16 section-reveal">
+                <p class="text-accent font-display font-semibold tracking-widest uppercase mb-4">Why This Model Exists Now</p>
+                <h2 class="text-4xl md:text-5xl font-display font-bold mb-6">
+                    <span class="gradient-text">SMBs Need These Solutions</span>
                 </h2>
-                <p class="text-xl text-theme-secondary">SMBs desperately need these solutions</p>
             </div>
 
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div class="glass-card rounded-xl p-6 feature-card">
+                <div class="value-card section-reveal">
                     <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mb-4">
                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
                         </svg>
                     </div>
-                    <h3 class="text-xl font-bold mb-2">A.I. Voice & Chat Agents</h3>
+                    <h3 class="text-xl font-display font-bold mb-2">A.I. Voice & Chat Agents</h3>
                     <p class="text-theme-secondary">24/7 customer engagement and support</p>
                 </div>
 
-                <div class="glass-card rounded-xl p-6 feature-card">
+                <div class="value-card section-reveal">
                     <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-4">
                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
                         </svg>
                     </div>
-                    <h3 class="text-xl font-bold mb-2">A.I. SDRs</h3>
+                    <h3 class="text-xl font-display font-bold mb-2">A.I. SDRs</h3>
                     <p class="text-theme-secondary">Automated sales development representatives</p>
                 </div>
 
-                <div class="glass-card rounded-xl p-6 feature-card">
+                <div class="value-card section-reveal">
                     <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center mb-4">
                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"/>
                         </svg>
                     </div>
-                    <h3 class="text-xl font-bold mb-2">Lead Capture Systems</h3>
+                    <h3 class="text-xl font-display font-bold mb-2">Lead Capture Systems</h3>
                     <p class="text-theme-secondary">AI-powered lead generation and qualification</p>
                 </div>
 
-                <div class="glass-card rounded-xl p-6 feature-card">
+                <div class="value-card section-reveal">
                     <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mb-4">
                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                         </svg>
                     </div>
-                    <h3 class="text-xl font-bold mb-2">A.I. Receptionist</h3>
+                    <h3 class="text-xl font-display font-bold mb-2">A.I. Receptionist</h3>
                     <p class="text-theme-secondary">Never miss a call or lead again</p>
                 </div>
 
-                <div class="glass-card rounded-xl p-6 feature-card">
+                <div class="value-card section-reveal">
                     <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center mb-4">
                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                         </svg>
                     </div>
-                    <h3 class="text-xl font-bold mb-2">Custom Automation Workflows</h3>
+                    <h3 class="text-xl font-display font-bold mb-2">Custom Automation Workflows</h3>
                     <p class="text-theme-secondary">Streamline operations end-to-end</p>
                 </div>
 
-                <div class="glass-card rounded-xl p-6 feature-card">
+                <div class="value-card section-reveal">
                     <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center mb-4">
                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9"/>
                         </svg>
                     </div>
-                    <h3 class="text-xl font-bold mb-2">A.I. Website Redesigns</h3>
+                    <h3 class="text-xl font-display font-bold mb-2">A.I. Website Redesigns</h3>
                     <p class="text-theme-secondary">Conversion-optimized AI websites</p>
                 </div>
             </div>
 
-            <div class="glass-card rounded-2xl p-8 mt-12 text-center glow">
-                <p class="text-2xl font-bold mb-2">There is no meaningful competition offering all of this under one roof.</p>
-                <p class="text-xl gradient-text">You enter the market with an unfair advantage.</p>
+            <div class="glass-card rounded-2xl p-8 mt-12 text-center section-reveal">
+                <p class="text-2xl font-display font-bold mb-2">There is no meaningful competition offering all of this under one roof.</p>
+                <p class="text-xl gradient-text font-display font-semibold">You enter the market with an unfair advantage.</p>
             </div>
         </div>
     </section>
@@ -413,115 +862,116 @@
     <div class="section-divider"></div>
 
     <!-- What We Build Section -->
-    <section class="py-24">
-        <div class="max-w-7xl mx-auto px-6">
-            <div class="text-center mb-16">
-                <h2 class="text-4xl md:text-5xl font-bold mb-6">
-                    <span class="gradient-text">What We Build For You</span>
+    <section class="py-24 px-6" style="background: var(--bg-secondary);">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16 section-reveal">
+                <p class="text-accent font-display font-semibold tracking-widest uppercase mb-4">What We Build For You</p>
+                <h2 class="text-4xl md:text-5xl font-display font-bold mb-6">
+                    <span class="gradient-text">A Fully Operational A.I. Agency</span>
                 </h2>
-                <p class="text-xl text-theme-secondary">A fully operational A.I. agency with everything included</p>
+                <p class="text-xl text-theme-secondary">with everything included</p>
             </div>
 
             <div class="grid lg:grid-cols-3 gap-8">
                 <!-- Core Infrastructure -->
-                <div class="glass-card rounded-2xl p-8">
-                    <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mb-6">
+                <div class="value-card section-reveal">
+                    <div class="value-icon mb-6">
                         <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
                         </svg>
                     </div>
-                    <h3 class="text-2xl font-bold mb-4">Core Infrastructure</h3>
+                    <h3 class="text-2xl font-display font-bold mb-4">Core Infrastructure</h3>
                     <ul class="space-y-3 text-theme-secondary">
                         <li class="flex items-start gap-2">
-                            <span class="text-green-500 mt-1">✓</span>
+                            <span class="text-green-500 mt-1">&#10003;</span>
                             APEX data engine (A.I. enriched leads)
                         </li>
                         <li class="flex items-start gap-2">
-                            <span class="text-green-500 mt-1">✓</span>
+                            <span class="text-green-500 mt-1">&#10003;</span>
                             AI SDR system
                         </li>
                         <li class="flex items-start gap-2">
-                            <span class="text-green-500 mt-1">✓</span>
+                            <span class="text-green-500 mt-1">&#10003;</span>
                             Automated outbound engine
                         </li>
                         <li class="flex items-start gap-2">
-                            <span class="text-green-500 mt-1">✓</span>
+                            <span class="text-green-500 mt-1">&#10003;</span>
                             Lead acquisition infrastructure
                         </li>
                         <li class="flex items-start gap-2">
-                            <span class="text-green-500 mt-1">✓</span>
+                            <span class="text-green-500 mt-1">&#10003;</span>
                             Multi-niche offer ecosystem
                         </li>
                         <li class="flex items-start gap-2">
-                            <span class="text-green-500 mt-1">✓</span>
+                            <span class="text-green-500 mt-1">&#10003;</span>
                             Data pipeline & CRM
                         </li>
                     </ul>
                 </div>
 
                 <!-- Client Delivery -->
-                <div class="glass-card rounded-2xl p-8">
-                    <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-6">
+                <div class="value-card section-reveal">
+                    <div class="value-icon mb-6">
                         <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
                         </svg>
                     </div>
-                    <h3 class="text-2xl font-bold mb-4">Client Delivery</h3>
+                    <h3 class="text-2xl font-display font-bold mb-4">Client Delivery</h3>
                     <ul class="space-y-3 text-theme-secondary">
                         <li class="flex items-start gap-2">
-                            <span class="text-green-500 mt-1">✓</span>
+                            <span class="text-green-500 mt-1">&#10003;</span>
                             A.I. receptionist voice agent delivery
                         </li>
                         <li class="flex items-start gap-2">
-                            <span class="text-green-500 mt-1">✓</span>
+                            <span class="text-green-500 mt-1">&#10003;</span>
                             A.I. workflow architecture delivery
                         </li>
                         <li class="flex items-start gap-2">
-                            <span class="text-green-500 mt-1">✓</span>
+                            <span class="text-green-500 mt-1">&#10003;</span>
                             A.I. website redesign packages
                         </li>
                         <li class="flex items-start gap-2">
-                            <span class="text-green-500 mt-1">✓</span>
+                            <span class="text-green-500 mt-1">&#10003;</span>
                             AI Client Success Manager
                         </li>
                         <li class="flex items-start gap-2">
-                            <span class="text-green-500 mt-1">✓</span>
+                            <span class="text-green-500 mt-1">&#10003;</span>
                             Automated client reports
                         </li>
                     </ul>
                 </div>
 
                 <!-- Strategic Support -->
-                <div class="glass-card rounded-2xl p-8">
-                    <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center mb-6">
+                <div class="value-card section-reveal">
+                    <div class="value-icon mb-6">
                         <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
                         </svg>
                     </div>
-                    <h3 class="text-2xl font-bold mb-4">Strategic Support</h3>
+                    <h3 class="text-2xl font-display font-bold mb-4">Strategic Support</h3>
                     <ul class="space-y-3 text-theme-secondary">
                         <li class="flex items-start gap-2">
-                            <span class="text-green-500 mt-1">✓</span>
+                            <span class="text-green-500 mt-1">&#10003;</span>
                             Dedicated sales closer
                         </li>
                         <li class="flex items-start gap-2">
-                            <span class="text-green-500 mt-1">✓</span>
+                            <span class="text-green-500 mt-1">&#10003;</span>
                             Fractional COO Team
                         </li>
                         <li class="flex items-start gap-2">
-                            <span class="text-green-500 mt-1">✓</span>
+                            <span class="text-green-500 mt-1">&#10003;</span>
                             VP Strategy (on upper tiers)
                         </li>
                         <li class="flex items-start gap-2">
-                            <span class="text-green-500 mt-1">✓</span>
+                            <span class="text-green-500 mt-1">&#10003;</span>
                             Done-For-You fulfillment
                         </li>
                     </ul>
                 </div>
             </div>
 
-            <div class="text-center mt-12">
-                <p class="text-2xl font-bold gradient-text">You own the equity — we build & operate the engine.</p>
+            <div class="text-center mt-12 section-reveal">
+                <p class="text-2xl font-display font-bold gradient-text">You own the equity - we build & operate the engine.</p>
             </div>
         </div>
     </section>
@@ -529,53 +979,53 @@
     <div class="section-divider"></div>
 
     <!-- Who This Is For Section -->
-    <section class="py-24">
-        <div class="max-w-7xl mx-auto px-6">
-            <div class="text-center mb-16">
-                <h2 class="text-4xl md:text-5xl font-bold mb-6">
-                    <span class="gradient-text">Who This Model Is Built For</span>
+    <section class="py-24 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16 section-reveal">
+                <p class="text-accent font-display font-semibold tracking-widest uppercase mb-4">Who This Model Is Built For</p>
+                <h2 class="text-4xl md:text-5xl font-display font-bold mb-6">
+                    <span class="gradient-text">Our Agency Owners Include</span>
                 </h2>
-                <p class="text-xl text-theme-secondary">Our agency owners include:</p>
             </div>
 
             <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
-                <div class="glass-card rounded-xl p-6 text-center feature-card">
-                    <div class="text-4xl mb-3">👔</div>
-                    <p class="font-semibold">Busy Professionals</p>
+                <div class="value-card text-center section-reveal">
+                    <div class="text-4xl mb-3">&#128084;</div>
+                    <p class="font-display font-semibold">Busy Professionals</p>
                 </div>
-                <div class="glass-card rounded-xl p-6 text-center feature-card">
-                    <div class="text-4xl mb-3">📈</div>
-                    <p class="font-semibold">Investors</p>
+                <div class="value-card text-center section-reveal">
+                    <div class="text-4xl mb-3">&#128200;</div>
+                    <p class="font-display font-semibold">Investors</p>
                 </div>
-                <div class="glass-card rounded-xl p-6 text-center feature-card">
-                    <div class="text-4xl mb-3">💡</div>
-                    <p class="font-semibold">Consultants</p>
+                <div class="value-card text-center section-reveal">
+                    <div class="text-4xl mb-3">&#128161;</div>
+                    <p class="font-display font-semibold">Consultants</p>
                 </div>
-                <div class="glass-card rounded-xl p-6 text-center feature-card">
-                    <div class="text-4xl mb-3">🎯</div>
-                    <p class="font-semibold">Tech Novices</p>
+                <div class="value-card text-center section-reveal">
+                    <div class="text-4xl mb-3">&#127919;</div>
+                    <p class="font-display font-semibold">Tech Novices</p>
                 </div>
-                <div class="glass-card rounded-xl p-6 text-center feature-card">
-                    <div class="text-4xl mb-3">🏖️</div>
-                    <p class="font-semibold">Retirees</p>
+                <div class="value-card text-center section-reveal">
+                    <div class="text-4xl mb-3">&#127958;&#65039;</div>
+                    <p class="font-display font-semibold">Retirees</p>
                 </div>
-                <div class="glass-card rounded-xl p-6 text-center feature-card">
-                    <div class="text-4xl mb-3">🏢</div>
-                    <p class="font-semibold">Executives</p>
+                <div class="value-card text-center section-reveal">
+                    <div class="text-4xl mb-3">&#127970;</div>
+                    <p class="font-display font-semibold">Executives</p>
                 </div>
-                <div class="glass-card rounded-xl p-6 text-center feature-card">
-                    <div class="text-4xl mb-3">🚀</div>
-                    <p class="font-semibold">No Tech Background</p>
+                <div class="value-card text-center section-reveal">
+                    <div class="text-4xl mb-3">&#128640;</div>
+                    <p class="font-display font-semibold">No Tech Background</p>
                 </div>
-                <div class="glass-card rounded-xl p-6 text-center feature-card">
-                    <div class="text-4xl mb-3">💰</div>
-                    <p class="font-semibold">Passive Income Seekers</p>
+                <div class="value-card text-center section-reveal">
+                    <div class="text-4xl mb-3">&#128176;</div>
+                    <p class="font-display font-semibold">Passive Income Seekers</p>
                 </div>
             </div>
 
-            <div class="glass-card rounded-2xl p-8 text-center">
+            <div class="glass-card rounded-2xl p-8 text-center section-reveal">
                 <p class="text-xl text-theme-secondary">
-                    This model is built to run <strong class="text-white">lean, automated, and professionally managed</strong>.
+                    This model is built to run <strong class="text-theme-primary">lean, automated, and professionally managed</strong>.
                 </p>
             </div>
         </div>
@@ -584,34 +1034,34 @@
     <div class="section-divider"></div>
 
     <!-- Revenue Model Section -->
-    <section class="py-24">
-        <div class="max-w-7xl mx-auto px-6">
-            <div class="text-center mb-16">
-                <h2 class="text-4xl md:text-5xl font-bold mb-6">
-                    <span class="gradient-text">Multi-Offer Monetization Model</span>
+    <section class="py-24 px-6" style="background: var(--bg-secondary);">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16 section-reveal">
+                <p class="text-accent font-display font-semibold tracking-widest uppercase mb-4">Multi-Offer Monetization Model</p>
+                <h2 class="text-4xl md:text-5xl font-display font-bold mb-6">
+                    <span class="gradient-text">Multiple Revenue Streams</span>
                 </h2>
-                <p class="text-xl text-theme-secondary">You earn from multiple revenue streams</p>
             </div>
 
             <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div class="glass-card rounded-2xl p-8 text-center glow feature-card">
-                    <div class="text-4xl font-bold gradient-text mb-2">$3K–$12K</div>
-                    <p class="text-lg font-semibold mb-2">Monthly Retainers</p>
+                <div class="stat-card section-reveal">
+                    <div class="stat-number mb-2">$3K-$12K</div>
+                    <p class="text-lg font-display font-semibold mb-2">Monthly Retainers</p>
                     <p class="text-theme-secondary text-sm">Per client recurring revenue</p>
                 </div>
-                <div class="glass-card rounded-2xl p-8 text-center glow feature-card">
-                    <div class="text-4xl font-bold gradient-text mb-2">$8K–$50K+</div>
-                    <p class="text-lg font-semibold mb-2">Project Builds</p>
+                <div class="stat-card section-reveal">
+                    <div class="stat-number mb-2">$8K-$50K+</div>
+                    <p class="text-lg font-display font-semibold mb-2">Project Builds</p>
                     <p class="text-theme-secondary text-sm">Automation builds</p>
                 </div>
-                <div class="glass-card rounded-2xl p-8 text-center glow feature-card">
-                    <div class="text-4xl font-bold gradient-text mb-2">$3.5K–$15K</div>
-                    <p class="text-lg font-semibold mb-2">Data Products</p>
+                <div class="stat-card section-reveal">
+                    <div class="stat-number mb-2">$3.5K-$15K</div>
+                    <p class="text-lg font-display font-semibold mb-2">Data Products</p>
                     <p class="text-theme-secondary text-sm">Monthly APEX data packages</p>
                 </div>
-                <div class="glass-card rounded-2xl p-8 text-center glow feature-card">
-                    <div class="text-4xl font-bold gradient-text mb-2">$3K–$10K+</div>
-                    <p class="text-lg font-semibold mb-2">Web Redesigns</p>
+                <div class="stat-card section-reveal">
+                    <div class="stat-number mb-2">$3K-$10K+</div>
+                    <p class="text-lg font-display font-semibold mb-2">Web Redesigns</p>
                     <p class="text-theme-secondary text-sm">AI-driven website builds</p>
                 </div>
             </div>
@@ -621,34 +1071,34 @@
     <div class="section-divider"></div>
 
     <!-- Case Studies Section -->
-    <section id="results" class="py-24">
-        <div class="max-w-7xl mx-auto px-6">
-            <div class="text-center mb-16">
-                <h2 class="text-4xl md:text-5xl font-bold mb-6">
-                    <span class="gradient-text">Real Results, Real Impact</span>
+    <section id="results" class="py-24 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16 section-reveal">
+                <p class="text-accent font-display font-semibold tracking-widest uppercase mb-4">Real Results, Real Impact</p>
+                <h2 class="text-4xl md:text-5xl font-display font-bold mb-6">
+                    <span class="gradient-text">What Our Partners Have Achieved</span>
                 </h2>
-                <p class="text-xl text-theme-secondary">What our partners have achieved</p>
             </div>
 
             <div class="grid md:grid-cols-2 gap-8">
                 <!-- Case Study 1 -->
-                <div class="testimonial-card rounded-2xl p-8 border border-theme-border">
+                <div class="testimonial-card section-reveal">
                     <div class="flex items-center gap-4 mb-6">
-                        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-2xl font-bold text-white">
+                        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-2xl font-display font-bold text-white">
                             JT
                         </div>
                         <div>
-                            <h3 class="text-xl font-bold">JT - AI Agency for Real Estate</h3>
+                            <h3 class="text-xl font-display font-bold">JT - AI Agency for Real Estate</h3>
                             <p class="text-theme-secondary">Revolutionized real estate lead generation</p>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-4 mb-4">
                         <div class="glass-card rounded-lg p-4 text-center">
-                            <div class="text-2xl font-bold gradient-text">$287,028</div>
+                            <div class="text-2xl font-display font-bold gradient-text">$287,028</div>
                             <p class="text-sm text-theme-secondary">Total ARR in 6 months</p>
                         </div>
                         <div class="glass-card rounded-lg p-4 text-center">
-                            <div class="text-2xl font-bold gradient-text">$3,959/mo</div>
+                            <div class="text-2xl font-display font-bold gradient-text">$3,959/mo</div>
                             <p class="text-sm text-theme-secondary">Average Deal</p>
                         </div>
                     </div>
@@ -656,23 +1106,23 @@
                 </div>
 
                 <!-- Case Study 2 -->
-                <div class="testimonial-card rounded-2xl p-8 border border-theme-border">
+                <div class="testimonial-card section-reveal">
                     <div class="flex items-center gap-4 mb-6">
-                        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-2xl font-bold text-white">
+                        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-2xl font-display font-bold text-white">
                             GM
                         </div>
                         <div>
-                            <h3 class="text-xl font-bold">Gary Martin - Elevate Agency AI</h3>
+                            <h3 class="text-xl font-display font-bold">Gary Martin - Elevate Agency AI</h3>
                             <p class="text-theme-secondary">Explosive growth with AI leverage</p>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-4 mb-4">
                         <div class="glass-card rounded-lg p-4 text-center">
-                            <div class="text-2xl font-bold gradient-text">$250,958</div>
+                            <div class="text-2xl font-display font-bold gradient-text">$250,958</div>
                             <p class="text-sm text-theme-secondary">ARR in 3 months</p>
                         </div>
                         <div class="glass-card rounded-lg p-4 text-center">
-                            <div class="text-2xl font-bold gradient-text">100%</div>
+                            <div class="text-2xl font-display font-bold gradient-text">100%</div>
                             <p class="text-sm text-theme-secondary">Client Retention</p>
                         </div>
                     </div>
@@ -685,44 +1135,44 @@
     <div class="section-divider"></div>
 
     <!-- 12-Month Trajectory Section -->
-    <section class="py-24">
-        <div class="max-w-7xl mx-auto px-6">
-            <div class="text-center mb-16">
-                <h2 class="text-4xl md:text-5xl font-bold mb-6">
-                    <span class="gradient-text">12-Month Revenue Trajectory</span>
+    <section class="py-24 px-6" style="background: var(--bg-secondary);">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16 section-reveal">
+                <p class="text-accent font-display font-semibold tracking-widest uppercase mb-4">12-Month Revenue Trajectory</p>
+                <h2 class="text-4xl md:text-5xl font-display font-bold mb-6">
+                    <span class="gradient-text">Example Growth Timeline</span>
                 </h2>
-                <p class="text-xl text-theme-secondary">Example growth timeline</p>
             </div>
 
             <div class="max-w-3xl mx-auto">
                 <div class="relative pl-8">
                     <div class="timeline-line"></div>
 
-                    <div class="timeline-item relative mb-12 pl-8">
-                        <h3 class="text-xl font-bold mb-2">Month 3–4</h3>
+                    <div class="timeline-item relative mb-12 pl-8 section-reveal">
+                        <h3 class="text-xl font-display font-bold mb-2">Month 3-4</h3>
                         <div class="glass-card rounded-xl p-6">
                             <p class="text-theme-secondary">First retainers land</p>
                         </div>
                     </div>
 
-                    <div class="timeline-item relative mb-12 pl-8">
-                        <h3 class="text-xl font-bold mb-2">Month 6</h3>
+                    <div class="timeline-item relative mb-12 pl-8 section-reveal">
+                        <h3 class="text-xl font-display font-bold mb-2">Month 6</h3>
                         <div class="glass-card rounded-xl p-6">
-                            <p class="text-theme-secondary">3–6 recurring retainers + project builds</p>
+                            <p class="text-theme-secondary">3-6 recurring retainers + project builds</p>
                         </div>
                     </div>
 
-                    <div class="timeline-item relative pl-8">
-                        <h3 class="text-xl font-bold mb-2">Month 12</h3>
-                        <div class="glass-card rounded-xl p-6 glow">
-                            <div class="text-3xl font-bold gradient-text mb-2">$25K–$50K/mo</div>
+                    <div class="timeline-item relative pl-8 section-reveal">
+                        <h3 class="text-xl font-display font-bold mb-2">Month 12</h3>
+                        <div class="glass-card rounded-xl p-6">
+                            <div class="stat-number mb-2">$25K-$50K/mo</div>
                             <p class="text-theme-secondary">Recurring revenue + project deals</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <p class="text-center text-theme-muted mt-12 text-sm">
+            <p class="text-center text-theme-muted mt-12 text-sm section-reveal">
                 *Results vary. This is not guaranteed but realistic with capital deployment.
             </p>
         </div>
@@ -731,46 +1181,46 @@
     <div class="section-divider"></div>
 
     <!-- Day In The Life Section -->
-    <section class="py-24">
-        <div class="max-w-7xl mx-auto px-6">
-            <div class="text-center mb-16">
-                <h2 class="text-4xl md:text-5xl font-bold mb-6">
-                    <span class="gradient-text">Day-In-The-Life (Owner View)</span>
+    <section class="py-24 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16 section-reveal">
+                <p class="text-accent font-display font-semibold tracking-widest uppercase mb-4">Day-In-The-Life (Owner View)</p>
+                <h2 class="text-4xl md:text-5xl font-display font-bold mb-6">
+                    You are the <span class="gradient-text">owner</span> - not the operator.
                 </h2>
-                <p class="text-xl text-theme-secondary">You are the owner — not the operator.</p>
             </div>
 
             <div class="grid md:grid-cols-3 gap-8">
-                <div class="glass-card rounded-2xl p-8">
-                    <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
-                        <span class="text-2xl">📅</span> Daily
+                <div class="value-card section-reveal">
+                    <h3 class="text-xl font-display font-bold mb-4 flex items-center gap-2">
+                        <span class="text-2xl">&#128197;</span> Daily
                     </h3>
                     <ul class="space-y-3 text-theme-secondary">
-                        <li>• Review Slack updates (optional)</li>
-                        <li>• Watch booked calls come in</li>
-                        <li>• Approve strategy proposals (optional)</li>
+                        <li>Review Slack updates (optional)</li>
+                        <li>Watch booked calls come in</li>
+                        <li>Approve strategy proposals (optional)</li>
                     </ul>
                 </div>
 
-                <div class="glass-card rounded-2xl p-8">
-                    <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
-                        <span class="text-2xl">📊</span> Weekly
+                <div class="value-card section-reveal">
+                    <h3 class="text-xl font-display font-bold mb-4 flex items-center gap-2">
+                        <span class="text-2xl">&#128202;</span> Weekly
                     </h3>
                     <ul class="space-y-3 text-theme-secondary">
-                        <li>• Quick sync with PM</li>
-                        <li>• Strategy alignment</li>
-                        <li>• VP included on calls</li>
+                        <li>Quick sync with PM</li>
+                        <li>Strategy alignment</li>
+                        <li>VP included on calls</li>
                     </ul>
                 </div>
 
-                <div class="glass-card rounded-2xl p-8">
-                    <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
-                        <span class="text-2xl">📈</span> Monthly
+                <div class="value-card section-reveal">
+                    <h3 class="text-xl font-display font-bold mb-4 flex items-center gap-2">
+                        <span class="text-2xl">&#128200;</span> Monthly
                     </h3>
                     <ul class="space-y-3 text-theme-secondary">
-                        <li>• Revenue review</li>
-                        <li>• Scaling decisions</li>
-                        <li>• Growth strategy</li>
+                        <li>Revenue review</li>
+                        <li>Scaling decisions</li>
+                        <li>Growth strategy</li>
                     </ul>
                 </div>
             </div>
@@ -780,50 +1230,51 @@
     <div class="section-divider"></div>
 
     <!-- Exit Potential Section -->
-    <section class="py-24">
-        <div class="max-w-7xl mx-auto px-6">
-            <div class="text-center mb-16">
-                <h2 class="text-4xl md:text-5xl font-bold mb-6">
-                    <span class="gradient-text">Exit Potential</span>
+    <section class="py-24 px-6" style="background: var(--bg-secondary);">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16 section-reveal">
+                <p class="text-accent font-display font-semibold tracking-widest uppercase mb-4">Exit Potential</p>
+                <h2 class="text-4xl md:text-5xl font-display font-bold mb-6">
+                    A.I. agencies command <span class="gradient-text">higher multiples</span>
                 </h2>
-                <p class="text-xl text-theme-secondary">A.I. agencies command higher multiples than traditional agencies</p>
+                <p class="text-xl text-theme-secondary">than traditional agencies</p>
             </div>
 
             <div class="grid md:grid-cols-3 gap-8 mb-12">
-                <div class="glass-card rounded-2xl p-8 text-center">
-                    <div class="text-3xl font-bold text-theme-muted mb-2">1.5–3X</div>
-                    <p class="text-lg font-semibold mb-2">EBITDA</p>
+                <div class="stat-card section-reveal">
+                    <div class="text-3xl font-display font-bold text-theme-muted mb-2">1.5-3X</div>
+                    <p class="text-lg font-display font-semibold mb-2">EBITDA</p>
                     <p class="text-theme-secondary text-sm">Traditional Agencies</p>
                 </div>
-                <div class="glass-card rounded-2xl p-8 text-center border-2 border-primary">
-                    <div class="text-3xl font-bold gradient-text mb-2">4–6X</div>
-                    <p class="text-lg font-semibold mb-2">EBITDA</p>
+                <div class="stat-card border-2 border-primary section-reveal">
+                    <div class="stat-number mb-2">4-6X</div>
+                    <p class="text-lg font-display font-semibold mb-2">EBITDA</p>
                     <p class="text-theme-secondary text-sm">Tech-enabled Automation Firms</p>
                 </div>
-                <div class="glass-card rounded-2xl p-8 text-center glow">
-                    <div class="text-3xl font-bold gradient-text mb-2">6–9X</div>
-                    <p class="text-lg font-semibold mb-2">EBITDA</p>
+                <div class="stat-card section-reveal">
+                    <div class="stat-number mb-2">6-9X</div>
+                    <p class="text-lg font-display font-semibold mb-2">EBITDA</p>
                     <p class="text-theme-secondary text-sm">A.I.-focused Firms w/ Strong MRR</p>
                 </div>
             </div>
 
-            <div class="glass-card rounded-2xl p-8">
-                <h3 class="text-xl font-bold mb-4">Your business becomes a real asset:</h3>
+            <div class="glass-card rounded-2xl p-8 section-reveal">
+                <h3 class="text-xl font-display font-bold mb-4">Your business becomes a real asset:</h3>
                 <div class="grid md:grid-cols-4 gap-4">
                     <div class="flex items-center gap-2">
-                        <span class="text-green-500">✓</span>
+                        <span class="text-green-500">&#10003;</span>
                         <span class="text-theme-secondary">Automated revenue</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <span class="text-green-500">✓</span>
+                        <span class="text-green-500">&#10003;</span>
                         <span class="text-theme-secondary">Transferable systems</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <span class="text-green-500">✓</span>
+                        <span class="text-green-500">&#10003;</span>
                         <span class="text-theme-secondary">Documented SOPs</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <span class="text-green-500">✓</span>
+                        <span class="text-green-500">&#10003;</span>
                         <span class="text-theme-secondary">Turnkey fulfillment</span>
                     </div>
                 </div>
@@ -834,36 +1285,48 @@
     <div class="section-divider"></div>
 
     <!-- CTA Section -->
-    <section class="py-24">
-        <div class="max-w-4xl mx-auto px-6 text-center">
-            <h2 class="text-4xl md:text-5xl font-bold mb-6">
+    <section class="py-24 px-6">
+        <div class="max-w-4xl mx-auto text-center section-reveal">
+            <h2 class="text-4xl md:text-5xl font-display font-bold mb-6">
                 Ready to build your<br>
                 <span class="gradient-text">A.I. Agency Empire?</span>
             </h2>
             <p class="text-xl text-theme-secondary mb-12">
                 Join hospitality execs, MDs, construction leaders, tech execs, real estate professionals, engineers, retirees and more.
             </p>
-            <a href="apply.html" class="cta-button px-12 py-5 rounded-full text-white font-bold text-xl inline-block">
+            <a href="apply.html" class="cta-button px-12 py-5 rounded-full text-white font-display font-bold text-xl inline-block">
                 Let's Get Started
             </a>
         </div>
     </section>
 
     <!-- Footer -->
-    <footer class="py-12 border-t border-theme-border">
-        <div class="max-w-7xl mx-auto px-6">
-            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+    <footer class="py-16 px-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-8">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                        </svg>
-                    </div>
-                    <span class="font-bold">CoCreate AI</span>
+                    <svg class="w-8 h-8" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="footerLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:var(--accent, #FFC36A)"/>
+                                <stop offset="50%" style="stop-color:var(--secondary, #FD6C71)"/>
+                                <stop offset="100%" style="stop-color:var(--primary, #FC2A0D)"/>
+                            </linearGradient>
+                        </defs>
+                        <g transform="translate(4, 4)">
+                            <path d="M20 0C8.954 0 0 8.954 0 20s8.954 20 20 20c5.523 0 10.523-2.239 14.142-5.858"
+                                  stroke="url(#footerLogoGradient)" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+                            <ellipse cx="20" cy="20" rx="26" ry="10"
+                                     stroke="url(#footerLogoGradient)" stroke-width="2" fill="none"
+                                     transform="rotate(-30, 20, 20)"/>
+                            <circle cx="42" cy="12" r="3.5" fill="url(#footerLogoGradient)"/>
+                        </g>
+                    </svg>
+                    <span class="font-display font-bold text-lg">
+                        <span class="text-theme-primary">CO</span><span class="gradient-text">CREATE</span>
+                    </span>
                 </div>
-                <p class="text-theme-muted text-sm">
-                    &copy; 2026 CoCreate Technologies. All rights reserved.
-                </p>
+                <p class="text-theme-secondary text-sm">&copy; 2026 CoCreate AI. All rights reserved.</p>
             </div>
         </div>
     </footer>
@@ -871,5 +1334,82 @@
     <!-- Chat Widget -->
     <script src="js/chat-widget.js"></script>
     <script src="js/chat-loader.js"></script>
+
+    <script>
+        // GSAP Animations
+        gsap.registerPlugin(ScrollTrigger);
+
+        gsap.utils.toArray('.section-reveal').forEach((elem, i) => {
+            const isHero = elem.closest('.hero-section');
+            if (isHero) {
+                gsap.to(elem, { opacity: 1, y: 0, duration: 1, ease: 'power3.out', delay: 0.3 });
+            } else {
+                gsap.to(elem, {
+                    opacity: 1, y: 0, duration: 0.8, ease: 'power3.out',
+                    scrollTrigger: { trigger: elem, start: 'top 85%' }
+                });
+            }
+        });
+
+        // Theme Switcher
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeDropdown = document.getElementById('theme-dropdown');
+        const themeLabel = document.getElementById('theme-label');
+        const themeOptions = document.querySelectorAll('.theme-option');
+
+        // Update UI based on current theme
+        function updateThemeUI() {
+            const current = window.ThemeManager?.get() || 'ember';
+            themeLabel.textContent = current.charAt(0).toUpperCase() + current.slice(1);
+            themeOptions.forEach(opt => {
+                opt.classList.toggle('active', opt.dataset.theme === current);
+            });
+        }
+
+        themeToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            themeDropdown.classList.toggle('active');
+        });
+
+        document.addEventListener('click', () => {
+            themeDropdown.classList.remove('active');
+        });
+
+        themeOptions.forEach(option => {
+            option.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const theme = option.dataset.theme;
+                if (window.ThemeManager) {
+                    window.ThemeManager.set(theme);
+                }
+                updateThemeUI();
+                themeDropdown.classList.remove('active');
+            });
+        });
+
+        // Listen for theme changes from ThemeManager
+        window.addEventListener('themechange', updateThemeUI);
+
+        // Initial UI update
+        updateThemeUI();
+
+        // Mobile Menu
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const mobileNavBtns = document.querySelectorAll('.mobile-nav-btn');
+
+        mobileMenuBtn?.addEventListener('click', () => {
+            mobileMenu.classList.toggle('active');
+        });
+
+        mobileNavBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const dropdownId = btn.dataset.dropdown;
+                const dropdown = document.getElementById(dropdownId);
+                dropdown?.classList.toggle('active');
+                btn.querySelector('svg')?.classList.toggle('rotate-180');
+            });
+        });
+    </script>
 </body>
 </html>

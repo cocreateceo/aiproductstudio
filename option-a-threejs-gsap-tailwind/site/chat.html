@@ -1,18 +1,49 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="ember">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CoCreate AI - Chat</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <title>CoCreate AI - Chat</title>
+    <meta name="description" content="Chat with CoCreate AI assistant to learn about our AI co-founder partnership model.">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: 'var(--primary)',
+                        secondary: 'var(--secondary)',
+                        accent: 'var(--accent)',
+                    },
+                    fontFamily: {
+                        sans: ['DM Sans', 'system-ui', 'sans-serif'],
+                        display: ['Outfit', 'DM Sans', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts - CoCreate Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- CoCreate Theme CSS -->
+    <link rel="stylesheet" href="css/themes/ember.css">
+    <link rel="stylesheet" href="css/themes/coral.css">
+    <link rel="stylesheet" href="css/themes/sunset.css">
+    <link rel="stylesheet" href="css/themes/aurora.css">
+    <link rel="stylesheet" href="css/themes/legacy.css">
+
+    <!-- Unified Theme System (MUST be before any rendering) -->
+    <script src="js/theme.js"></script>
 
     <!-- Centralized Configuration -->
     <script src="js/config.js"></script>
-
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Chat Widget Styles -->
     <link rel="stylesheet" href="css/chat-widget.css">
@@ -21,35 +52,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
-        /* Theme Variables */
         :root {
             --transition-speed: 0.3s;
-        }
-
-        [data-theme="dark"] {
-            --bg-primary: #0a0a0f;
-            --bg-secondary: #12121a;
-            --bg-card: rgba(18, 18, 26, 0.95);
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-            --border-color: rgba(99, 102, 241, 0.2);
-            --primary: #6366f1;
-            --secondary: #8b5cf6;
-            --accent: #06b6d4;
-        }
-
-        [data-theme="light"] {
-            --bg-primary: #ffffff;
-            --bg-secondary: #f1f5f9;
-            --bg-card: rgba(255, 255, 255, 0.98);
-            --text-primary: #0f172a;
-            --text-secondary: #475569;
-            --text-muted: #64748b;
-            --border-color: rgba(99, 102, 241, 0.15);
-            --primary: #4f46e5;
-            --secondary: #7c3aed;
-            --accent: #0891b2;
         }
 
         * {
@@ -62,7 +66,22 @@
             height: 100%;
             overflow: hidden;
             background: var(--bg-primary);
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'DM Sans', system-ui, sans-serif;
+            color: var(--text-primary);
+        }
+
+        /* CoCreate Typography */
+        h1, h2, h3, h4, h5, h6, .font-display {
+            font-family: 'Outfit', 'DM Sans', system-ui, sans-serif;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         /* Popup window specific styles */
@@ -213,8 +232,12 @@
             }
 
             if (data.type === 'setTheme') {
-                document.documentElement.setAttribute('data-theme', data.theme);
-                localStorage.setItem('theme', data.theme);
+                if (window.ThemeManager) {
+                    window.ThemeManager.set(data.theme);
+                } else {
+                    document.documentElement.setAttribute('data-theme', data.theme);
+                    localStorage.setItem('theme', data.theme);
+                }
             }
         });
 
@@ -222,7 +245,7 @@
         window.chatWidget = new ChatWidget({
             title: 'CoCreate AI',
             subtitle: 'Online - Ready to help',
-            welcomeMessage: `Hi there! 👋 Welcome to CoCreate AI!
+            welcomeMessage: `Hi there! Welcome to CoCreate AI!
 
 I'm here to answer any questions about our partnership model. We help business founders launch AI-powered products in just 2 weeks.
 
@@ -238,9 +261,10 @@ What would you like to know?`,
             window.opener.postMessage({ type: 'chatReady' }, '*');
         }
 
-        // Apply saved theme
-        const savedTheme = localStorage.getItem('theme') || 'dark';
-        document.documentElement.setAttribute('data-theme', savedTheme);
+        // Apply saved theme using ThemeManager
+        if (window.ThemeManager) {
+            window.ThemeManager.init();
+        }
 
         // Update context display
         updatePageContextDisplay();

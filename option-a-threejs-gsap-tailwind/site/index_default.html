@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="ember">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -54,7 +54,7 @@
         }
 
         /* Dark Theme (Default) */
-        [data-theme="dark"] {
+        [data-theme="ember"] {
             --bg-primary: #020617;
             --bg-secondary: #0f172a;
             --bg-card: rgba(15, 23, 42, 0.7);
@@ -105,7 +105,7 @@
         }
 
         /* Light Theme */
-        [data-theme="light"] {
+        [data-theme="ember"] {
             --bg-primary: #f8fafc;
             --bg-secondary: #e2e8f0;
             --bg-card: rgba(255, 255, 255, 0.9);
@@ -338,26 +338,26 @@
         .border-theme { border-color: var(--border-color); }
 
         /* Light theme specific overrides */
-        [data-theme="light"] .glass-card {
+        [data-theme="ember"] .glass-card {
             box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
         }
 
-        [data-theme="light"] nav {
+        [data-theme="ember"] nav {
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
-        [data-theme="light"] .text-slate-400,
-        [data-theme="light"] .text-slate-500 {
+        [data-theme="ember"] .text-slate-400,
+        [data-theme="ember"] .text-slate-500 {
             color: var(--text-secondary);
         }
 
-        [data-theme="light"] .text-slate-300 {
+        [data-theme="ember"] .text-slate-300 {
             color: var(--text-primary);
         }
 
-        [data-theme="light"] .border-slate-600,
-        [data-theme="light"] .border-slate-800,
-        [data-theme="light"] .border-slate-800\/50 {
+        [data-theme="ember"] .border-slate-600,
+        [data-theme="ember"] .border-slate-800,
+        [data-theme="ember"] .border-slate-800\/50 {
             border-color: var(--border-color);
         }
 
@@ -927,7 +927,7 @@
         }
 
         /* Light theme adjustments for premium features */
-        [data-theme="light"] .glass-card-premium {
+        [data-theme="ember"] .glass-card-premium {
             background: rgba(255, 255, 255, 0.6);
             border-color: rgba(99, 102, 241, 0.2);
             box-shadow:
@@ -935,7 +935,7 @@
                 inset 0 1px 0 0 rgba(255, 255, 255, 0.8);
         }
 
-        [data-theme="light"] .neural-bg {
+        [data-theme="ember"] .neural-bg {
             background-image:
                 radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
                 radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
@@ -1325,7 +1325,7 @@
                         </svg>
                     </button>
                     <div class="theme-dropdown" id="theme-dropdown">
-                        <div class="theme-option active" data-theme="dark">
+                        <div class="theme-option active" data-theme="ember">
                             <div class="theme-preview theme-preview-dark"></div>
                             <span>Dark</span>
                         </div>
@@ -1337,7 +1337,7 @@
                             <div class="theme-preview theme-preview-dusk"></div>
                             <span>Dusk</span>
                         </div>
-                        <div class="theme-option" data-theme="light">
+                        <div class="theme-option" data-theme="ember">
                             <div class="theme-preview theme-preview-light"></div>
                             <span>Light</span>
                         </div>

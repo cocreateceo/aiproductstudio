@@ -5,9 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <title>Admin Portal v2 | CoCreate AI</title>
+
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = { theme: { extend: { colors: { primary: 'var(--primary)', secondary: 'var(--secondary)', accent: 'var(--accent)' }, fontFamily: { sans: ['DM Sans', 'system-ui', 'sans-serif'], display: ['Outfit', 'DM Sans', 'system-ui', 'sans-serif'] } } } }
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: 'var(--primary)',
+                        secondary: 'var(--secondary)',
+                        accent: 'var(--accent)',
+                    },
+                    fontFamily: {
+                        sans: ['DM Sans', 'system-ui', 'sans-serif'],
+                        display: ['Outfit', 'DM Sans', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
     </script>
 
     <!-- Google Fonts - CoCreate Typography -->
@@ -22,54 +38,70 @@
     <link rel="stylesheet" href="css/themes/aurora.css">
     <link rel="stylesheet" href="css/themes/legacy.css">
 
-    <!-- html2canvas for screenshots -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Unified Theme System -->
+    <script src="js/theme.js"></script>
 
     <!-- Centralized Configuration -->
     <script src="js/config.js"></script>
-
-    <!-- Unified Theme System (MUST be before any rendering) -->
-    <script src="js/theme.js"></script>
 
     <!-- Chat Widget -->
     <link rel="stylesheet" href="css/chat-widget.css">
 
     <style>
-        /* CoCreate Theme Variables - Base */
         :root {
             --transition-speed: 0.4s;
         }
 
-        /* CoCreate Typography */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            transition: background var(--transition-speed) ease, color var(--transition-speed) ease;
+        }
+
         h1, h2, h3, h4, h5, h6, .font-display {
             font-family: 'Outfit', 'DM Sans', system-ui, sans-serif;
             font-weight: 600;
             letter-spacing: -0.02em;
         }
 
-        body {
-            font-family: 'DM Sans', sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-            transition: background var(--transition-speed) ease, color var(--transition-speed) ease;
+        .gradient-text {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
+
         .glass-card {
             background: var(--bg-card);
             backdrop-filter: blur(20px);
             border: 1px solid var(--border-color);
             transition: background var(--transition-speed) ease, border-color var(--transition-speed) ease;
         }
+
+        .text-theme-primary { color: var(--text-primary); }
+        .text-theme-secondary { color: var(--text-secondary); }
+        .text-theme-muted { color: var(--text-muted); }
+
+        /* Status badges */
         .status-pending { background: #fbbf24; color: #1e1b4b; }
         .status-approved { background: #22c55e; color: white; }
         .status-rejected { background: #ef4444; color: white; }
-        .btn-approve { background: linear-gradient(135deg, #22c55e, #16a34a); }
-        .btn-reject { background: linear-gradient(135deg, #ef4444, #dc2626); }
+
+        /* Action buttons */
+        .btn-approve { background: linear-gradient(135deg, #22c55e, #16a34a); color: white; }
+        .btn-reject { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
         .btn-approve:hover, .btn-reject:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .btn-cancel { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
+        .btn-rebuild { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; }
+
+        /* Cards */
         .app-card, .build-card { transition: all 0.3s ease; }
-        .app-card:hover, .build-card:hover { border-color: rgba(99, 102, 241, 0.5); }
-        .app-card.expanded, .build-card.expanded { border-color: rgba(99, 102, 241, 0.8); box-shadow: 0 0 30px rgba(99, 102, 241, 0.2); }
-        .modal-overlay { background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); }
+        .app-card:hover, .build-card:hover { border-color: var(--primary); }
+        .app-card.expanded, .build-card.expanded { border-color: var(--primary); box-shadow: 0 0 30px var(--glow-color); }
 
         /* Expandable card styles */
         .card-header { cursor: pointer; }
@@ -79,16 +111,16 @@
         .app-card.expanded .expand-icon, .build-card.expanded .expand-icon { transform: rotate(180deg); }
 
         /* Progress bar styles */
-        .progress-container { background: rgba(30, 41, 59, 0.8); border-radius: 8px; overflow: hidden; }
-        .progress-bar { height: 8px; background: linear-gradient(90deg, #6366f1, #8b5cf6, #06b6d4); transition: width 0.5s ease; }
+        .progress-container { background: var(--bg-secondary); border-radius: 8px; overflow: hidden; }
+        .progress-bar { height: 8px; background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent)); transition: width 0.5s ease; }
         .progress-bar.failed { background: linear-gradient(90deg, #ef4444, #dc2626); }
         .progress-bar.completed { background: linear-gradient(90deg, #22c55e, #16a34a); }
 
-        /* Indeterminate progress bar for session creation */
+        /* Indeterminate progress bar */
         .progress-bar-indeterminate {
             height: 8px;
             width: 30%;
-            background: linear-gradient(90deg, #6366f1, #8b5cf6, #06b6d4);
+            background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent));
             border-radius: 8px;
             animation: indeterminate 1.5s ease-in-out infinite;
         }
@@ -102,36 +134,10 @@
         /* Build log styles */
         .build-log { max-height: 300px; overflow-y: auto; font-family: 'Monaco', 'Menlo', monospace; font-size: 12px; }
         .build-log::-webkit-scrollbar { width: 6px; }
-        .build-log::-webkit-scrollbar-track { background: #1e293b; }
-        .build-log::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+        .build-log::-webkit-scrollbar-track { background: var(--bg-secondary); }
+        .build-log::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 3px; }
 
-        /* Action buttons */
-        .btn-cancel { background: linear-gradient(135deg, #f59e0b, #d97706); }
-        .btn-rebuild { background: linear-gradient(135deg, #6366f1, #4f46e5); }
-
-        /* Chat widget theme variable overrides - uses theme vars */
-        :root {
-            --chat-primary: var(--primary);
-            --chat-secondary: var(--secondary);
-            --chat-bg: var(--bg-secondary);
-            --chat-messages-bg: var(--bg-primary);
-            --chat-input-bg: var(--bg-card);
-            --chat-border: var(--border-color);
-            --chat-text-primary: var(--text-primary);
-            --chat-text-secondary: var(--text-secondary);
-            --chat-text-muted: var(--text-muted);
-            --chat-msg-assistant-bg: var(--bg-card);
-            --chat-msg-assistant-text: var(--text-primary);
-        }
-
-        /* Light theme specific overrides */
-        [data-theme="light"] .glass-card {
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-        }
-
-        [data-theme="light"] header {
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
+        .modal-overlay { background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); }
 
         /* Navigation Tab Styles */
         .nav-tab {
@@ -149,43 +155,8 @@
             transform: none;
         }
 
-        [data-theme="light"] .nav-tab:not(.active) {
-            background: #e2e8f0 !important;
-            color: #475569 !important;
-        }
-
-        [data-theme="light"] .nav-tab:not(.active):hover {
-            background: #cbd5e1 !important;
-        }
-
-        [data-theme="light"] .filter-btn:not(.active) {
-            background: #e2e8f0;
-            color: #475569;
-        }
-
-        [data-theme="light"] input,
-        [data-theme="light"] .input-field {
-            background: #f1f5f9;
-            border-color: #e2e8f0;
-            color: #0f172a;
-        }
-
-        /* User Filter Dropdown Styles */
-        #user-filter-dropdown:hover {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-        }
-
-        #user-filter-dropdown:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
-        }
-
-        /* Theme Selector Styles */
-        .theme-selector {
-            position: relative;
-        }
+        /* Theme Selector */
+        .theme-selector { position: relative; }
 
         .theme-toggle-btn {
             display: flex;
@@ -221,9 +192,7 @@
             display: none;
         }
 
-        .theme-dropdown.open {
-            display: block;
-        }
+        .theme-dropdown.open { display: block; }
 
         .theme-option {
             display: flex;
@@ -237,18 +206,9 @@
             font-size: 14px;
         }
 
-        .theme-option:hover {
-            background: var(--bg-secondary);
-        }
-
-        .theme-option.active {
-            background: var(--primary);
-            color: white;
-        }
-
-        .theme-option-icon {
-            font-size: 18px;
-        }
+        .theme-option:hover { background: var(--bg-secondary); }
+        .theme-option.active { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; }
+        .theme-option-icon { font-size: 18px; }
 
         /* Build Progress Tracker */
         .progress-tracker { display: flex; gap: 8px; margin: 16px 0; }
@@ -261,20 +221,21 @@
         .progress-step-label { font-size: 12px; font-weight: 600; }
         .progress-step-status { font-size: 10px; opacity: 0.8; margin-top: 2px; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+
         .mvp-ready { background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(6, 182, 212, 0.2)); border: 2px solid #22c55e; border-radius: 12px; padding: 20px; text-align: center; }
         .mvp-url { font-family: monospace; background: var(--bg-primary); padding: 12px; border-radius: 8px; word-break: break-all; margin: 12px 0; }
 
-        /* Real-time Build Progress */
+        /* Live Build Panel */
         .live-build-panel { position: fixed; bottom: 20px; right: 20px; width: 400px; max-height: 500px; background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-color); border-radius: 16px; z-index: 100; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
         .live-build-panel.hidden { display: none; }
-        .live-build-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid var(--border-color); background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1)); }
+        .live-build-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid var(--border-color); background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.1), rgba(var(--secondary-rgb), 0.1)); }
         .live-build-header h3 { font-weight: 600; display: flex; align-items: center; gap: 8px; }
         .live-indicator { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; animation: blink 1s infinite; }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
         .live-build-content { padding: 16px; max-height: 350px; overflow-y: auto; }
         .live-progress-bar { height: 8px; background: var(--bg-secondary); border-radius: 4px; overflow: hidden; margin-bottom: 12px; }
         .live-progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent)); transition: width 0.3s ease; border-radius: 4px; }
-        .live-phase { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: rgba(99, 102, 241, 0.1); border-radius: 8px; margin-bottom: 8px; }
+        .live-phase { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: rgba(var(--primary-rgb), 0.1); border-radius: 8px; margin-bottom: 8px; }
         .live-phase-icon { font-size: 20px; }
         .live-phase-text { flex: 1; }
         .live-phase-name { font-weight: 600; font-size: 14px; }
@@ -317,58 +278,26 @@
             font-weight: 500;
         }
 
-        .toast.success {
-            background: rgba(34, 197, 94, 0.15);
-            border-color: rgba(34, 197, 94, 0.4);
-            color: #22c55e;
-        }
-
-        .toast.error {
-            background: rgba(239, 68, 68, 0.15);
-            border-color: rgba(239, 68, 68, 0.4);
-            color: #ef4444;
-        }
-
-        .toast.info {
-            background: rgba(99, 102, 241, 0.15);
-            border-color: rgba(99, 102, 241, 0.4);
-            color: #6366f1;
-        }
-
-        .toast-icon {
-            font-size: 20px;
-            flex-shrink: 0;
-        }
-
-        .toast-message {
-            flex: 1;
-        }
-
-        .toast.removing {
-            animation: slideOut 0.3s ease-in forwards;
-        }
+        .toast.success { background: rgba(34, 197, 94, 0.15); border-color: rgba(34, 197, 94, 0.4); color: #22c55e; }
+        .toast.error { background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.4); color: #ef4444; }
+        .toast.info { background: rgba(99, 102, 241, 0.15); border-color: rgba(99, 102, 241, 0.4); color: #6366f1; }
+        .toast-icon { font-size: 20px; flex-shrink: 0; }
+        .toast-message { flex: 1; }
+        .toast.removing { animation: slideOut 0.3s ease-in forwards; }
 
         @keyframes slideIn {
-            from {
-                transform: translateX(400px);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
 
         @keyframes slideOut {
-            from {
-                transform: translateX(0);
-                opacity: 1;
-            }
-            to {
-                transform: translateX(400px);
-                opacity: 0;
-            }
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(400px); opacity: 0; }
         }
+
+        /* Filter button styles */
+        .filter-btn { transition: all 0.2s ease; }
+        .filter-btn.active { background: rgba(var(--primary-rgb), 0.2) !important; color: var(--primary) !important; border: 1px solid rgba(var(--primary-rgb), 0.3) !important; }
     </style>
 </head>
 <body>
@@ -376,15 +305,15 @@
     <div id="login-screen" class="min-h-screen flex items-center justify-center p-6">
         <div class="glass-card rounded-2xl p-8 w-full max-w-md">
             <div class="text-center mb-8">
-                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center mx-auto mb-4">
+                <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style="background: linear-gradient(135deg, var(--primary), var(--secondary));">
                     <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                     </svg>
                 </div>
-                <h1 class="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">Admin Portal</h1>
-                <p class="mt-2" style="color: var(--text-secondary);">CoCreate AI Applications</p>
+                <h1 class="text-2xl font-display font-bold gradient-text">Admin Portal</h1>
+                <p class="mt-2 text-theme-secondary">CoCreate AI Applications</p>
             </div>
-            <div id="login-error" class="hidden bg-red-500/20 border border-red-500/50 rounded-lg p-3 mb-4 text-red-300 text-sm"></div>
+            <div id="login-error" class="hidden bg-red-500/20 border border-red-500/50 rounded-lg p-3 mb-4 text-red-400 text-sm"></div>
             <div class="space-y-4">
                 <input type="password" id="password-input" placeholder="Enter admin password"
                     class="w-full px-4 py-3 rounded-xl focus:outline-none" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary);" onfocus="this.style.borderColor='var(--primary)'">
@@ -419,12 +348,12 @@
                         </g>
                     </svg>
                     <div>
-                        <h1 class="font-display font-bold text-lg" style="color: var(--text-primary);">CoCreate <span class="text-xs" style="color: var(--text-muted);">Admin</span></h1>
-                        <p class="text-xs" style="color: var(--text-secondary);">Portal v2</p>
+                        <h1 class="font-display font-bold text-lg text-theme-primary">CoCreate <span class="text-xs text-theme-muted">Admin</span></h1>
+                        <p class="text-xs text-theme-secondary">Portal v2</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-4">
-                    <!-- Theme Selector - CoCreate Themes -->
+                    <!-- Theme Selector -->
                     <div class="theme-selector">
                         <button class="theme-toggle-btn" id="theme-toggle">
                             <span id="current-theme-icon">🔥</span>
@@ -477,8 +406,8 @@
         <div class="max-w-7xl mx-auto px-6 py-6">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                 <div class="glass-card rounded-xl p-4">
-                    <p class="text-sm" style="color: var(--text-secondary);">Total Applications</p>
-                    <p id="stat-total" class="text-3xl font-bold mt-1" style="color: var(--text-primary);">0</p>
+                    <p class="text-sm text-theme-secondary">Total Applications</p>
+                    <p id="stat-total" class="text-3xl font-bold mt-1 text-theme-primary">0</p>
                 </div>
                 <div class="glass-card rounded-xl p-4">
                     <p class="text-yellow-400 text-sm">Pending</p>
@@ -499,10 +428,10 @@
                 <div class="glass-card rounded-xl p-4">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2">
-                            <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-5 h-5" style="color: var(--primary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
                             </svg>
-                            <label class="text-sm font-semibold" style="color: var(--text-primary);">Filter by User:</label>
+                            <label class="text-sm font-semibold text-theme-primary">Filter by User:</label>
                         </div>
                         <div class="flex items-center gap-2">
                             <select id="user-filter-dropdown"
@@ -510,7 +439,7 @@
                                     style="background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); min-width: 250px;">
                                 <option value="all">All Users</option>
                             </select>
-                            <span id="user-count-badge" class="px-2 py-1 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-400">0</span>
+                            <span id="user-count-badge" class="px-2 py-1 rounded-full text-xs font-semibold" style="background: rgba(var(--primary-rgb), 0.2); color: var(--primary);">0</span>
                         </div>
                     </div>
                 </div>
@@ -518,7 +447,7 @@
 
             <!-- Main Navigation Tabs -->
             <div class="flex gap-2 mb-6 pb-4" style="border-bottom: 1px solid var(--border-color);">
-                <button class="nav-tab active px-6 py-3 rounded-lg font-semibold" data-view="applications" style="background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; border: 1px solid var(--primary); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);">
+                <button class="nav-tab active px-6 py-3 rounded-lg font-semibold" data-view="applications" style="background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; border: 1px solid var(--primary); box-shadow: 0 4px 12px var(--glow-color);">
                     📋 Applications
                 </button>
                 <button class="nav-tab px-6 py-3 rounded-lg font-semibold" data-view="chats" style="background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid transparent;">
@@ -536,84 +465,76 @@
             <div id="view-applications" class="view-content">
                 <!-- Filter Tabs -->
                 <div class="flex gap-2 mb-6">
-                    <button class="filter-btn active px-4 py-2 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30" data-filter="all">All</button>
+                    <button class="filter-btn active px-4 py-2 rounded-lg" data-filter="all" style="background: rgba(var(--primary-rgb), 0.2); color: var(--primary); border: 1px solid rgba(var(--primary-rgb), 0.3);">All</button>
                     <button class="filter-btn px-4 py-2 rounded-lg" data-filter="pending" style="background: var(--bg-secondary); color: var(--text-secondary);">Pending</button>
                     <button class="filter-btn px-4 py-2 rounded-lg" data-filter="approved" style="background: var(--bg-secondary); color: var(--text-secondary);">Approved</button>
                     <button class="filter-btn px-4 py-2 rounded-lg" data-filter="rejected" style="background: var(--bg-secondary); color: var(--text-secondary);">Rejected</button>
                 </div>
 
                 <!-- Applications List -->
-            <div id="applications-list" class="space-y-4">
-                <div class="text-center py-12" style="color: var(--text-muted);">
-                    <svg class="w-12 h-12 mx-auto mb-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                    </svg>
-                    Loading applications...
+                <div id="applications-list" class="space-y-4">
+                    <div class="text-center py-12 text-theme-muted">
+                        <svg class="w-12 h-12 mx-auto mb-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        Loading applications...
+                    </div>
                 </div>
             </div>
-            </div><!-- End view-applications -->
 
             <!-- Chat History View -->
             <div id="view-chats" class="view-content hidden">
-                <!-- Page Source Filter + Status Controls -->
                 <div class="flex items-center justify-between mb-6">
-                    <!-- Left: Page Source Tabs -->
                     <div class="flex gap-2">
-                        <button class="chat-filter-btn active px-4 py-2 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30" data-source="all">All Chats</button>
+                        <button class="chat-filter-btn active px-4 py-2 rounded-lg" data-source="all" style="background: rgba(var(--primary-rgb), 0.2); color: var(--primary); border: 1px solid rgba(var(--primary-rgb), 0.3);">All Chats</button>
                         <button class="chat-filter-btn px-4 py-2 rounded-lg" data-source="landing" style="background: var(--bg-secondary); color: var(--text-secondary);">Landing Page</button>
                         <button class="chat-filter-btn px-4 py-2 rounded-lg" data-source="apply" style="background: var(--bg-secondary); color: var(--text-secondary);">Apply Page</button>
                     </div>
-
-                    <!-- Right: Status Dropdown + Clear Button -->
                     <div class="flex items-center gap-4">
                         <div class="flex items-center gap-2">
-                            <label class="text-sm font-semibold" style="color: var(--text-primary);">Status:</label>
-                            <select id="chat-status-filter"
-                                    class="px-4 py-2 rounded-lg font-medium cursor-pointer transition-all"
-                                    style="background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color);">
+                            <label class="text-sm font-semibold text-theme-primary">Status:</label>
+                            <select id="chat-status-filter" class="px-4 py-2 rounded-lg font-medium cursor-pointer" style="background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color);">
                                 <option value="all">All Statuses</option>
                                 <option value="active">Active</option>
                                 <option value="converted">Converted</option>
                             </select>
                         </div>
-                        <button id="clear-chats-btn"
-                                class="px-4 py-2 rounded-lg font-semibold transition-all bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30">
+                        <button id="clear-chats-btn" class="px-4 py-2 rounded-lg font-semibold transition-all bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30">
                             🗑️ Clear Chats
                         </button>
                     </div>
                 </div>
-
                 <div id="chats-list" class="space-y-4">
-                    <div class="text-center py-12" style="color: var(--text-muted);">Loading chat sessions...</div>
+                    <div class="text-center py-12 text-theme-muted">Loading chat sessions...</div>
                 </div>
             </div>
 
             <!-- Clients View -->
             <div id="view-clients" class="view-content hidden">
                 <div id="clients-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div class="text-center py-12 col-span-full" style="color: var(--text-muted);">Loading client profiles...</div>
+                    <div class="text-center py-12 col-span-full text-theme-muted">Loading client profiles...</div>
                 </div>
             </div>
 
             <!-- Builds View -->
             <div id="view-builds" class="view-content hidden">
                 <div id="builds-list" class="space-y-4">
-                    <div class="text-center py-12" style="color: var(--text-muted);">Loading build history...</div>
+                    <div class="text-center py-12 text-theme-muted">Loading build history...</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Generic Detail Modal (for Chats, Clients, Builds views) -->
+    <!-- Generic Detail Modal -->
     <div id="detail-modal" class="hidden fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4">
         <div class="glass-card rounded-2xl w-full max-w-3xl flex flex-col" style="max-height: calc(100vh - 2rem);">
             <div class="p-6 flex justify-between items-start flex-shrink-0" style="border-bottom: 1px solid var(--border-color);">
                 <div>
-                    <h2 id="modal-name" class="text-xl font-bold" style="color: var(--text-primary);"></h2>
-                    <p id="modal-email" class="text-sm" style="color: var(--text-secondary);"></p>
+                    <h2 id="modal-name" class="text-xl font-bold text-theme-primary"></h2>
+                    <p id="modal-email" class="text-sm text-theme-secondary"></p>
                 </div>
                 <button id="close-modal" class="p-2 rounded-lg transition" style="background: var(--bg-secondary);">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--text-primary);">
+                    <svg class="w-5 h-5 text-theme-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
                 </button>
@@ -621,9 +542,9 @@
             <div class="p-6 overflow-y-auto flex-1 min-h-0">
                 <div id="modal-content" class="space-y-6"></div>
             </div>
-            <div class="p-4 border-t border-slate-700 flex flex-wrap gap-3 flex-shrink-0" style="display:none;">
+            <div class="p-4 border-t flex flex-wrap gap-3 flex-shrink-0" style="display:none; border-color: var(--border-color);">
                 <input type="text" id="review-notes" placeholder="Add notes (optional)" style="display:none;"
-                    class="flex-1 min-w-[200px] px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+                    class="flex-1 min-w-[200px] px-4 py-2 rounded-lg focus:outline-none" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary);">
                 <div class="flex gap-2">
                     <button id="modal-approve" style="display:none;" class="btn-approve px-6 py-2 rounded-lg font-semibold transition">Approve</button>
                     <button id="modal-reject" style="display:none;" class="btn-reject px-6 py-2 rounded-lg font-semibold transition">Reject</button>
@@ -632,13 +553,13 @@
         </div>
     </div>
 
-    <!-- Live Build Progress Panel (legacy - kept for compatibility) -->
+    <!-- Live Build Progress Panel -->
     <div id="live-build-panel" class="live-build-panel hidden">
         <div class="live-build-header">
             <h3><span class="live-indicator"></span> Live Build</h3>
             <div class="flex items-center gap-2">
                 <span id="ws-status" class="ws-status disconnected">disconnected</span>
-                <button onclick="toggleLiveBuildPanel()" class="text-slate-400 hover:text-white">✕</button>
+                <button onclick="toggleLiveBuildPanel()" class="text-theme-muted hover:text-theme-primary">✕</button>
             </div>
         </div>
         <div class="live-build-content">
@@ -646,7 +567,7 @@
             <div class="live-progress-bar">
                 <div id="live-progress-fill" class="live-progress-fill" style="width: 0%"></div>
             </div>
-            <div id="live-percent" class="text-center text-sm text-slate-400 mb-4">0%</div>
+            <div id="live-percent" class="text-center text-sm text-theme-muted mb-4">0%</div>
             <div id="live-phase" class="live-phase">
                 <span class="live-phase-icon">⏳</span>
                 <div class="live-phase-text">
@@ -655,9 +576,9 @@
                 </div>
             </div>
             <div class="mt-4">
-                <div class="text-xs text-slate-500 mb-2">Live Logs:</div>
+                <div class="text-xs text-theme-muted mb-2">Live Logs:</div>
                 <div id="live-logs" class="live-logs">
-                    <div class="text-slate-500">Waiting for build activity...</div>
+                    <div class="text-theme-muted">Waiting for build activity...</div>
                 </div>
             </div>
         </div>
@@ -669,2264 +590,8 @@
     <!-- Chat Widget Container -->
     <div id="chat-widget-container"></div>
 
-    <script>
-        console.log('🚀 Admin Portal v2 loaded - Expandable Cards Edition');
-
-        // Use centralized configuration
-        const isLocal = AppConfig.isLocal;
-        const API_URL = AppConfig.api.chat;
-        const WS_URL = AppConfig.websocket.url;
-
-        // Fix URLs that have wrong port (legacy data in S3 may have port 3000)
-        function fixMvpUrl(url) {
-            if (!url) return url;
-            // Replace any localhost:3000 with correct port from config
-            return url.replace(/localhost:3000/g, `localhost:${AppConfig.ports.http}`);
-        }
-
-        let adminPassword = '';
-        let applications = [];
-        let currentFilter = 'all';
-        let currentUserFilter = 'all'; // Global user filter (email address or 'all')
-        let allUsers = []; // Cache of all unique users: [{name, email}]
-        let currentApp = null;
-        let progressPollInterval = null;
-        let currentBuildState = null;
-
-        // WebSocket connection
-        let ws = null;
-        let wsReconnectInterval = null;
-        let liveBuildLogs = [];
-
-        // Toast Notification System
-        function showToast(message, type = 'info') {
-            const container = document.getElementById('toast-container');
-            if (!container) return;
-
-            // Create toast element
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-
-            // Icon based on type
-            const icons = {
-                success: '✓',
-                error: '✕',
-                info: 'ℹ'
-            };
-            const icon = icons[type] || icons.info;
-
-            toast.innerHTML = `
-                <span class="toast-icon">${icon}</span>
-                <span class="toast-message">${message}</span>
-            `;
-
-            // Add to container
-            container.appendChild(toast);
-
-            // Auto-remove after duration
-            const duration = AppConfig.ui.toastDuration || 3000;
-            setTimeout(() => {
-                toast.classList.add('removing');
-                setTimeout(() => {
-                    if (toast.parentNode) {
-                        toast.parentNode.removeChild(toast);
-                    }
-                }, 300); // Match animation duration
-            }, duration);
-
-            console.log(`[Toast] ${type.toUpperCase()}: ${message}`);
-        }
-
-        function initWebSocket() {
-            if (!WS_URL) return;
-
-            ws = new WebSocket(WS_URL);
-
-            ws.onopen = () => {
-                console.log('📡 WebSocket connected');
-                document.getElementById('ws-status').textContent = 'connected';
-                document.getElementById('ws-status').className = 'ws-status connected';
-                if (wsReconnectInterval) {
-                    clearInterval(wsReconnectInterval);
-                    wsReconnectInterval = null;
-                }
-            };
-
-            ws.onclose = () => {
-                console.log('📡 WebSocket disconnected');
-                document.getElementById('ws-status').textContent = 'disconnected';
-                document.getElementById('ws-status').className = 'ws-status disconnected';
-                // Try to reconnect
-                if (!wsReconnectInterval) {
-                    wsReconnectInterval = setInterval(() => {
-                        console.log('📡 Attempting to reconnect...');
-                        initWebSocket();
-                    }, 5000);
-                }
-            };
-
-            ws.onerror = (error) => {
-                console.error('📡 WebSocket error:', error);
-            };
-
-            ws.onmessage = (event) => {
-                try {
-                    const msg = JSON.parse(event.data);
-                    handleWebSocketMessage(msg);
-                } catch (e) {
-                    console.error('Failed to parse WS message:', e);
-                }
-            };
-        }
-
-        function handleWebSocketMessage(msg) {
-            switch (msg.type) {
-                case 'build_started':
-                    liveBuildLogs = [];
-                    currentBuildState = {
-                        s3Key: msg.data.s3Key,
-                        status: 'in_progress',
-                        percent: 5,
-                        phase: 'starting',
-                        message: 'Build started...',
-                        client: msg.data.client
-                    };
-                    addLiveLog('Build started...');
-                    renderApplications();
-                    // Auto-expand the building card
-                    if (msg.data.s3Key) {
-                        setTimeout(() => {
-                            const card = document.querySelector(`.app-card[data-key="${msg.data.s3Key}"]`);
-                            if (card && !card.classList.contains('expanded')) {
-                                card.classList.add('expanded');
-                            }
-                        }, 100);
-                    }
-                    break;
-
-                case 'progress':
-                    currentBuildState = {
-                        ...currentBuildState,
-                        s3Key: msg.data.s3Key || currentBuildState?.s3Key,
-                        status: 'in_progress',
-                        percent: msg.data.percent || 0,
-                        phase: msg.data.phase || 'working',
-                        message: msg.data.message || 'Processing...'
-                    };
-                    // Update inline progress bars
-                    updateInlineProgress();
-                    break;
-
-                case 'tool_use':
-                    addLiveLog(`🔧 ${msg.data.tool}: ${JSON.stringify(msg.data.input).substring(0, 50)}...`);
-                    updateBuildLogs();
-                    break;
-
-                case 'thinking':
-                    addLiveLog(`💭 ${msg.data.content.substring(0, 60)}...`);
-                    updateBuildLogs();
-                    break;
-
-                case 'log':
-                    addLiveLog(`[${msg.data.phase}] ${msg.data.content.substring(0, 60)}`);
-                    updateBuildLogs();
-                    break;
-
-                case 'build_completed':
-                    const fixedMvpUrl = fixMvpUrl(msg.data.mvpUrl);
-                    currentBuildState = {
-                        ...currentBuildState,
-                        status: 'completed',
-                        percent: 100,
-                        phase: 'completed',
-                        message: 'Build complete!',
-                        mvpUrl: fixedMvpUrl
-                    };
-                    addLiveLog(`✅ MVP ready: ${fixedMvpUrl}`);
-                    showToast('Build completed!', 'success');
-                    // Update the application with build URL
-                    const completedApp = applications.find(a => a.s3Key === currentBuildState.s3Key);
-                    if (completedApp) {
-                        completedApp.buildUrl = fixedMvpUrl;
-                        completedApp.buildProgress = currentBuildState;
-                    }
-                    renderApplications();
-                    currentBuildState = null;
-                    break;
-
-                case 'build_failed':
-                    currentBuildState = {
-                        ...currentBuildState,
-                        status: 'failed',
-                        phase: 'failed',
-                        message: msg.data.error || 'Build failed'
-                    };
-                    addLiveLog(`❌ Error: ${msg.data.error}`);
-                    showToast('Build failed', 'error');
-                    const failedApp = applications.find(a => a.s3Key === currentBuildState?.s3Key);
-                    if (failedApp) {
-                        failedApp.buildProgress = currentBuildState;
-                    }
-                    renderApplications();
-                    currentBuildState = null;
-                    break;
-
-                case 'build_cancelled':
-                    showToast('Build cancelled', 'info');
-                    currentBuildState = null;
-                    loadApplications();
-                    break;
-
-                case 'error':
-                    addLiveLog(`❌ ${msg.data.message}`);
-                    break;
-
-                case 'state':
-                    if (msg.data) {
-                        currentBuildState = msg.data;
-                        renderApplications();
-                    }
-                    break;
-            }
-        }
-
-        // Update inline progress bars without full re-render
-        function updateInlineProgress() {
-            if (!currentBuildState) return;
-
-            // Update progress bars in header
-            document.querySelectorAll('.progress-bar').forEach(bar => {
-                bar.style.width = `${currentBuildState.percent || 0}%`;
-            });
-
-            // Update percent text
-            document.querySelectorAll('.app-card').forEach(card => {
-                if (card.dataset.key === currentBuildState.s3Key) {
-                    const phaseText = card.querySelector('.text-indigo-400');
-                    const percentText = card.querySelector('.text-slate-400');
-                    if (phaseText) phaseText.textContent = `${currentBuildState.phase || 'Building'}...`;
-                }
-            });
-
-            // Update build section in expanded card
-            const buildSectionId = currentBuildState.s3Key?.replace(/[^a-zA-Z0-9]/g, '_');
-            const buildSection = document.getElementById(`build-section-${buildSectionId}`);
-            if (buildSection) {
-                const app = applications.find(a => a.s3Key === currentBuildState.s3Key);
-                if (app) {
-                    app.buildProgress = currentBuildState;
-                    buildSection.innerHTML = renderBuildSection(app);
-                }
-            }
-        }
-
-        // Update build logs in expanded card
-        function updateBuildLogs() {
-            if (!currentBuildState) return;
-            const buildLogId = currentBuildState.s3Key?.replace(/[^a-zA-Z0-9]/g, '_');
-            const logDiv = document.getElementById(`build-log-${buildLogId}`);
-            if (logDiv) {
-                logDiv.innerHTML = liveBuildLogs.slice(-10).map(log => `<div class="text-xs">${log}</div>`).join('');
-                logDiv.scrollTop = logDiv.scrollHeight;
-            }
-        }
-
-        function addLiveLog(text) {
-            // Just add to array - actual display is handled by updateBuildLogs
-            if (typeof text === 'string') {
-                liveBuildLogs.push(text);
-            } else {
-                liveBuildLogs.push(text.text || String(text));
-            }
-            // Keep only last 50 logs
-            if (liveBuildLogs.length > 50) liveBuildLogs = liveBuildLogs.slice(-50);
-        }
-
-        // Initialize WebSocket when logged in
-        function onLoginSuccess() {
-            initWebSocket();
-        }
-
-        // DOM Elements
-        const loginScreen = document.getElementById('login-screen');
-        const dashboard = document.getElementById('dashboard');
-        const passwordInput = document.getElementById('password-input');
-        const loginBtn = document.getElementById('login-btn');
-        const loginError = document.getElementById('login-error');
-        const logoutBtn = document.getElementById('logout-btn');
-        const refreshBtn = document.getElementById('refresh-btn');
-        const applicationsList = document.getElementById('applications-list');
-        const detailModal = document.getElementById('detail-modal');
-        const closeModal = document.getElementById('close-modal');
-        const filterBtns = document.querySelectorAll('.filter-btn');
-
-        // Login
-        loginBtn.addEventListener('click', async () => {
-            const password = passwordInput.value;
-            if (!password) return;
-
-            loginBtn.textContent = 'Logging in...';
-            loginBtn.disabled = true;
-
-            try {
-                const res = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'admin-login', password })
-                });
-                const data = await res.json();
-
-                if (data.success) {
-                    adminPassword = password;
-                    sessionStorage.setItem('adminPassword', password);
-                    loginScreen.classList.add('hidden');
-                    dashboard.classList.remove('hidden');
-
-                    // Load all data upfront for stable user count
-                    await Promise.all([
-                        loadApplications(),
-                        loadChatSessions(),
-                        loadClientProfiles(),
-                        loadBuildHistory()
-                    ]);
-
-                    // Populate user dropdown after all data is loaded
-                    populateUserDropdown();
-
-                    onLoginSuccess(); // Initialize WebSocket
-                } else {
-                    loginError.textContent = 'Invalid password';
-                    loginError.classList.remove('hidden');
-                }
-            } catch (e) {
-                loginError.textContent = 'Connection error. Please try again.';
-                loginError.classList.remove('hidden');
-            }
-
-            loginBtn.textContent = 'Login';
-            loginBtn.disabled = false;
-        });
-
-        passwordInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') loginBtn.click();
-        });
-
-        // Logout
-        logoutBtn.addEventListener('click', () => {
-            adminPassword = '';
-            sessionStorage.removeItem('adminPassword');
-            dashboard.classList.add('hidden');
-            loginScreen.classList.remove('hidden');
-            passwordInput.value = '';
-        });
-
-        // Load Applications
-        async function loadApplications() {
-            console.log('[Admin] loadApplications called, password:', adminPassword ? 'SET' : 'NOT SET');
-            applicationsList.innerHTML = `
-                <div class="text-center py-12 text-slate-500">
-                    <svg class="w-12 h-12 mx-auto mb-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                    </svg>
-                    Loading applications...
-                </div>
-            `;
-
-            try {
-                const res = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'admin-list', password: adminPassword })
-                });
-                const data = await res.json();
-
-                console.log('[Admin] API response:', data);
-                if (data.success) {
-                    // Fix any legacy URLs with wrong port
-                    applications = data.applications.map(app => ({
-                        ...app,
-                        buildUrl: fixMvpUrl(app.buildUrl),
-                        mvpUrl: fixMvpUrl(app.mvpUrl)
-                    }));
-                    console.log('[Admin] Loaded', applications.length, 'applications');
-                    updateStats();
-                    try {
-                        renderApplications();
-                        console.log('[Admin] renderApplications completed');
-                    } catch (renderError) {
-                        console.error('[Admin] renderApplications error:', renderError);
-                        applicationsList.innerHTML = `<div class="text-center py-12 text-red-400">Render error: ${renderError.message}</div>`;
-                    }
-                } else {
-                    console.error('[Admin] API error:', data.error);
-                    applicationsList.innerHTML = `<div class="text-center py-12 text-red-400">Error: ${data.error}</div>`;
-                }
-            } catch (e) {
-                console.error('[Admin] Connection error:', e);
-                applicationsList.innerHTML = `<div class="text-center py-12 text-red-400">Connection error: ${e.message}</div>`;
-            }
-        }
-
-        // Update Stats
-        function updateStats() {
-            document.getElementById('stat-total').textContent = applications.length;
-            // Treat undefined/null status as 'pending' (new applications)
-            document.getElementById('stat-pending').textContent = applications.filter(a => !a.status || a.status === 'pending').length;
-            document.getElementById('stat-approved').textContent = applications.filter(a => a.status === 'approved').length;
-            document.getElementById('stat-rejected').textContent = applications.filter(a => a.status === 'rejected').length;
-        }
-
-        // Extract unique users from all data sources
-        function extractAllUsers() {
-            const userMap = new Map(); // Use Map to deduplicate by email
-
-            // Extract from Applications
-            applications.forEach(app => {
-                const email = app.visitorInfo?.email;
-                const name = app.visitorInfo?.name;
-                if (email && name) {
-                    userMap.set(email, { name, email });
-                }
-            });
-
-            // Extract from Chat Sessions
-            chatSessions.forEach(session => {
-                const email = session.visitorInfo?.email;
-                const name = session.visitorInfo?.name;
-                if (email && name) {
-                    userMap.set(email, { name, email });
-                }
-            });
-
-            // Extract from Client Profiles
-            clientProfiles.forEach(client => {
-                const email = client.email;
-                const name = client.name;
-                if (email && name) {
-                    userMap.set(email, { name, email });
-                }
-            });
-
-            // Extract from Build History (fallback to name if no email)
-            buildHistory.forEach(build => {
-                const name = build.client?.name;
-                if (name) {
-                    // Try to find matching email from other sources
-                    const existingUser = Array.from(userMap.values()).find(u => u.name === name);
-                    if (existingUser) {
-                        userMap.set(existingUser.email, existingUser);
-                    } else {
-                        // Use name as key if no email found
-                        userMap.set(name, { name, email: name });
-                    }
-                }
-            });
-
-            // Convert to array and sort alphabetically by name
-            return Array.from(userMap.values()).sort((a, b) =>
-                a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
-            );
-        }
-
-        // Populate user dropdown with current users
-        function populateUserDropdown() {
-            allUsers = extractAllUsers();
-            const dropdown = document.getElementById('user-filter-dropdown');
-            const badge = document.getElementById('user-count-badge');
-
-            if (!dropdown || !badge) return; // Guard against missing elements
-
-            // Check if there are any anonymous users (without email/name)
-            let hasAnonymous = false;
-            hasAnonymous = hasAnonymous || applications.some(app => !app.visitorInfo?.email || !app.visitorInfo?.name);
-            hasAnonymous = hasAnonymous || chatSessions.some(session => !session.visitorInfo?.email || !session.visitorInfo?.name);
-            hasAnonymous = hasAnonymous || clientProfiles.some(client => !client.email || !client.name);
-
-            // Build options HTML
-            let optionsHTML = '<option value="all">All Users</option>';
-
-            // Add Anonymous option if there are any anonymous users
-            if (hasAnonymous) {
-                const selected = currentUserFilter === 'anonymous' ? 'selected' : '';
-                optionsHTML += `<option value="anonymous" ${selected}>Anonymous Users</option>`;
-            }
-
-            allUsers.forEach(user => {
-                const selected = currentUserFilter === user.email ? 'selected' : '';
-                optionsHTML += `<option value="${user.email}" ${selected}>${user.name} (${user.email})</option>`;
-            });
-
-            dropdown.innerHTML = optionsHTML;
-            badge.textContent = hasAnonymous ? allUsers.length + 1 : allUsers.length;
-
-            console.log(`[User Filter] Populated dropdown with ${allUsers.length} unique users${hasAnonymous ? ' + Anonymous' : ''}`);
-        }
-
-        // Render session status box (success, error, or loading)
-        function renderSessionStatusBox(app) {
-            // Check for loading state (set temporarily during API call)
-            if (app._sessionLoading) {
-                return `
-                    <div class="session-status-box bg-slate-800/50 rounded-lg p-4 mb-4">
-                        <div class="flex items-center gap-3 mb-2">
-                            <span class="text-indigo-400 font-semibold">Creating session...</span>
-                        </div>
-                        <div class="progress-container">
-                            <div class="progress-bar-indeterminate"></div>
-                        </div>
-                    </div>
-                `;
-            }
-
-            // Check for successful session
-            if (app.guid && app.sessionLink) {
-                return `
-                    <div class="session-status-box bg-green-500/10 border border-green-500/30 rounded-lg p-4 mb-4">
-                        <div class="flex items-center gap-2 text-green-400 font-semibold mb-2">
-                            <span>✓ Session Created</span>
-                        </div>
-                        <a href="${app.sessionLink}" target="_blank"
-                           class="text-indigo-400 hover:text-indigo-300 underline break-all text-sm">
-                            ${app.sessionLink}
-                        </a>
-                    </div>
-                `;
-            }
-
-            // Check for failed session
-            if (app.sessionError) {
-                return `
-                    <div class="session-status-box bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-4">
-                        <div class="flex items-center gap-2 text-red-400 font-semibold mb-2">
-                            <span>✗ Session Failed</span>
-                        </div>
-                        <p class="text-slate-300 text-sm">${app.sessionError}</p>
-                    </div>
-                `;
-            }
-
-            return '';
-        }
-
-        // Render Applications with expandable cards
-        function renderApplications() {
-            // STEP 1: Filter by user (if not 'all')
-            let userFiltered = applications;
-            if (currentUserFilter === 'anonymous') {
-                // Show only anonymous users (no email or name)
-                userFiltered = applications.filter(app =>
-                    !app.visitorInfo?.email || !app.visitorInfo?.name
-                );
-            } else if (currentUserFilter !== 'all') {
-                // Show specific user by email
-                userFiltered = applications.filter(app =>
-                    app.visitorInfo?.email === currentUserFilter
-                );
-            }
-
-            // STEP 2: Filter by status (existing logic)
-            let filtered;
-            if (currentFilter === 'all') {
-                filtered = userFiltered;
-            } else if (currentFilter === 'pending') {
-                filtered = userFiltered.filter(a => !a.status || a.status === 'pending');
-            } else {
-                filtered = userFiltered.filter(a => a.status === currentFilter);
-            }
-
-            if (filtered.length === 0) {
-                applicationsList.innerHTML = `
-                    <div class="text-center py-12 text-slate-500">
-                        <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
-                        No applications found
-                    </div>
-                `;
-                return;
-            }
-
-            applicationsList.innerHTML = filtered.map(app => {
-                const status = app.status || 'pending';
-                const buildProgress = app.buildProgress || currentBuildState?.s3Key === app.s3Key ? currentBuildState : null;
-                const isBuilding = buildProgress && buildProgress.status === 'in_progress';
-
-                return `
-                <div class="app-card glass-card rounded-xl overflow-hidden" data-key="${app.s3Key}">
-                    <!-- Card Header (clickable to expand) -->
-                    <div class="card-header p-5" onclick="toggleCard('${app.s3Key}')">
-                        <div class="flex justify-between items-start">
-                            <div class="flex-1">
-                                <div class="flex items-center gap-3">
-                                    <h3 class="font-semibold text-lg">${app.visitorInfo?.name || 'Unknown'}</h3>
-                                    <span class="status-${status} px-3 py-1 rounded-full text-xs font-semibold">
-                                        ${status.toUpperCase()}
-                                    </span>
-                                </div>
-                                <p class="text-slate-400 text-sm mt-1">${app.visitorInfo?.email || 'No email'}</p>
-                                <p class="text-sm text-slate-300 mt-2 line-clamp-1">${app.formData?.product_idea || app.formData?.productIdea || 'No product idea'}</p>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <p class="text-slate-500 text-xs">${app.submittedAtEST || ''}</p>
-                                <svg class="expand-icon w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                </svg>
-                            </div>
-                        </div>
-
-                        ${isBuilding ? `
-                        <!-- Inline Progress Bar -->
-                        <div class="mt-4">
-                            <div class="flex justify-between text-xs mb-1">
-                                <span class="text-indigo-400">${buildProgress.phase || 'Building'}...</span>
-                                <span class="text-slate-400">${buildProgress.percent || 0}%</span>
-                            </div>
-                            <div class="progress-container">
-                                <div class="progress-bar" style="width: ${buildProgress.percent || 5}%"></div>
-                            </div>
-                        </div>
-                        ` : ''}
-                    </div>
-
-                    <!-- Expandable Details -->
-                    <div class="card-details border-t border-slate-700">
-                        <div class="p-5 space-y-4">
-                            <!-- Business Details -->
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <p class="text-slate-500 text-xs uppercase mb-1">Industry</p>
-                                    <p class="text-slate-200">${app.formData?.industry || 'Not specified'}</p>
-                                </div>
-                                <div>
-                                    <p class="text-slate-500 text-xs uppercase mb-1">Business Stage</p>
-                                    <p class="text-slate-200">${app.formData?.business_stage || app.formData?.businessStage || 'Not specified'}</p>
-                                </div>
-                                <div>
-                                    <p class="text-slate-500 text-xs uppercase mb-1">Time Commitment</p>
-                                    <p class="text-slate-200">${app.formData?.time_commitment || app.formData?.timeCommitment || 'Not specified'}</p>
-                                </div>
-                                <div>
-                                    <p class="text-slate-500 text-xs uppercase mb-1">Phone</p>
-                                    <p class="text-slate-200">${app.visitorInfo?.phone || 'Not provided'}</p>
-                                </div>
-                            </div>
-
-                            <!-- Product Idea -->
-                            <div>
-                                <p class="text-slate-500 text-xs uppercase mb-1">Product Idea</p>
-                                <p class="text-slate-200 whitespace-pre-wrap">${app.formData?.product_idea || app.formData?.productIdea || 'Not provided'}</p>
-                            </div>
-
-                            <!-- Target Market -->
-                            ${app.formData?.target_market || app.formData?.targetMarket ? `
-                            <div>
-                                <p class="text-slate-500 text-xs uppercase mb-1">Target Market</p>
-                                <p class="text-slate-200">${app.formData.target_market || app.formData.targetMarket}</p>
-                            </div>
-                            ` : ''}
-
-                            <!-- Build Progress Section -->
-                            <div id="build-section-${app.s3Key?.replace(/[^a-zA-Z0-9]/g, '_')}" class="build-section">
-                                ${renderBuildSection(app)}
-                            </div>
-
-                            <!-- Session Status Box (above buttons) -->
-                            ${renderSessionStatusBox(app)}
-
-                            <!-- Action Buttons -->
-                            <div class="flex gap-3 pt-4 border-t border-slate-700">
-                                ${(() => {
-                                    const isLoading = app._sessionLoading;
-                                    const hasSession = app.guid && app.sessionLink;
-                                    const hasError = app.sessionError;
-
-                                    if (isLoading) {
-                                        // Loading: disable both buttons
-                                        return `
-                                            <button disabled class="btn-approve px-4 py-2 rounded-lg font-semibold transition flex-1 opacity-50 cursor-not-allowed">
-                                                ✓ Approve & Build
-                                            </button>
-                                            <button disabled class="btn-reject px-4 py-2 rounded-lg font-semibold transition flex-1 opacity-50 cursor-not-allowed">
-                                                ✗ Reject
-                                            </button>
-                                        `;
-                                    }
-
-                                    if (status === 'approved' && hasSession) {
-                                        // Success: show only Reject
-                                        return `
-                                            <button onclick="event.stopPropagation(); quickReject('${app.s3Key}')"
-                                                class="btn-reject px-4 py-2 rounded-lg font-semibold transition flex-1">
-                                                ✗ Reject
-                                            </button>
-                                        `;
-                                    }
-
-                                    if (status === 'approved' && hasError) {
-                                        // Failed: show Retry and Reject
-                                        return `
-                                            <button onclick="event.stopPropagation(); retrySession('${app.s3Key}')"
-                                                class="px-4 py-2 rounded-lg font-semibold transition flex-1 bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-500/30">
-                                                🔄 Retry
-                                            </button>
-                                            <button onclick="event.stopPropagation(); quickReject('${app.s3Key}')"
-                                                class="btn-reject px-4 py-2 rounded-lg font-semibold transition flex-1">
-                                                ✗ Reject
-                                            </button>
-                                        `;
-                                    }
-
-                                    if (status === 'pending' || !status) {
-                                        // Pending: show Approve and Reject
-                                        return `
-                                            <button onclick="event.stopPropagation(); quickApprove('${app.s3Key}')"
-                                                class="btn-approve px-4 py-2 rounded-lg font-semibold transition flex-1">
-                                                ✓ Approve & Build
-                                            </button>
-                                            <button onclick="event.stopPropagation(); quickReject('${app.s3Key}')"
-                                                class="btn-reject px-4 py-2 rounded-lg font-semibold transition flex-1">
-                                                ✗ Reject
-                                            </button>
-                                        `;
-                                    }
-
-                                    return '';
-                                })()}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `}).join('');
-        }
-
-        // Render build section for an application
-        function renderBuildSection(app) {
-            const buildProgress = currentBuildState?.s3Key === app.s3Key ? currentBuildState : app.buildProgress;
-            if (!buildProgress && app.status !== 'approved') return '';
-
-            const isBuilding = buildProgress?.status === 'in_progress';
-            const isFailed = buildProgress?.status === 'failed';
-            const isCompleted = buildProgress?.status === 'completed';
-
-            if (isBuilding) {
-                return `
-                    <div class="bg-slate-800/50 rounded-lg p-4">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-indigo-400 font-semibold">🔨 Building MVP</span>
-                            <span class="text-slate-400 text-sm">${buildProgress.percent || 0}%</span>
-                        </div>
-                        <div class="progress-container mb-3">
-                            <div class="progress-bar" style="width: ${buildProgress.percent || 5}%"></div>
-                        </div>
-                        <p class="text-slate-300 text-sm">${buildProgress.message || 'Processing...'}</p>
-                        ${buildProgress.phase ? `<p class="text-slate-500 text-xs mt-1">Phase: ${buildProgress.phase}</p>` : ''}
-
-                        <!-- Live Logs -->
-                        <div class="mt-3 build-log bg-slate-900 rounded p-3 text-slate-400" id="build-log-${app.s3Key?.replace(/[^a-zA-Z0-9]/g, '_')}">
-                            ${liveBuildLogs.slice(-10).map(log => `<div class="text-xs">${log}</div>`).join('')}
-                        </div>
-                    </div>
-                `;
-            }
-
-            if (isFailed) {
-                return `
-                    <div class="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
-                        <div class="flex items-center gap-2 text-red-400 font-semibold mb-2">
-                            <span>❌ Build Failed</span>
-                        </div>
-                        <p class="text-slate-300 text-sm">${buildProgress.message || 'Build failed. Click Rebuild to try again.'}</p>
-                    </div>
-                `;
-            }
-
-            if (isCompleted || app.buildUrl) {
-                return `
-                    <div class="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
-                        <div class="flex items-center gap-2 text-green-400 font-semibold mb-2">
-                            <span>✅ Build Complete</span>
-                        </div>
-                        ${app.buildUrl ? `<p class="text-slate-300 text-sm">MVP is live at: <a href="${app.buildUrl}" target="_blank" class="text-indigo-400 hover:underline">${app.buildUrl}</a></p>` : ''}
-                    </div>
-                `;
-            }
-
-            return '';
-        }
-
-        // Toggle card expansion
-        function toggleCard(s3Key) {
-            const card = document.querySelector(`.app-card[data-key="${s3Key}"]`);
-            const wasExpanded = card.classList.contains('expanded');
-
-            // Close all other cards
-            document.querySelectorAll('.app-card.expanded').forEach(c => c.classList.remove('expanded'));
-
-            // Toggle this card
-            if (!wasExpanded) {
-                card.classList.add('expanded');
-                currentApp = applications.find(a => a.s3Key === s3Key);
-            } else {
-                currentApp = null;
-            }
-        }
-
-        // Quick approve with loading state
-        async function quickApprove(s3Key) {
-            const app = applications.find(a => a.s3Key === s3Key);
-            if (!app) return;
-
-            // Set loading state and re-render
-            const idx = applications.findIndex(a => a.s3Key === s3Key);
-            if (idx !== -1) {
-                applications[idx]._sessionLoading = true;
-                renderApplications();
-                // Re-expand the card
-                setTimeout(() => {
-                    const card = document.querySelector(`.app-card[data-key="${s3Key}"]`);
-                    if (card) card.classList.add('expanded');
-                }, 50);
-            }
-
-            currentApp = app;
-            await updateStatus('approved');
-
-            // Clear loading state after API returns
-            if (idx !== -1) {
-                delete applications[idx]._sessionLoading;
-            }
-        }
-
-        // Quick reject without confirmation
-        async function quickReject(s3Key) {
-            const app = applications.find(a => a.s3Key === s3Key);
-            if (!app) return;
-
-            currentApp = app;
-            await updateStatus('rejected');
-        }
-
-        // Retry session creation for failed applications
-        async function retrySession(s3Key) {
-            const app = applications.find(a => a.s3Key === s3Key);
-            if (!app) return;
-
-            // Set loading state
-            const idx = applications.findIndex(a => a.s3Key === s3Key);
-            if (idx !== -1) {
-                applications[idx]._sessionLoading = true;
-                // Clear previous error for UI
-                delete applications[idx].sessionError;
-                renderApplications();
-                // Re-expand the card
-                setTimeout(() => {
-                    const card = document.querySelector(`.app-card[data-key="${s3Key}"]`);
-                    if (card) card.classList.add('expanded');
-                }, 50);
-            }
-
-            currentApp = app;
-
-            // Call updateStatus with 'approved' to retry the session creation
-            await updateStatus('approved');
-
-            // Clear loading state
-            if (idx !== -1) {
-                delete applications[idx]._sessionLoading;
-            }
-        }
-
-        // Rebuild MVP without confirmation - just start immediately
-        async function rebuildMVP(s3Key) {
-            const app = applications.find(a => a.s3Key === s3Key);
-            if (!app) return;
-
-            currentApp = app;
-
-            // Start build immediately - no confirmation
-            try {
-                const res = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'trigger-build',
-                        s3Key: s3Key,
-                        password: adminPassword,
-                        rebuild: true
-                    })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    showToast('Build started!', 'success');
-                    // Update app with job info
-                    app.jobId = data.jobId;
-                    app.buildProgress = { status: 'in_progress', percent: 5, phase: 'starting', message: 'Initializing...' };
-                    renderApplications();
-                    // Expand the card to show progress
-                    setTimeout(() => toggleCard(s3Key), 100);
-                } else {
-                    showToast(data.error || 'Failed to start build', 'error');
-                }
-            } catch (error) {
-                showToast('Failed to start build', 'error');
-            }
-        }
-
-        // Cancel build and terminate agent
-        async function cancelBuild(s3Key) {
-            try {
-                const res = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'cancel-build',
-                        s3Key: s3Key,
-                        password: adminPassword
-                    })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    showToast('Build cancelled', 'info');
-                    // Also send WebSocket cancel message
-                    if (ws && ws.readyState === 1) {
-                        ws.send(JSON.stringify({ type: 'cancel', s3Key }));
-                    }
-                    loadApplications();
-                } else {
-                    showToast(data.error || 'Failed to cancel', 'error');
-                }
-            } catch (error) {
-                showToast('Failed to cancel build', 'error');
-            }
-        }
-
-        // Filter
-        filterBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                filterBtns.forEach(b => {
-                    b.classList.remove('active', 'bg-indigo-500/20', 'text-indigo-400', 'border', 'border-indigo-500/30');
-                    b.classList.add('bg-slate-800', 'text-slate-400');
-                });
-                btn.classList.remove('bg-slate-800', 'text-slate-400');
-                btn.classList.add('active', 'bg-indigo-500/20', 'text-indigo-400', 'border', 'border-indigo-500/30');
-                currentFilter = btn.dataset.filter;
-                renderApplications();
-            });
-        });
-
-        // Global User Filter Dropdown Handler
-        const userFilterDropdown = document.getElementById('user-filter-dropdown');
-        if (userFilterDropdown) {
-            userFilterDropdown.addEventListener('change', (e) => {
-                currentUserFilter = e.target.value;
-                console.log(`[User Filter] Changed to: ${currentUserFilter}`);
-
-                // Re-render current view with new filter
-                switch(currentView) {
-                    case 'applications':
-                        renderApplications();
-                        break;
-                    case 'chats':
-                        renderChatSessions();
-                        break;
-                    case 'clients':
-                        renderClientProfiles();
-                        break;
-                    case 'builds':
-                        renderBuildHistory();
-                        break;
-                }
-            });
-        }
-
-        // Refresh - reload all data and repopulate user dropdown
-        refreshBtn.addEventListener('click', async () => {
-            await Promise.all([
-                loadApplications(),
-                loadChatSessions(),
-                loadClientProfiles(),
-                loadBuildHistory()
-            ]);
-            populateUserDropdown();
-        });
-
-        // ========== BUILD PROGRESS TRACKING ==========
-
-        // Fetch build progress from API
-        async function fetchBuildProgress(jobId) {
-            try {
-                const res = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'admin-progress', password: adminPassword, jobId })
-                });
-                const data = await res.json();
-                return data.success ? data.progress : null;
-            } catch (e) {
-                console.error('Failed to fetch progress:', e);
-                return null;
-            }
-        }
-
-        // Render build progress UI
-        function renderBuildProgress(progress) {
-            const container = document.getElementById('build-progress-container');
-            if (!container) return;
-
-            if (!progress) {
-                container.innerHTML = `
-                    <div class="text-center py-4 text-slate-400">
-                        <span class="animate-pulse">Loading build status...</span>
-                    </div>
-                `;
-                return;
-            }
-
-            const phases = ['architect', 'developer', 'deployer'];
-            const phaseIcons = { architect: '📐', developer: '💻', deployer: '🚀' };
-            const phaseLabels = { architect: 'Architect', developer: 'Developer', deployer: 'Deployer' };
-            const statusIcons = { pending: '⏸', in_progress: '⏳', completed: '✅', failed: '❌' };
-
-            // Check if MVP is ready
-            if (progress.status === 'completed' && progress.result?.mvpUrl) {
-                container.innerHTML = `
-                    <div class="mvp-ready">
-                        <div class="text-3xl mb-3">🎉</div>
-                        <h3 class="text-xl font-bold text-green-400 mb-2">MVP Ready!</h3>
-                        <p class="text-slate-300 text-sm mb-4">The MVP has been built and deployed successfully.</p>
-                        <div class="mvp-url text-cyan-400">${progress.result.mvpUrl}</div>
-                        <div class="flex gap-3 justify-center mt-4">
-                            <a href="${progress.result.mvpUrl}" target="_blank"
-                               class="px-6 py-2 bg-gradient-to-r from-green-500 to-cyan-500 rounded-lg font-semibold hover:opacity-90 transition inline-flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                                </svg>
-                                View MVP
-                            </a>
-                            <button onclick="navigator.clipboard.writeText('${progress.result.mvpUrl}').then(() => alert('URL copied!'))"
-                                    class="px-4 py-2 bg-slate-700 rounded-lg font-semibold hover:bg-slate-600 transition inline-flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
-                                </svg>
-                                Copy URL
-                            </button>
-                        </div>
-                    </div>
-                `;
-                // Stop polling when complete
-                if (progressPollInterval) {
-                    clearInterval(progressPollInterval);
-                    progressPollInterval = null;
-                }
-                return;
-            }
-
-            // Show progress tracker for in-progress builds
-            let progressHtml = `
-                <div class="bg-slate-800/50 rounded-xl p-4 border border-indigo-500/30">
-                    <div class="flex items-center gap-2 mb-4">
-                        <span class="text-xl">🚀</span>
-                        <h3 class="font-semibold">MVP Build Progress</h3>
-                        ${progress.status === 'in_progress' ? '<span class="ml-auto text-xs bg-indigo-500/30 text-indigo-300 px-2 py-1 rounded animate-pulse">Building...</span>' : ''}
-                        ${progress.status === 'failed' ? '<span class="ml-auto text-xs bg-red-500/30 text-red-300 px-2 py-1 rounded">Failed</span>' : ''}
-                    </div>
-                    <div class="progress-tracker">
-            `;
-
-            phases.forEach(phase => {
-                const phaseData = progress.phases?.[phase] || { status: 'pending' };
-                const status = phaseData.status || 'pending';
-                progressHtml += `
-                    <div class="progress-step ${status}">
-                        <div class="progress-step-icon">${status === 'completed' ? '✅' : status === 'in_progress' ? '⏳' : status === 'failed' ? '❌' : phaseIcons[phase]}</div>
-                        <div class="progress-step-label">${phaseLabels[phase]}</div>
-                        <div class="progress-step-status">${status === 'in_progress' ? 'In Progress' : status.charAt(0).toUpperCase() + status.slice(1)}</div>
-                    </div>
-                `;
-            });
-
-            progressHtml += `</div>`;
-
-            // Show latest message
-            const latestPhase = progress.phases?.[progress.currentPhase];
-            if (latestPhase?.message) {
-                progressHtml += `
-                    <div class="mt-4 p-3 bg-slate-900 rounded-lg border border-slate-700">
-                        <p class="text-xs text-slate-500 mb-1">Latest Update:</p>
-                        <p class="text-sm text-slate-300">${latestPhase.message}</p>
-                    </div>
-                `;
-            }
-
-            // Show logs
-            if (progress.logs && progress.logs.length > 0) {
-                const recentLogs = progress.logs.slice(-3).reverse();
-                progressHtml += `
-                    <details class="mt-4">
-                        <summary class="text-xs text-slate-500 cursor-pointer hover:text-slate-400">View build logs</summary>
-                        <div class="mt-2 space-y-1 max-h-32 overflow-y-auto">
-                            ${recentLogs.map(log => `
-                                <div class="text-xs text-slate-400 font-mono">
-                                    <span class="text-slate-600">${new Date(log.timestamp).toLocaleTimeString()}</span>
-                                    ${log.message || log.status}
-                                </div>
-                            `).join('')}
-                        </div>
-                    </details>
-                `;
-            }
-
-            progressHtml += `</div>`;
-            container.innerHTML = progressHtml;
-        }
-
-        // Start polling for progress
-        function startProgressPolling(jobId) {
-            // Clear any existing interval
-            if (progressPollInterval) {
-                clearInterval(progressPollInterval);
-            }
-
-            // Initial fetch
-            fetchBuildProgress(jobId).then(renderBuildProgress);
-
-            // Poll every 5 seconds
-            progressPollInterval = setInterval(async () => {
-                const progress = await fetchBuildProgress(jobId);
-                renderBuildProgress(progress);
-
-                // Stop polling if completed or failed
-                if (progress && (progress.status === 'completed' || progress.status === 'failed')) {
-                    clearInterval(progressPollInterval);
-                    progressPollInterval = null;
-                }
-            }, 5000);
-        }
-
-        // Stop polling
-        function stopProgressPolling() {
-            if (progressPollInterval) {
-                clearInterval(progressPollInterval);
-                progressPollInterval = null;
-            }
-        }
-
-        // Poll for session result (used when API Gateway times out but Lambda may still be running)
-        async function pollForSessionResult(s3Key, maxAttempts = 8, intervalMs = 5000) {
-            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-                showToast(`Waiting for session... (${attempt}/${maxAttempts})`, 'info');
-                await new Promise(r => setTimeout(r, intervalMs));
-
-                try {
-                    // Fetch fresh application list
-                    const res = await fetch(API_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            action: 'admin-list',
-                            password: adminPassword
-                        })
-                    });
-                    const data = await res.json();
-
-                    if (data.success && data.applications) {
-                        const app = data.applications.find(a => a.s3Key === s3Key);
-                        if (app?.guid && app?.sessionLink) {
-                            return { success: true, application: app };
-                        }
-                        if (app?.sessionError) {
-                            return { success: false, error: app.sessionError, application: app };
-                        }
-                    }
-                } catch (pollError) {
-                    console.log('Poll attempt failed:', pollError.message);
-                }
-            }
-            return { success: false, error: 'Timeout waiting for session creation' };
-        }
-
-        // Update Status (for expandable cards - no modal)
-        async function updateStatus(status) {
-            if (!currentApp) return;
-            const requestStartTime = Date.now();
-            const appS3Key = currentApp.s3Key;
-
-            try {
-                showToast(`${status === 'approved' ? 'Approving' : 'Rejecting'}...`, 'info');
-
-                const res = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'admin-update',
-                        password: adminPassword,
-                        s3Key: currentApp.s3Key,
-                        status: status,
-                        reviewNotes: ''
-                    })
-                });
-                const data = await res.json();
-
-                if (data.success) {
-                    // Update local data with all returned fields (including session data)
-                    const idx = applications.findIndex(a => a.s3Key === currentApp.s3Key);
-                    if (idx !== -1) {
-                        applications[idx] = { ...applications[idx], ...data.application };
-                        // Clear loading state
-                        delete applications[idx]._sessionLoading;
-                    }
-                    updateStats();
-
-                    // Check session result for toast message
-                    if (status === 'approved') {
-                        if (data.application?.guid) {
-                            showToast('Approved! Session created successfully.', 'success');
-                        } else if (data.application?.sessionError) {
-                            showToast('Approved but session failed: ' + data.application.sessionError, 'error');
-                        } else {
-                            showToast('Approved!', 'success');
-                        }
-                    } else {
-                        showToast('Rejected', 'info');
-                    }
-
-                    renderApplications();
-
-                    // Re-expand the card to show result
-                    if (status === 'approved') {
-                        setTimeout(() => {
-                            const card = document.querySelector(`.app-card[data-key="${currentApp.s3Key}"]`);
-                            if (card) card.classList.add('expanded');
-                        }, 100);
-                    }
-                } else {
-                    showToast('Error: ' + data.error, 'error');
-                }
-            } catch (e) {
-                const requestDuration = Date.now() - requestStartTime;
-                const looksLikeTimeout = requestDuration > 15000; // 15+ seconds suggests API Gateway timeout
-
-                // If approving and looks like a timeout, Lambda may still be running - poll for result
-                if (status === 'approved' && looksLikeTimeout) {
-                    showToast('Request timed out, checking if session was created...', 'info');
-
-                    const pollResult = await pollForSessionResult(appS3Key);
-
-                    const idx = applications.findIndex(a => a.s3Key === appS3Key);
-                    if (pollResult.success) {
-                        // Lambda succeeded! Update UI
-                        if (idx !== -1) {
-                            applications[idx] = { ...applications[idx], ...pollResult.application };
-                            delete applications[idx]._sessionLoading;
-                        }
-                        updateStats();
-                        showToast('Session created successfully!', 'success');
-                        renderApplications();
-                        setTimeout(() => {
-                            const card = document.querySelector(`.app-card[data-key="${appS3Key}"]`);
-                            if (card) card.classList.add('expanded');
-                        }, 100);
-                    } else if (pollResult.application?.sessionError) {
-                        // Lambda finished but session creation failed
-                        if (idx !== -1) {
-                            applications[idx] = { ...applications[idx], ...pollResult.application };
-                            delete applications[idx]._sessionLoading;
-                        }
-                        showToast('Session creation failed: ' + pollResult.error, 'error');
-                        renderApplications();
-                    } else {
-                        // Polling timed out - couldn't determine result
-                        if (idx !== -1) {
-                            delete applications[idx]._sessionLoading;
-                        }
-                        showToast('Could not confirm session creation. Please refresh.', 'error');
-                        renderApplications();
-                    }
-                } else {
-                    // Quick error (not a timeout) - show error immediately
-                    const idx = applications.findIndex(a => a.s3Key === appS3Key);
-                    if (idx !== -1) {
-                        delete applications[idx]._sessionLoading;
-                    }
-                    showToast('Connection error: ' + e.message, 'error');
-                    renderApplications();
-                }
-            }
-        }
-
-        // Modal close handlers (for Chats, Clients, Builds views)
-        closeModal.addEventListener('click', () => {
-            detailModal.classList.add('hidden');
-        });
-        detailModal.addEventListener('click', (e) => {
-            if (e.target === detailModal) {
-                detailModal.classList.add('hidden');
-            }
-        });
-
-        // Check for saved session
-        const savedPassword = sessionStorage.getItem('adminPassword');
-        if (savedPassword) {
-            adminPassword = savedPassword;
-            loginScreen.classList.add('hidden');
-            dashboard.classList.remove('hidden');
-            loadApplications();
-            onLoginSuccess(); // Initialize WebSocket
-        }
-
-        // ========== CHAT WIDGET (loaded externally) ==========
-        // Chat widget will be initialized after the script loads
-
-        // ========== NAVIGATION TABS ==========
-        const navTabs = document.querySelectorAll('.nav-tab');
-        const viewContents = document.querySelectorAll('.view-content');
-        let currentView = 'applications';
-
-        navTabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                const view = tab.dataset.view;
-                if (view === currentView) return;
-
-                // Update active tab
-                navTabs.forEach(t => {
-                    t.classList.remove('active');
-                    // Inactive state
-                    t.style.background = 'var(--bg-secondary)';
-                    t.style.color = 'var(--text-secondary)';
-                    t.style.border = '1px solid transparent';
-                });
-                // Active state
-                tab.classList.add('active');
-                tab.style.background = 'linear-gradient(135deg, var(--primary), var(--secondary))';
-                tab.style.color = 'white';
-                tab.style.border = '1px solid var(--primary)';
-                tab.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.3)';
-
-                // Show/hide views
-                viewContents.forEach(v => v.classList.add('hidden'));
-                document.getElementById(`view-${view}`).classList.remove('hidden');
-                currentView = view;
-
-                // Render the view with current filter (data already loaded on login)
-                if (view === 'applications') {
-                    renderApplications();
-                }
-                else if (view === 'chats') {
-                    renderChatSessions();
-                }
-                else if (view === 'clients') {
-                    renderClientProfiles();
-                }
-                else if (view === 'builds') {
-                    renderBuildHistory();
-                }
-            });
-        });
-
-        // ========== CHAT HISTORY ==========
-        let chatSessions = [];
-        let chatSourceFilter = 'all';
-        let chatStatusFilter = 'all';
-
-        // Chat page source filter buttons
-        document.querySelectorAll('.chat-filter-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.chat-filter-btn').forEach(b => {
-                    b.classList.remove('active', 'bg-indigo-500/20', 'text-indigo-400', 'border', 'border-indigo-500/30');
-                    b.classList.add('bg-slate-800', 'text-slate-400');
-                });
-                btn.classList.remove('bg-slate-800', 'text-slate-400');
-                btn.classList.add('active', 'bg-indigo-500/20', 'text-indigo-400', 'border', 'border-indigo-500/30');
-                chatSourceFilter = btn.dataset.source;
-                loadChatSessions();
-            });
-        });
-
-        // Chat status filter dropdown
-        const chatStatusFilterDropdown = document.getElementById('chat-status-filter');
-        if (chatStatusFilterDropdown) {
-            chatStatusFilterDropdown.addEventListener('change', (e) => {
-                chatStatusFilter = e.target.value;
-                console.log(`[Chat Status Filter] Changed to: ${chatStatusFilter}`);
-                renderChatSessions();
-            });
-        }
-
-        // Clear chats button
-        const clearChatsBtn = document.getElementById('clear-chats-btn');
-        if (clearChatsBtn) {
-            clearChatsBtn.addEventListener('click', async () => {
-                // Filter sessions by current filters (user + status)
-                let sessionsToDelete = chatSessions;
-
-                // Apply user filter
-                if (currentUserFilter === 'anonymous') {
-                    sessionsToDelete = sessionsToDelete.filter(session =>
-                        !session.visitorInfo?.email || !session.visitorInfo?.name
-                    );
-                } else if (currentUserFilter !== 'all') {
-                    sessionsToDelete = sessionsToDelete.filter(session =>
-                        session.visitorInfo?.email === currentUserFilter
-                    );
-                }
-
-                // Apply status filter
-                if (chatStatusFilter !== 'all') {
-                    sessionsToDelete = sessionsToDelete.filter(session =>
-                        session.status === chatStatusFilter
-                    );
-                }
-
-                if (sessionsToDelete.length === 0) {
-                    alert('No chat sessions match the current filters.');
-                    return;
-                }
-
-                // Confirmation dialog
-                const confirmMsg = `Are you sure you want to permanently delete ${sessionsToDelete.length} chat session(s)?\n\n` +
-                    `Filters applied:\n` +
-                    `- User: ${currentUserFilter === 'all' ? 'All Users' : currentUserFilter === 'anonymous' ? 'Anonymous Users' : allUsers.find(u => u.email === currentUserFilter)?.name || currentUserFilter}\n` +
-                    `- Status: ${chatStatusFilter === 'all' ? 'All Statuses' : chatStatusFilter}\n\n` +
-                    `This action cannot be undone!`;
-
-                if (!confirm(confirmMsg)) {
-                    return;
-                }
-
-                // Prepare session IDs and sources for deletion
-                const sessionIds = sessionsToDelete.map(session => ({
-                    sessionId: session.sessionId,
-                    source: session.source
-                }));
-
-                clearChatsBtn.disabled = true;
-                clearChatsBtn.textContent = 'Deleting...';
-
-                try {
-                    const res = await fetch(API_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            action: 'admin-delete-chats',
-                            password: adminPassword,
-                            sessionIds: sessionIds
-                        })
-                    });
-                    const data = await res.json();
-
-                    if (data.success) {
-                        alert(`Successfully deleted ${data.deleted} chat session(s).${data.failed > 0 ? `\nFailed to delete ${data.failed} session(s).` : ''}`);
-                        // Reload chat sessions
-                        await loadChatSessions();
-                        // Update user dropdown (in case users are now gone)
-                        await Promise.all([
-                            loadApplications(),
-                            loadClientProfiles(),
-                            loadBuildHistory()
-                        ]);
-                        populateUserDropdown();
-
-                        // Reset filter if current user no longer exists
-                        if (currentUserFilter !== 'all') {
-                            let filterStillValid = false;
-
-                            if (currentUserFilter === 'anonymous') {
-                                // Check if any anonymous users exist
-                                const hasAnonymous =
-                                    applications.some(app => !app.visitorInfo?.email || !app.visitorInfo?.name) ||
-                                    chatSessions.some(session => !session.visitorInfo?.email || !session.visitorInfo?.name) ||
-                                    clientProfiles.some(client => !client.email || !client.name);
-                                filterStillValid = hasAnonymous;
-                            } else {
-                                // Check if the email still exists in allUsers
-                                filterStillValid = allUsers.some(u => u.email === currentUserFilter);
-                            }
-
-                            if (!filterStillValid) {
-                                currentUserFilter = 'all';
-                                document.getElementById('user-filter-dropdown').value = 'all';
-                                renderChatSessions(); // Re-render with 'all' filter
-                            }
-                        }
-                    } else {
-                        alert(`Error: ${data.error}`);
-                    }
-                } catch (e) {
-                    alert(`Connection error: ${e.message}`);
-                }
-
-                clearChatsBtn.disabled = false;
-                clearChatsBtn.textContent = '🗑️ Clear Chats';
-            });
-        }
-
-        async function loadChatSessions() {
-            const chatsList = document.getElementById('chats-list');
-            chatsList.innerHTML = '<div class="text-center py-12 text-slate-500">Loading chat sessions...</div>';
-
-            try {
-                const res = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'admin-chats', password: adminPassword, source: chatSourceFilter })
-                });
-                const data = await res.json();
-
-                if (data.success) {
-                    chatSessions = data.sessions;
-                    renderChatSessions();
-                } else {
-                    chatsList.innerHTML = `<div class="text-center py-12 text-red-400">Error: ${data.error}</div>`;
-                }
-            } catch (e) {
-                chatsList.innerHTML = `<div class="text-center py-12 text-red-400">Connection error</div>`;
-            }
-        }
-
-        function renderChatSessions() {
-            const chatsList = document.getElementById('chats-list');
-
-            // STEP 1: Filter by user (if not 'all')
-            let filtered = chatSessions;
-            if (currentUserFilter === 'anonymous') {
-                // Show only anonymous users (no email or name)
-                filtered = chatSessions.filter(session =>
-                    !session.visitorInfo?.email || !session.visitorInfo?.name
-                );
-            } else if (currentUserFilter !== 'all') {
-                // Show specific user by email
-                filtered = chatSessions.filter(session =>
-                    session.visitorInfo?.email === currentUserFilter
-                );
-            }
-
-            // STEP 2: Filter by status (if not 'all')
-            if (chatStatusFilter !== 'all') {
-                filtered = filtered.filter(session =>
-                    session.status === chatStatusFilter
-                );
-            }
-
-            if (filtered.length === 0) {
-                chatsList.innerHTML = '<div class="text-center py-12 text-slate-500">No chat sessions found</div>';
-                return;
-            }
-
-            chatsList.innerHTML = filtered.map(session => {
-                const lastMsg = session.messages?.[session.messages.length - 1]?.content?.substring(0, 100) || 'No messages';
-                const statusColor = session.status === 'converted' ? 'text-green-400' : session.status === 'active' ? 'text-yellow-400' : 'text-slate-400';
-                const sourceIcon = session.source === 'apply' ? '📝' : '🏠';
-                return `
-                    <div class="glass-card rounded-xl p-4 cursor-pointer hover:border-indigo-500/50 transition" onclick="showChatDetail('${session.sessionId}', '${session.source}')">
-                        <div class="flex justify-between items-start mb-2">
-                            <div class="flex items-center gap-2">
-                                <span class="text-xl">${sourceIcon}</span>
-                                <span class="font-semibold">${session.visitorInfo?.name || 'Anonymous'}</span>
-                                <span class="text-xs px-2 py-1 rounded-full ${statusColor} bg-slate-800">${session.status}</span>
-                            </div>
-                            <span class="text-xs text-slate-500">${new Date(session.startedAt).toLocaleString()}</span>
-                        </div>
-                        <p class="text-sm text-slate-400 truncate">${lastMsg}...</p>
-                        <div class="flex gap-4 mt-2 text-xs text-slate-500">
-                            <span>💬 ${session.metadata?.totalMessages || 0} messages</span>
-                            ${session.visitorInfo?.email ? `<span>📧 ${session.visitorInfo.email}</span>` : ''}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        async function showChatDetail(sessionId, source) {
-            try {
-                const res = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'admin-chat-detail', password: adminPassword, sessionId, source })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    const session = data.session;
-                    const modalContent = document.getElementById('modal-content');
-                    document.getElementById('modal-name').textContent = session.visitorInfo?.name || 'Anonymous Chat';
-                    document.getElementById('modal-email').textContent = `Session: ${sessionId} | ${session.source}`;
-
-                    modalContent.innerHTML = `
-                        <div class="space-y-4">
-                            <div class="flex gap-4 text-sm">
-                                <span class="text-slate-400">Started: ${new Date(session.startedAt).toLocaleString()}</span>
-                                <span class="text-slate-400">Status: ${session.status}</span>
-                            </div>
-                            <div class="border-t border-slate-700 pt-4">
-                                <h4 class="font-semibold mb-3">Conversation:</h4>
-                                <div class="space-y-3 max-h-96 overflow-y-auto">
-                                    ${session.messages?.map(m => `
-                                        <div class="p-3 rounded-lg ${m.role === 'user' ? 'bg-indigo-500/20 ml-8' : 'bg-slate-700/50 mr-8'}">
-                                            <p class="text-xs text-slate-400 mb-1">${m.role === 'user' ? '👤 User' : '🤖 AI'}</p>
-                                            <p class="text-sm">${m.content}</p>
-                                        </div>
-                                    `).join('') || '<p class="text-slate-500">No messages</p>'}
-                                </div>
-                            </div>
-                        </div>
-                    `;
-
-                    document.getElementById('modal-approve').style.display = 'none';
-                    document.getElementById('modal-reject').style.display = 'none';
-                    document.getElementById('review-notes').style.display = 'none';
-                    detailModal.classList.remove('hidden');
-                }
-            } catch (e) {
-                console.error('Error loading chat detail:', e);
-            }
-        }
-
-        // ========== CLIENT PROFILES ==========
-        let clientProfiles = [];
-
-        async function loadClientProfiles() {
-            const clientsList = document.getElementById('clients-list');
-            clientsList.innerHTML = '<div class="text-center py-12 text-slate-500 col-span-full">Loading client profiles...</div>';
-
-            try {
-                const res = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'admin-clients', password: adminPassword })
-                });
-                const data = await res.json();
-
-                if (data.success) {
-                    clientProfiles = data.clients;
-                    renderClientProfiles();
-                } else {
-                    clientsList.innerHTML = `<div class="text-center py-12 text-red-400 col-span-full">Error: ${data.error}</div>`;
-                }
-            } catch (e) {
-                clientsList.innerHTML = `<div class="text-center py-12 text-red-400 col-span-full">Connection error</div>`;
-            }
-        }
-
-        function renderClientProfiles() {
-            const clientsList = document.getElementById('clients-list');
-
-            // Filter by user (if not 'all')
-            let filtered = clientProfiles;
-            if (currentUserFilter === 'anonymous') {
-                // Show only anonymous users (no email or name)
-                filtered = clientProfiles.filter(client =>
-                    !client.email || !client.name
-                );
-            } else if (currentUserFilter !== 'all') {
-                // Show specific user by email
-                filtered = clientProfiles.filter(client =>
-                    client.email === currentUserFilter
-                );
-            }
-
-            if (filtered.length === 0) {
-                clientsList.innerHTML = '<div class="text-center py-12 text-slate-500 col-span-full">No client profiles found</div>';
-                return;
-            }
-
-            const statusColors = {
-                prospect: 'bg-slate-500',
-                applied: 'bg-yellow-500',
-                approved: 'bg-blue-500',
-                building: 'bg-purple-500',
-                delivered: 'bg-green-500'
-            };
-
-            clientsList.innerHTML = filtered.map(client => `
-                <div class="glass-card rounded-xl p-4 cursor-pointer hover:border-indigo-500/50 transition" onclick="showClientDetail('${client.clientId}')">
-                    <div class="flex items-center gap-3 mb-3">
-                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-xl font-bold">
-                            ${(client.name?.[0] || '?').toUpperCase()}
-                        </div>
-                        <div>
-                            <p class="font-semibold">${client.name || 'Unknown'}</p>
-                            <p class="text-xs text-slate-400">${client.email || 'No email'}</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2 mb-2">
-                        <span class="text-xs px-2 py-1 rounded-full text-white ${statusColors[client.status] || 'bg-slate-500'}">${client.status}</span>
-                    </div>
-                    <div class="text-xs text-slate-500 flex gap-4">
-                        <span>💬 ${client.chatSessions?.length || 0} chats</span>
-                        <span>📋 ${client.applications?.length || 0} apps</span>
-                        <span>🔨 ${client.builds?.length || 0} builds</span>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        async function showClientDetail(clientId) {
-            try {
-                const res = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'admin-client-detail', password: adminPassword, clientId })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    const client = data.client;
-                    document.getElementById('modal-name').textContent = client.name || 'Unknown Client';
-                    document.getElementById('modal-email').textContent = client.email || clientId;
-
-                    const modalContent = document.getElementById('modal-content');
-                    modalContent.innerHTML = `
-                        <div class="grid grid-cols-2 gap-4 mb-4">
-                            <div class="glass-card rounded-lg p-3">
-                                <p class="text-xs text-slate-400">Phone</p>
-                                <p class="font-semibold">${client.phone || 'N/A'}</p>
-                            </div>
-                            <div class="glass-card rounded-lg p-3">
-                                <p class="text-xs text-slate-400">Status</p>
-                                <p class="font-semibold capitalize">${client.status}</p>
-                            </div>
-                        </div>
-                        <div class="border-t border-slate-700 pt-4">
-                            <h4 class="font-semibold mb-3">Timeline:</h4>
-                            <div class="space-y-2 max-h-64 overflow-y-auto">
-                                ${client.timeline?.map(event => `
-                                    <div class="flex items-center gap-3 text-sm">
-                                        <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
-                                        <span class="text-slate-400">${new Date(event.timestamp).toLocaleString()}</span>
-                                        <span class="capitalize">${event.event?.replace(/_/g, ' ')}</span>
-                                    </div>
-                                `).join('') || '<p class="text-slate-500">No timeline events</p>'}
-                            </div>
-                        </div>
-                    `;
-
-                    document.getElementById('modal-approve').style.display = 'none';
-                    document.getElementById('modal-reject').style.display = 'none';
-                    document.getElementById('review-notes').style.display = 'none';
-                    detailModal.classList.remove('hidden');
-                }
-            } catch (e) {
-                console.error('Error loading client detail:', e);
-            }
-        }
-
-        // ========== BUILD HISTORY ==========
-        let buildHistory = [];
-
-        async function loadBuildHistory() {
-            const buildsList = document.getElementById('builds-list');
-            buildsList.innerHTML = '<div class="text-center py-12 text-slate-500">Loading build history...</div>';
-
-            try {
-                const res = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'admin-builds', password: adminPassword })
-                });
-                const data = await res.json();
-
-                if (data.success) {
-                    // Fix any legacy URLs with wrong port
-                    buildHistory = data.builds.map(build => ({
-                        ...build,
-                        mvpUrl: fixMvpUrl(build.mvpUrl)
-                    }));
-                    renderBuildHistory();
-                } else {
-                    buildsList.innerHTML = `<div class="text-center py-12 text-red-400">Error: ${data.error}</div>`;
-                }
-            } catch (e) {
-                buildsList.innerHTML = `<div class="text-center py-12 text-red-400">Connection error</div>`;
-            }
-        }
-
-        function renderBuildHistory() {
-            const buildsList = document.getElementById('builds-list');
-
-            // Filter by user (if not 'all')
-            let filtered = buildHistory;
-            if (currentUserFilter === 'anonymous') {
-                // Show only anonymous users (no client name)
-                filtered = buildHistory.filter(build =>
-                    !build.client?.name
-                );
-            } else if (currentUserFilter !== 'all') {
-                // Show specific user
-                filtered = buildHistory.filter(build => {
-                    const clientName = build.client?.name;
-                    if (!clientName) return false;
-
-                    // Check if currentUserFilter is an email
-                    if (currentUserFilter.includes('@')) {
-                        // Try to find matching user in allUsers cache
-                        const user = allUsers.find(u => u.email === currentUserFilter);
-                        return user && user.name === clientName;
-                    } else {
-                        // Direct name match (fallback)
-                        return clientName === currentUserFilter;
-                    }
-                });
-            }
-
-            if (filtered.length === 0) {
-                buildsList.innerHTML = '<div class="text-center py-12 text-slate-500">No builds found</div>';
-                return;
-            }
-
-            const statusColors = {
-                pending: 'text-slate-400',
-                building: 'text-yellow-400',
-                completed: 'text-green-400',
-                failed: 'text-red-400'
-            };
-
-            const statusBg = {
-                pending: 'bg-slate-500/20',
-                building: 'bg-yellow-500/20',
-                completed: 'bg-green-500/20',
-                failed: 'bg-red-500/20'
-            };
-
-            // Sort builds by datetime descending (newest first)
-            const sortedBuilds = [...filtered].sort((a, b) => {
-                const dateA = new Date(a.timestamps?.created || a.createdAt || 0);
-                const dateB = new Date(b.timestamps?.created || b.createdAt || 0);
-                return dateB - dateA; // Descending order
-            });
-
-            buildsList.innerHTML = sortedBuilds.map(build => `
-                <div class="build-card glass-card rounded-xl overflow-hidden" data-build-id="${build.buildId}">
-                    <!-- Card Header (clickable to expand) -->
-                    <div class="card-header p-4" onclick="toggleBuildCard('${build.buildId}')">
-                        <div class="flex justify-between items-start">
-                            <div class="flex-1">
-                                <div class="flex items-center gap-3">
-                                    <h3 class="font-semibold">${build.client?.name || 'Unknown Client'}</h3>
-                                    <span class="px-2 py-1 rounded-full text-xs font-semibold ${statusBg[build.status] || 'bg-slate-500/20'} ${statusColors[build.status] || 'text-slate-400'} ${build.status === 'building' ? 'animate-pulse' : ''}">
-                                        ${build.status === 'building' ? '⏳ ' : ''}${build.status.toUpperCase()}
-                                    </span>
-                                </div>
-                                <p class="text-slate-500 text-xs mt-1">${build.buildId}</p>
-                                <p class="text-sm text-slate-300 mt-2 line-clamp-1">${build.business?.idea?.substring(0, 80) || 'No description'}...</p>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <button onclick="event.stopPropagation(); viewBuildLogs('${build.buildId}')"
-                                        class="px-2 py-1 text-xs rounded-lg bg-slate-700 hover:bg-slate-600 text-cyan-400 transition flex items-center gap-1"
-                                        title="View Build Logs">
-                                    📋 Logs
-                                </button>
-                                <p class="text-slate-500 text-xs">${new Date(build.timestamps?.created || build.createdAt).toLocaleDateString()}</p>
-                                <svg class="expand-icon w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                </svg>
-                            </div>
-                        </div>
-
-                        ${build.status === 'building' ? `
-                        <div class="mt-3 bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-2">
-                            <p class="text-yellow-400 text-sm flex items-center gap-2">
-                                <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                </svg>
-                                Building MVP... ${build.currentPhase ? `(${build.currentPhase})` : ''}
-                            </p>
-                        </div>
-                        ` : ''}
-                    </div>
-
-                    <!-- Expandable Details -->
-                    <div class="card-details border-t border-slate-700">
-                        <div class="p-4 space-y-4">
-                            <!-- Build Info Grid -->
-                            <div class="grid grid-cols-3 gap-4">
-                                <div>
-                                    <p class="text-slate-500 text-xs uppercase mb-1">Status</p>
-                                    <p class="${statusColors[build.status] || 'text-slate-200'} font-semibold capitalize">${build.status}</p>
-                                </div>
-                                <div>
-                                    <p class="text-slate-500 text-xs uppercase mb-1">Files Created</p>
-                                    <p class="text-slate-200">${build.filesCreated?.length || 0}</p>
-                                </div>
-                                <div>
-                                    <p class="text-slate-500 text-xs uppercase mb-1">Created</p>
-                                    <p class="text-slate-200 text-sm">${new Date(build.timestamps?.created || build.createdAt).toLocaleString()}</p>
-                                </div>
-                            </div>
-
-                            <!-- MVP Ready -->
-                            ${build.mvpUrl ? `
-                            <div class="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
-                                <p class="text-green-400 font-semibold mb-2">🚀 MVP Ready!</p>
-                                <p class="text-slate-400 text-sm mb-2 break-all">${build.mvpUrl}</p>
-                                <a href="${build.mvpUrl}" target="_blank" onclick="event.stopPropagation()"
-                                   class="inline-block px-4 py-2 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition">
-                                    View MVP
-                                </a>
-                            </div>
-                            ` : ''}
-
-                            <!-- Failed State -->
-                            ${build.status === 'failed' ? `
-                            <div class="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
-                                <p class="text-red-400 font-semibold mb-2">❌ Build Failed</p>
-                                <p class="text-sm text-slate-400 mb-4">The MVP build did not complete successfully. Check the logs for details.</p>
-                                <div class="flex gap-3">
-                                    <button onclick="event.stopPropagation(); viewBuildLogs('${build.buildId}')"
-                                            class="px-4 py-2 bg-slate-700 text-cyan-400 rounded-lg font-semibold hover:bg-slate-600 transition inline-flex items-center gap-2">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                        </svg>
-                                        View Logs
-                                    </button>
-                                    <button onclick="event.stopPropagation(); restartBuild('${build.buildId}')"
-                                            class="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg font-semibold hover:opacity-90 transition inline-flex items-center gap-2">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                        </svg>
-                                        Restart Build
-                                    </button>
-                                </div>
-                            </div>
-                            ` : ''}
-
-                            <!-- Agent Log Placeholder - loads on expand -->
-                            <div id="build-log-${build.buildId.replace(/[^a-zA-Z0-9]/g, '_')}" class="build-log-container">
-                                <p class="text-slate-500 text-sm">Click to load agent log...</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // Toggle build card expansion and load details
-        async function toggleBuildCard(buildId) {
-            const card = document.querySelector(`.build-card[data-build-id="${buildId}"]`);
-            const wasExpanded = card.classList.contains('expanded');
-
-            // Close all other cards
-            document.querySelectorAll('.build-card.expanded').forEach(c => c.classList.remove('expanded'));
-
-            if (!wasExpanded) {
-                card.classList.add('expanded');
-                // Load agent log if not already loaded
-                const logContainer = document.getElementById(`build-log-${buildId.replace(/[^a-zA-Z0-9]/g, '_')}`);
-                if (logContainer && logContainer.innerHTML.includes('Click to load')) {
-                    loadBuildAgentLog(buildId, logContainer);
-                }
-            }
-        }
-
-        // Load agent log for a build
-        async function loadBuildAgentLog(buildId, container) {
-            container.innerHTML = '<p class="text-slate-500 text-sm">Loading agent log...</p>';
-            try {
-                const res = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'admin-build-detail', password: adminPassword, buildId })
-                });
-                const data = await res.json();
-                if (data.success && data.build.agentLog?.entries?.length) {
-                    const log = data.build.agentLog;
-                    container.innerHTML = `
-                        <div class="border-t border-slate-700 pt-4">
-                            <h4 class="font-semibold mb-3 text-slate-300">Agent Log (${log.totalEntries} entries):</h4>
-                            <div class="space-y-1 max-h-48 overflow-y-auto bg-slate-900 rounded-lg p-3 text-xs font-mono">
-                                ${log.entries.slice(-20).map(entry => `
-                                    <div class="flex gap-2 ${entry.type === 'error' ? 'text-red-400' : 'text-slate-400'}">
-                                        <span class="text-slate-600">${new Date(entry.timestamp).toLocaleTimeString()}</span>
-                                        <span class="text-indigo-400">[${entry.phase}]</span>
-                                        <span class="truncate">${entry.content?.substring(0, 100) || ''}</span>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    container.innerHTML = '<p class="text-slate-500 text-sm">No agent log available</p>';
-                }
-            } catch (e) {
-                container.innerHTML = '<p class="text-red-400 text-sm">Error loading log</p>';
-            }
-        }
-
-        // Restart a failed build (no confirmation - user requested direct action)
-        async function restartBuild(buildId) {
-            // Find and disable all restart buttons for this build
-            const buttons = document.querySelectorAll(`button[onclick*="restartBuild('${buildId}')"]`);
-            const originalContents = [];
-
-            buttons.forEach((btn, i) => {
-                originalContents[i] = btn.innerHTML;
-                btn.disabled = true;
-                btn.classList.add('opacity-50', 'cursor-not-allowed');
-                btn.innerHTML = `
-                    <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                    </svg>
-                    Starting Build...
-                `;
-            });
-
-            try {
-                const res = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'admin-restart-build', password: adminPassword, buildId })
-                });
-                const data = await res.json();
-
-                if (data.success) {
-                    // Update button to show success
-                    buttons.forEach(btn => {
-                        btn.innerHTML = `
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                            </svg>
-                            Build Started!
-                        `;
-                        btn.classList.remove('from-orange-500', 'to-red-500');
-                        btn.classList.add('from-green-500', 'to-green-600');
-                    });
-
-                    // Refresh after short delay so user sees the success state
-                    setTimeout(() => {
-                        detailModal.classList.add('hidden');
-                        loadBuildHistory();
-                    }, 1500);
-                } else {
-                    // Re-enable buttons on error
-                    buttons.forEach((btn, i) => {
-                        btn.disabled = false;
-                        btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                        btn.innerHTML = originalContents[i];
-                    });
-                    alert('Error: ' + (data.error || 'Failed to restart build'));
-                }
-            } catch (e) {
-                console.error('Error restarting build:', e);
-                // Re-enable buttons on error
-                buttons.forEach((btn, i) => {
-                    btn.disabled = false;
-                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                    btn.innerHTML = originalContents[i];
-                });
-                alert('Connection error. Please try again.');
-            }
-        }
-
-        // View full build logs in a modal
-        async function viewBuildLogs(buildId) {
-            // Open modal with loading state
-            document.getElementById('modal-name').textContent = `Build Logs`;
-            document.getElementById('modal-email').textContent = buildId;
-            document.getElementById('modal-approve').style.display = 'none';
-            document.getElementById('modal-reject').style.display = 'none';
-            document.getElementById('review-notes').style.display = 'none';
-
-            const modalContent = document.getElementById('modal-content');
-            modalContent.innerHTML = `
-                <div class="flex items-center justify-center py-8">
-                    <svg class="w-6 h-6 animate-spin text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                    </svg>
-                    <span class="ml-3">Loading logs...</span>
-                </div>
-            `;
-            detailModal.classList.remove('hidden');
-
-            try {
-                const res = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'admin-build-detail', password: adminPassword, buildId })
-                });
-                const data = await res.json();
-
-                if (data.success && data.build) {
-                    const build = data.build;
-                    const agentLog = build.agentLog;
-                    const entries = agentLog?.entries || [];
-
-                    // Filter to show errors, tool_use, and progress entries
-                    const importantEntries = entries.filter(e =>
-                        e.type === 'error' || e.type === 'tool_use' || e.type === 'progress' || e.type === 'action'
-                    );
-
-                    modalContent.innerHTML = `
-                        <div class="space-y-4">
-                            <!-- Build Summary -->
-                            <div class="grid grid-cols-3 gap-3">
-                                <div class="glass-card rounded-lg p-3">
-                                    <p class="text-xs text-slate-400">Status</p>
-                                    <p class="font-semibold capitalize ${build.status === 'failed' ? 'text-red-400' : build.status === 'completed' ? 'text-green-400' : 'text-yellow-400'}">${build.status}</p>
-                                </div>
-                                <div class="glass-card rounded-lg p-3">
-                                    <p class="text-xs text-slate-400">Total Log Entries</p>
-                                    <p class="font-semibold">${entries.length}</p>
-                                </div>
-                                <div class="glass-card rounded-lg p-3">
-                                    <p class="text-xs text-slate-400">Errors</p>
-                                    <p class="font-semibold text-red-400">${entries.filter(e => e.type === 'error').length}</p>
-                                </div>
-                            </div>
-
-                            <!-- Log Filters -->
-                            <div class="flex gap-2 flex-wrap">
-                                <button onclick="filterLogs('all')" class="log-filter-btn active px-3 py-1 text-xs rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">All (${entries.length})</button>
-                                <button onclick="filterLogs('error')" class="log-filter-btn px-3 py-1 text-xs rounded-lg bg-slate-700 text-red-400 hover:bg-red-500/20">Errors (${entries.filter(e => e.type === 'error').length})</button>
-                                <button onclick="filterLogs('tool_use')" class="log-filter-btn px-3 py-1 text-xs rounded-lg bg-slate-700 text-cyan-400 hover:bg-cyan-500/20">Tools (${entries.filter(e => e.type === 'tool_use').length})</button>
-                                <button onclick="filterLogs('progress')" class="log-filter-btn px-3 py-1 text-xs rounded-lg bg-slate-700 text-green-400 hover:bg-green-500/20">Progress (${entries.filter(e => e.type === 'progress').length})</button>
-                            </div>
-
-                            <!-- Full Log -->
-                            <div id="log-entries" class="max-h-96 overflow-y-auto bg-slate-900 rounded-lg p-4 text-xs font-mono space-y-1">
-                                ${entries.map(entry => `
-                                    <div class="log-entry flex gap-2 py-1 border-b border-slate-800 ${entry.type === 'error' ? 'text-red-400 bg-red-500/10' : entry.type === 'tool_use' ? 'text-cyan-400' : entry.type === 'progress' ? 'text-green-400' : 'text-slate-400'}" data-type="${entry.type}">
-                                        <span class="text-slate-600 whitespace-nowrap">${new Date(entry.timestamp).toLocaleTimeString()}</span>
-                                        <span class="text-indigo-400 whitespace-nowrap">[${entry.phase}]</span>
-                                        <span class="text-yellow-400 whitespace-nowrap">${entry.type}</span>
-                                        <span class="flex-1 break-all">${(entry.content || '').substring(0, 200)}${(entry.content || '').length > 200 ? '...' : ''}</span>
-                                    </div>
-                                `).join('')}
-                            </div>
-
-                            <!-- Download Link -->
-                            <div class="flex justify-between items-center pt-2 border-t border-slate-700">
-                                <p class="text-xs text-slate-500">Build ID: ${buildId}</p>
-                                <button onclick="downloadLogs('${buildId}')" class="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                                    </svg>
-                                    Download Full Log
-                                </button>
-                            </div>
-                        </div>
-                    `;
-
-                    // Store entries for filtering
-                    window.currentLogEntries = entries;
-                } else {
-                    modalContent.innerHTML = `
-                        <div class="text-center py-8 text-red-400">
-                            <p>No logs available for this build</p>
-                            <p class="text-sm text-slate-500 mt-2">${data.error || 'Log file may not exist'}</p>
-                        </div>
-                    `;
-                }
-            } catch (e) {
-                console.error('Error loading logs:', e);
-                modalContent.innerHTML = `
-                    <div class="text-center py-8 text-red-400">
-                        <p>Error loading logs</p>
-                        <p class="text-sm text-slate-500 mt-2">${e.message}</p>
-                    </div>
-                `;
-            }
-        }
-
-        // Filter log entries
-        function filterLogs(type) {
-            document.querySelectorAll('.log-filter-btn').forEach(btn => {
-                btn.classList.remove('active', 'bg-indigo-500/20', 'border', 'border-indigo-500/30');
-                btn.classList.add('bg-slate-700');
-            });
-            event.target.classList.add('active', 'bg-indigo-500/20', 'border', 'border-indigo-500/30');
-            event.target.classList.remove('bg-slate-700');
-
-            document.querySelectorAll('.log-entry').forEach(entry => {
-                if (type === 'all' || entry.dataset.type === type) {
-                    entry.style.display = 'flex';
-                } else {
-                    entry.style.display = 'none';
-                }
-            });
-        }
-
-        // Download logs as JSON
-        function downloadLogs(buildId) {
-            if (window.currentLogEntries) {
-                const blob = new Blob([JSON.stringify(window.currentLogEntries, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `build-log-${buildId}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-            }
-        }
-
-        async function showBuildDetail(buildId) {
-            try {
-                const res = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'admin-build-detail', password: adminPassword, buildId })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    const build = data.build;
-                    document.getElementById('modal-name').textContent = `Build: ${build.client?.name || 'Unknown'}`;
-                    document.getElementById('modal-email').textContent = buildId;
-
-                    const modalContent = document.getElementById('modal-content');
-                    modalContent.innerHTML = `
-                        <div class="space-y-4">
-                            <div class="grid grid-cols-2 gap-4">
-                                <div class="glass-card rounded-lg p-3">
-                                    <p class="text-xs text-slate-400">Status</p>
-                                    <p class="font-semibold capitalize">${build.status}</p>
-                                </div>
-                                <div class="glass-card rounded-lg p-3">
-                                    <p class="text-xs text-slate-400">Files Created</p>
-                                    <p class="font-semibold">${build.filesCreated?.length || 0}</p>
-                                </div>
-                            </div>
-                            ${build.mvpUrl ? `
-                                <div class="mvp-ready">
-                                    <p class="text-green-400 font-semibold mb-2">🚀 MVP Ready!</p>
-                                    <div class="mvp-url">${build.mvpUrl}</div>
-                                    <a href="${build.mvpUrl}" target="_blank" class="inline-block mt-2 px-4 py-2 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600">View MVP</a>
-                                </div>
-                            ` : ''}
-                            ${build.status === 'failed' ? `
-                                <div class="bg-red-500/20 border border-red-500/30 rounded-xl p-4">
-                                    <p class="text-red-400 font-semibold mb-2">❌ Build Failed</p>
-                                    <p class="text-sm text-slate-400 mb-4">The MVP build did not complete successfully. You can restart the build to try again.</p>
-                                    <button onclick="restartBuild('${buildId}')" class="px-6 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg font-semibold hover:opacity-90 transition inline-flex items-center gap-2">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                        </svg>
-                                        Restart Build
-                                    </button>
-                                </div>
-                            ` : ''}
-                            ${build.agentLog?.entries?.length ? `
-                                <div class="border-t border-slate-700 pt-4">
-                                    <h4 class="font-semibold mb-3">Agent Log (${build.agentLog.totalEntries} entries):</h4>
-                                    <div class="space-y-2 max-h-64 overflow-y-auto bg-slate-900 rounded-lg p-3 text-xs font-mono">
-                                        ${build.agentLog.entries.slice(-20).map(entry => `
-                                            <div class="flex gap-2 ${entry.type === 'error' ? 'text-red-400' : 'text-slate-400'}">
-                                                <span class="text-slate-600">${new Date(entry.timestamp).toLocaleTimeString()}</span>
-                                                <span class="text-indigo-400">[${entry.phase}]</span>
-                                                <span class="truncate">${entry.content?.substring(0, 100)}</span>
-                                            </div>
-                                        `).join('')}
-                                    </div>
-                                </div>
-                            ` : ''}
-                        </div>
-                    `;
-
-                    document.getElementById('modal-approve').style.display = 'none';
-                    document.getElementById('modal-reject').style.display = 'none';
-                    document.getElementById('review-notes').style.display = 'none';
-                    detailModal.classList.remove('hidden');
-                }
-            } catch (e) {
-                console.error('Error loading build detail:', e);
-            }
-        }
-    </script>
+    <!-- Main Admin Script -->
+    <script src="js/admin-core.js"></script>
 
     <!-- Chat Widget Script -->
     <script src="js/chat-widget.js"></script>
@@ -2937,9 +602,9 @@
             subtitle: 'Admin Support',
             welcomeMessage: `Hi! I'm your admin assistant. I can help you with:
 
-• **Reviewing applications** - Understanding applicant details
-• **Making decisions** - Guidance on approval criteria
-• **Managing the dashboard** - Navigation and features
+- **Reviewing applications** - Understanding applicant details
+- **Making decisions** - Guidance on approval criteria
+- **Managing the dashboard** - Navigation and features
 
 How can I help you today?`,
             pageType: 'admin',
@@ -2957,41 +622,38 @@ How can I help you today?`,
         const currentThemeName = document.getElementById('current-theme-name');
 
         const themeIcons = {
-            dark: '🌙',
-            midnight: '🌌',
-            dusk: '🌅',
-            light: '☀️'
+            ember: '🔥',
+            coral: '🪸',
+            sunset: '🌅',
+            aurora: '✨',
+            legacy: '💎'
         };
 
         const themeNames = {
-            dark: 'Dark',
-            midnight: 'Midnight',
-            dusk: 'Dusk',
-            light: 'Light'
+            ember: 'Ember',
+            coral: 'Coral',
+            sunset: 'Sunset',
+            aurora: 'Aurora',
+            legacy: 'Legacy'
         };
 
-        // Update UI to show current theme
         function updateThemeUI(theme) {
-            currentThemeIcon.textContent = themeIcons[theme] || '🌙';
-            currentThemeName.textContent = themeNames[theme] || 'Dark';
-
+            currentThemeIcon.textContent = themeIcons[theme] || '🔥';
+            currentThemeName.textContent = themeNames[theme] || 'Ember';
             themeOptions.forEach(opt => {
                 opt.classList.toggle('active', opt.dataset.theme === theme);
             });
         }
 
-        // Toggle dropdown
         themeToggle.addEventListener('click', (e) => {
             e.stopPropagation();
             themeDropdown.classList.toggle('open');
         });
 
-        // Close dropdown when clicking outside
         document.addEventListener('click', () => {
             themeDropdown.classList.remove('open');
         });
 
-        // Theme option selection
         themeOptions.forEach(option => {
             option.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -3001,27 +663,8 @@ How can I help you today?`,
                 }
                 updateThemeUI(theme);
                 themeDropdown.classList.remove('open');
-
-                // Update nav tabs styling dynamically
-                updateNavTabStyles(theme);
             });
         });
-
-        // Update nav tab styles based on theme
-        function updateNavTabStyles(theme) {
-            const navTabs = document.querySelectorAll('.nav-tab:not(.active)');
-            navTabs.forEach(tab => {
-                if (theme === 'light') {
-                    tab.style.background = '#e2e8f0';
-                    tab.style.color = '#475569';
-                    tab.style.border = '1px solid transparent';
-                } else {
-                    tab.style.background = 'var(--bg-secondary)';
-                    tab.style.color = 'var(--text-secondary)';
-                    tab.style.border = '1px solid transparent';
-                }
-            });
-        }
 
         // Initialize with current theme
         if (window.ThemeManager) {
@@ -3029,7 +672,6 @@ How can I help you today?`,
             updateThemeUI(currentTheme);
         }
 
-        // Listen for theme changes from other sources
         window.addEventListener('themechange', (e) => {
             updateThemeUI(e.detail.theme);
         });
