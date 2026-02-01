@@ -16,7 +16,7 @@ set -e
 # Configuration
 DOMAIN="cocreate-app.com"
 S3_BUCKET="cocreate-app.com"
-AWS_PROFILE="sunwaretech"
+AWS_PROFILE="cocreate"
 AWS_REGION="ap-south-1"
 ACM_REGION="us-east-1"  # Required for CloudFront
 SITE_DIR="option-a-threejs-gsap-tailwind/site"
