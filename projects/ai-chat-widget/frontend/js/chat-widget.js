@@ -74,6 +74,11 @@ class ChatWidget {
         this.isListening = false;
         this.hasSpeechSupport = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 
+        // State sync tracking
+        this.lastSyncTime = 0;
+        this.syncInterval = null;
+        this.formDataCache = null; // Track last form data for abandoned form tracking
+
         // Initialize
         this.render();
         this.bindElements();
@@ -81,6 +86,10 @@ class ChatWidget {
         this.initVoice();
         this.updateLayoutOffset();
         window.addEventListener('resize', () => this.updateLayoutOffset());
+
+        // Initialize state sync and abandoned form tracking
+        this.initStateSync();
+        this.initAbandonedFormTracking();
 
         // Restore messages or show welcome
         if (this.state.messages.length > 0) {
@@ -176,7 +185,7 @@ class ChatWidget {
         const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         return isLocal
             ? `http://localhost:5000/api/chat`
-            : 'https://bx0ywfkona.execute-api.ap-south-1.amazonaws.com/prod/chat';
+            : 'https://yzsmohmtar6d45wb47npb7m4q40kudvw.lambda-url.us-east-1.on.aws/';
     }
 
     render() {
@@ -752,20 +761,30 @@ class ChatWidget {
                 // Save state after successful response
                 this.saveState();
 
+                // Check if form was submitted successfully
+                if (data.formSubmitted) {
+                    this.markFormSubmitted();
+                }
+
                 // Callback for form data - with duplicate check
                 if (formData) {
                     console.log('[ChatWidget] Form data extracted:', formData);
                     // Use handleFormData which checks for duplicates first
                     this.handleFormData(formData);
                 }
+
+                // Sync state to S3 after receiving form data or important updates
+                if (formData || data.formSubmitted || data.hasContactInfo) {
+                    this.syncStateToS3('form_data_received');
+                }
             } else {
-                const email = window.AppConfig?.contact?.supportEmail || 'support@sunwaretechnologies.com';
+                const email = window.AppConfig?.contact?.supportEmail || 'our contact page';
                 this.addMessage('assistant', `Sorry, I'm having trouble connecting. Please try again or email us at ${email}`);
             }
         } catch (error) {
             console.error('Chat error:', error);
             this.hideTyping();
-            const email = window.AppConfig?.contact?.supportEmail || 'support@sunwaretechnologies.com';
+            const email = window.AppConfig?.contact?.supportEmail || 'our contact page';
             this.addMessage('assistant', `Sorry, I'm having trouble connecting. Please try again or email us at ${email}`);
         } finally {
             this.state.isLoading = false;
@@ -842,7 +861,7 @@ class ChatWidget {
 
             if (duplicateResult.isDuplicate) {
                 // Show duplicate notification to user
-                const duplicateMessage = `⚠️ **Existing Application Found**\n\nIt looks like you already have an application on file (submitted ${duplicateResult.submittedAt || 'previously'}) using this ${duplicateResult.matchedBy || 'email'}.\n\nOur team is reviewing it and will contact you soon. If you have updates or questions, please email us at gopi@sunwaretechnologies.com\n\nWould you like to continue with a new application anyway?`;
+                const duplicateMessage = `⚠️ **Existing Application Found**\n\nIt looks like you already have an application on file (submitted ${duplicateResult.submittedAt || 'previously'}) using this ${duplicateResult.matchedBy || 'email'}.\n\nOur team is reviewing it and will contact you soon. If you have updates or questions, please email us at our contact page\n\nWould you like to continue with a new application anyway?`;
 
                 this.addMessage('assistant', duplicateMessage);
                 console.log('[ChatWidget] Duplicate application detected, notified user');
@@ -856,6 +875,9 @@ class ChatWidget {
         }
 
         // No duplicate - proceed normally
+        // Update form data cache for abandoned form tracking
+        this.updateFormDataCache(formData);
+
         if (this.config.onFormData) {
             this.config.onFormData(formData);
         } else {
@@ -1093,7 +1115,7 @@ class ChatWidget {
             // No previous session - start fresh with personalized greeting
             this.clearChat();
             const greeting = name ? `Hi ${name}! 👋` : 'Hi there! 👋';
-            this.addMessage('assistant', `${greeting} Welcome to AI Product Studio!\n\nI'm here to answer any questions about our partnership model. We help business founders launch AI-powered products in just 2 weeks.\n\nWhat would you like to know?`);
+            this.addMessage('assistant', `${greeting} Welcome to CoCreate!\n\nI'm here to answer any questions about our partnership model. We help business founders launch AI-powered products in just 2 weeks.\n\nWhat would you like to know?`);
 
             // Open the chat
             if (!this.state.isOpen) {
@@ -1121,7 +1143,7 @@ class ChatWidget {
         // Clear any existing chat and start fresh with personalized greeting
         this.clearChat();
         const greeting = name ? `Welcome ${name}! 🎉` : 'Welcome! 🎉';
-        this.addMessage('assistant', `${greeting} Thanks for signing up with AI Product Studio!\n\nI'm your AI assistant, here to help you explore partnership opportunities. We partner with business founders to build AI-powered products in just 2 weeks.\n\nDo you have a product idea you'd like to discuss?`);
+        this.addMessage('assistant', `${greeting} Thanks for signing up with CoCreate!\n\nI'm your AI assistant, here to help you explore partnership opportunities. We partner with business founders to build AI-powered products in just 2 weeks.\n\nDo you have a product idea you'd like to discuss?`);
 
         // Open the chat
         if (!this.state.isOpen) {
@@ -1169,6 +1191,179 @@ class ChatWidget {
         }
         console.log('[ChatWidget] getPageContext from stored:', this.pageContext);
         return this.pageContext;
+    }
+
+    // ========== STATE SYNC & ABANDONED FORM TRACKING ==========
+
+    // Initialize periodic state sync to S3
+    initStateSync() {
+        // Sync every 30 seconds if there's activity
+        this.syncInterval = setInterval(() => {
+            this.syncStateToS3('periodic');
+        }, 30000);
+
+        // Also sync on visibility change (tab becoming hidden)
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                this.syncStateToS3('visibility_hidden');
+            }
+        });
+
+        console.log('[ChatWidget] State sync initialized');
+    }
+
+    // Initialize abandoned form tracking
+    initAbandonedFormTracking() {
+        // Track beforeunload to save abandoned form data
+        window.addEventListener('beforeunload', (e) => {
+            this.handlePageUnload();
+        });
+
+        // Also track pagehide for mobile browsers
+        window.addEventListener('pagehide', (e) => {
+            if (!e.persisted) {
+                this.handlePageUnload();
+            }
+        });
+
+        console.log('[ChatWidget] Abandoned form tracking initialized');
+    }
+
+    // Handle page unload - save state and check for abandoned form
+    handlePageUnload() {
+        // Always sync state on unload
+        this.syncStateToS3('page_unload', true);
+
+        // Check if there's form data that wasn't submitted
+        if (this.formDataCache && !this.state.formSubmitted) {
+            this.saveAbandonedForm('page_unload');
+        }
+    }
+
+    // Sync localStorage state to S3
+    async syncStateToS3(reason = 'manual', useBeacon = false) {
+        // Skip if no session or no messages
+        if (!this.state.sessionId || this.state.messages.length === 0) {
+            return;
+        }
+
+        // Throttle syncs (minimum 10 seconds apart, except for unload)
+        const now = Date.now();
+        if (reason !== 'page_unload' && now - this.lastSyncTime < 10000) {
+            return;
+        }
+        this.lastSyncTime = now;
+
+        const syncData = {
+            action: 'sync-state',
+            sessionId: this.state.sessionId,
+            chatState: {
+                messages: this.state.messages,
+                visitorInfo: this.state.visitorInfo,
+                tokenUsage: this.state.tokenUsage,
+                duplicateChecked: this.state.duplicateChecked,
+                duplicateCheckedEmail: this.state.duplicateCheckedEmail,
+                isOpen: this.state.isOpen
+            },
+            visitorInfo: this.state.visitorInfo,
+            reason
+        };
+
+        try {
+            if (useBeacon && navigator.sendBeacon) {
+                // Use sendBeacon for page unload (more reliable)
+                const blob = new Blob([JSON.stringify(syncData)], { type: 'application/json' });
+                navigator.sendBeacon(this.config.apiUrl, blob);
+                console.log('[ChatWidget] State synced via beacon:', reason);
+            } else {
+                // Use fetch for normal syncs
+                fetch(this.config.apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(syncData),
+                    keepalive: true // Helps with page unload
+                }).then(response => {
+                    if (response.ok) {
+                        console.log('[ChatWidget] State synced to S3:', reason);
+                    }
+                }).catch(err => {
+                    console.warn('[ChatWidget] State sync failed:', err.message);
+                });
+            }
+        } catch (error) {
+            console.warn('[ChatWidget] State sync error:', error.message);
+        }
+    }
+
+    // Save abandoned form data
+    async saveAbandonedForm(reason = 'unknown') {
+        if (!this.formDataCache) {
+            console.log('[ChatWidget] No form data to save as abandoned');
+            return;
+        }
+
+        // Check if any meaningful data was collected
+        const hasData = Object.values(this.formDataCache).some(v => v && v.trim && v.trim().length > 0);
+        if (!hasData) {
+            console.log('[ChatWidget] Form data is empty, not saving');
+            return;
+        }
+
+        const abandonedData = {
+            action: 'save-abandoned-form',
+            sessionId: this.state.sessionId || `anon-${Date.now()}`,
+            formData: this.formDataCache,
+            chatState: {
+                messages: this.state.messages,
+                visitorInfo: this.state.visitorInfo,
+                tokenUsage: this.state.tokenUsage
+            },
+            visitorInfo: this.state.visitorInfo,
+            reason
+        };
+
+        try {
+            if (navigator.sendBeacon) {
+                const blob = new Blob([JSON.stringify(abandonedData)], { type: 'application/json' });
+                navigator.sendBeacon(this.config.apiUrl, blob);
+                console.log('[ChatWidget] Abandoned form saved via beacon');
+            } else {
+                fetch(this.config.apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(abandonedData),
+                    keepalive: true
+                });
+                console.log('[ChatWidget] Abandoned form saved via fetch');
+            }
+        } catch (error) {
+            console.warn('[ChatWidget] Failed to save abandoned form:', error.message);
+        }
+    }
+
+    // Update form data cache (called when form data is received from AI)
+    updateFormDataCache(formData) {
+        if (formData) {
+            this.formDataCache = { ...this.formDataCache, ...formData };
+            console.log('[ChatWidget] Form data cache updated:', Object.keys(formData).filter(k => formData[k]).length, 'fields');
+        }
+    }
+
+    // Mark form as submitted (to prevent saving as abandoned)
+    markFormSubmitted() {
+        this.state.formSubmitted = true;
+        this.formDataCache = null;
+        this.saveState();
+        console.log('[ChatWidget] Form marked as submitted');
+    }
+
+    // Clean up on destroy
+    destroy() {
+        if (this.syncInterval) {
+            clearInterval(this.syncInterval);
+        }
+        // Final sync
+        this.syncStateToS3('destroy', true);
     }
 }
 

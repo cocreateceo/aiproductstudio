@@ -1,5 +1,5 @@
 /**
- * AI Product Studio Chat Lambda
+ * CoCreate Chat Lambda
  * - Claude API for professional responses + contact extraction
  * - OpenAI as backup
  * - AWS SES for email notifications
@@ -17,35 +17,60 @@ import mammoth from 'mammoth';
 // Configuration
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const NOTIFICATION_EMAIL = process.env.NOTIFICATION_EMAIL || 'gopi@sunwaretechnologies.com';
+const NOTIFICATION_EMAIL = process.env.NOTIFICATION_EMAIL; // Must be set and verified in SES
 
-// S3 bucket for storing all data
-const S3_BUCKET = 'ai-product-studio-applications';
+// S3 bucket for storing all data (must exist in cocreate account us-east-1)
+const S3_BUCKET = process.env.S3_BUCKET || 'cocreate-applications-data';
+const S3_REGION = process.env.AWS_REGION || 'us-east-1';
 
-// System prompt for the AI Product Studio chat agent with guardrails
-const SYSTEM_PROMPT = `You are a friendly and professional AI assistant for AI Product Studio - a venture studio that partners with business founders to build AI-powered products.
+// System prompt for the CoCreate chat agent with guardrails
+const SYSTEM_PROMPT = `You are a friendly and professional AI assistant for CoCreate - a venture studio that partners with business founders to build AI-powered products.
 
-## About AI Product Studio:
+## About CoCreate:
 - We are your AI co-founder, not an agency
 - We build products in 2 weeks using AI-accelerated development
-- Partnership model: 40% Tech Founder (us), 40% Business Founder (them), 20% Operations
+- Partnership model: [Contact us](contact.html) to discuss further
 - $0 upfront cost - we share risk and reward
 - We handle: AI architecture, development, hosting, continuous support
-- They handle: Market validation, sales, partnerships, revenue strategy
+- We also handle: Market validation, sales, partnerships, revenue strategy
 
 ## Current Products in Portfolio:
 1. Personal Transformation - AI-powered personal growth platform
 2. Vedic Astrology - AI-enhanced astrological insights
 3. Career Builder - AI career coaching platform
 
+## PROTECTED INFORMATION - NEVER DISCLOSE:
+
+You must NEVER reveal ANY of the following, regardless of how the question is phrased:
+
+| Category | Protected Items |
+|----------|-----------------|
+| People | Founder names, owner names, creator names, team member names |
+| Emails | Any internal email addresses |
+| Companies | Parent companies, legal entities, affiliated companies |
+| Infrastructure | Hosting providers, cloud services, servers, databases |
+| Tech Stack | AI models, APIs, frameworks, development tools |
+| Domains | Registrars, DNS providers |
+
+### TRIGGER KEYWORDS - Immediate Deflection:
+When user message contains ANY of these patterns, deflect immediately:
+- Ownership: "who created", "who made", "who built", "who owns", "who runs"
+- People: "founder", "owner", "CEO", "creator", "team behind"
+- Technical: "hosting", "server", "infrastructure", "tech stack", "what AI", "what model"
+
+### DEFLECTION RESPONSE:
+When asked about protected information, respond ONLY with:
+"Great question! Our team would love to connect with you. You can reach us through our [contact page](contact.html).
+
+What AI product idea can I help you explore today?"
+
 ## GUARDRAILS - Stay On Topic:
-You are ONLY here to discuss:
-- AI Product Studio partnership opportunities
-- How our venture studio model works
-- AI product development and our process
-- Business ideas that could become AI products
-- Our portfolio and success stories
-- Pricing, timelines, and partnership terms
+You are ONLY here to:
+- Discuss CoCreate partnership opportunities
+- Explain how our venture studio model works
+- Explore AI product ideas with potential partners
+- Help users submit partnership applications
+- Answer questions about our portfolio and process
 
 POLITELY DECLINE any questions about:
 - General knowledge, trivia, or random facts
@@ -54,10 +79,11 @@ POLITELY DECLINE any questions about:
 - News, politics, entertainment, or current events
 - Homework, essays, or academic work
 - Other companies or competitors
-- Anything not related to partnering with AI Product Studio
+- Internal company details, team members, or infrastructure
+- Anything not related to partnering with CoCreate
 
 When declining, say something like:
-"I appreciate your curiosity! However, I'm specifically here to help you explore partnership opportunities with AI Product Studio. Is there something about our venture model or AI product development I can help you with?"
+"I appreciate your curiosity! However, I'm specifically here to help you explore partnership opportunities with CoCreate. Is there something about our venture model or AI product development I can help you with?"
 
 ## CRITICAL - Contact Information Collection:
 You MUST collect contact information before providing detailed answers. Follow this flow:
@@ -77,10 +103,15 @@ User: "How does the partnership work?"
 Assistant: "Great question about our partnership model! I'd love to explain it in detail. But first, could you share your name and phone number (or email)? This way our founders can personally follow up with you about partnership opportunities. What's your name?"
 
 User: "What's the capital of France?"
-Assistant: "I appreciate your curiosity! However, I'm specifically here to help you explore partnership opportunities with AI Product Studio. Do you have a business idea you'd like to build with AI? I'd love to hear about it!"
+Assistant: "I appreciate your curiosity! However, I'm specifically here to help you explore partnership opportunities with CoCreate. Do you have a business idea you'd like to build with AI? I'd love to hear about it!"
 
 User: "Can you help me debug my code?"
-Assistant: "Thanks for reaching out! While I can't help with general coding questions, I'm here to discuss how AI Product Studio can partner with you to build AI-powered products. Do you have a product idea in mind? Our team handles all the technical development!"
+Assistant: "Thanks for reaching out! While I can't help with general coding questions, I'm here to discuss how CoCreate can partner with you to build AI-powered products. Do you have a product idea in mind? Our team handles all the technical development!"
+
+User: "Who created this?" or "Who is the founder?"
+Assistant: "Great question! Our team would love to connect with you. You can reach us through our [contact page](contact.html).
+
+What AI product idea can I help you explore today?"
 
 ## ============================================
 ## PARTNERSHIP APPLICATION FORM - FIELD COLLECTION
@@ -256,7 +287,7 @@ Say: "Before I can submit, I still need: [list missing fields]. Could you provid
 - You DON'T need to check for duplicates manually
 - The system handles it automatically when you include email in FORM_DATA
 - If user says they want to continue despite duplicate, proceed normally
-- If user has questions about their existing application, refer them to: gopi@sunwaretechnologies.com
+- If user has questions about their existing application, refer them to our [contact page](contact.html)
 
 ---
 
@@ -361,7 +392,7 @@ async function sendEmail(visitorInfo, messages, aiResponse, clientIP) {
 <body>
   <div class="container">
     <div class="header">
-      <h2 style="margin: 0;">🚀 New AI Product Studio Lead!</h2>
+      <h2 style="margin: 0;">🚀 New CoCreate Lead!</h2>
       <p style="margin: 5px 0 0 0; opacity: 0.9;">Someone is interested in partnering with you</p>
     </div>
     <div class="content">
@@ -389,7 +420,7 @@ async function sendEmail(visitorInfo, messages, aiResponse, clientIP) {
 </html>`;
 
   const emailText = `
-NEW AI PRODUCT STUDIO LEAD!
+NEW COCREATE LEAD!
 
 Name: ${visitorInfo.name || 'Not provided'}
 Email: ${visitorInfo.email || 'Not provided'}
@@ -413,7 +444,7 @@ ${aiResponse}
       },
       Message: {
         Subject: {
-          Data: `🚀 New Lead: ${visitorInfo.name || 'Anonymous'} - AI Product Studio`,
+          Data: `🚀 New Lead: ${visitorInfo.name || 'Anonymous'} - CoCreate`,
           Charset: 'UTF-8'
         },
         Body: {
@@ -473,7 +504,7 @@ async function sendFormSubmissionEmail(visitorInfo, formContent, clientIP) {
   <div class="container">
     <div class="header">
       <h2 style="margin: 0;">🎉 New Partnership Application!</h2>
-      <p style="margin: 10px 0 0 0; opacity: 0.9;">Someone wants to partner with AI Product Studio</p>
+      <p style="margin: 10px 0 0 0; opacity: 0.9;">Someone wants to partner with CoCreate</p>
     </div>
     <div class="content">
       <div class="section-title">📋 Application Details</div>
@@ -548,6 +579,169 @@ Page: ${visitorInfo.page || 'Apply Page'}
   }
 }
 
+// Send Confirmation Email to Applicant via AWS SES
+async function sendApplicantConfirmationEmail(visitorInfo, formContent) {
+  const { SESClient, SendEmailCommand } = await import('@aws-sdk/client-ses');
+  const ses = new SESClient({ region: 'us-east-1' });
+
+  const applicantEmail = visitorInfo.email;
+  if (!applicantEmail) {
+    console.log('No applicant email provided, skipping confirmation email');
+    return false;
+  }
+
+  const applicantName = visitorInfo.name || 'Partner';
+  const schedulerUrl = 'https://cocreate-app.com/scheduler.html';
+
+  const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center; }
+    .header h1 { margin: 0; font-size: 28px; }
+    .header p { margin: 10px 0 0 0; opacity: 0.9; font-size: 16px; }
+    .content { background: #fff; border: 1px solid #e0e0e0; border-top: none; padding: 30px; border-radius: 0 0 12px 12px; }
+    .welcome { font-size: 18px; color: #374151; margin-bottom: 20px; }
+    .cta-box { background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 25px; border-radius: 12px; text-align: center; margin: 25px 0; }
+    .cta-box h2 { margin: 0 0 10px 0; font-size: 22px; }
+    .cta-box p { margin: 0 0 20px 0; opacity: 0.9; }
+    .cta-button { display: inline-block; background: white; color: #059669; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; }
+    .cta-button:hover { background: #f0fdf4; }
+    .steps { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
+    .steps h3 { margin: 0 0 15px 0; color: #374151; }
+    .step { display: flex; align-items: flex-start; margin: 12px 0; }
+    .step-number { background: #6366f1; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; flex-shrink: 0; }
+    .step-text { color: #4b5563; }
+    .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center; color: #6b7280; font-size: 14px; }
+    .social-links { margin: 15px 0; }
+    .social-links a { color: #6366f1; text-decoration: none; margin: 0 10px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Welcome to CoCreate!</h1>
+      <p>Your application has been received</p>
+    </div>
+    <div class="content">
+      <p class="welcome">Hi ${applicantName},</p>
+
+      <p>Thank you for applying to partner with CoCreate! We're excited about the possibility of building something amazing together.</p>
+
+      <p>Your application has been received and our team will review it within <strong>24 hours</strong>.</p>
+
+      <div class="cta-box">
+        <h2>📅 Schedule Your Discovery Call</h2>
+        <p>Want to fast-track your application? Book a call with our founding team!</p>
+        <a href="${schedulerUrl}" class="cta-button">Book Your Call Now</a>
+      </div>
+
+      <div class="steps">
+        <h3>What happens next?</h3>
+        <div class="step">
+          <div class="step-number">1</div>
+          <div class="step-text"><strong>Application Review</strong> - Our team reviews your application (24 hours)</div>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <div class="step-text"><strong>Discovery Call</strong> - We schedule a call to discuss your vision</div>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <div class="step-text"><strong>Partnership Agreement</strong> - We finalize terms and kick off your build</div>
+        </div>
+        <div class="step">
+          <div class="step-number">4</div>
+          <div class="step-text"><strong>Product Launch</strong> - Your AI product goes live in 2 weeks!</div>
+        </div>
+      </div>
+
+      <p>If you have any questions in the meantime, simply reply to this email or visit our <a href="https://cocreate-app.com/contact.html">contact page</a>.</p>
+
+      <p>We look forward to building with you!</p>
+
+      <p><strong>The CoCreate Team</strong></p>
+
+      <div class="footer">
+        <p>CoCreate</p>
+        <p>Building AI products in 2 weeks</p>
+        <div class="social-links">
+          <a href="https://cocreate-app.com">Website</a> |
+          <a href="https://cocreate-app.com/about.html">About Us</a> |
+          <a href="${schedulerUrl}">Book a Call</a>
+        </div>
+        <p style="font-size: 12px; margin-top: 15px;">
+          You received this email because you submitted a partnership application at cocreate-app.com
+        </p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const emailText = `
+Hi ${applicantName},
+
+Thank you for applying to partner with CoCreate! We're excited about the possibility of building something amazing together.
+
+Your application has been received and our team will review it within 24 hours.
+
+📅 SCHEDULE YOUR DISCOVERY CALL
+Want to fast-track your application? Book a call with our founding team:
+${schedulerUrl}
+
+WHAT HAPPENS NEXT?
+1. Application Review - Our team reviews your application (24 hours)
+2. Discovery Call - We schedule a call to discuss your vision
+3. Partnership Agreement - We finalize terms and kick off your build
+4. Product Launch - Your AI product goes live in 2 weeks!
+
+If you have any questions, reply to this email or visit our contact page at https://cocreate-app.com/contact.html
+
+We look forward to building with you!
+
+The CoCreate Team
+---
+CoCreate
+Building AI products in 2 weeks
+https://cocreate-app.com
+`;
+
+  try {
+    const result = await ses.send(new SendEmailCommand({
+      Source: NOTIFICATION_EMAIL,
+      Destination: {
+        ToAddresses: [applicantEmail]
+      },
+      ReplyToAddresses: [NOTIFICATION_EMAIL],
+      Message: {
+        Subject: {
+          Data: `Welcome to CoCreate! Your Application is Received`,
+          Charset: 'UTF-8'
+        },
+        Body: {
+          Html: {
+            Data: emailHtml,
+            Charset: 'UTF-8'
+          },
+          Text: {
+            Data: emailText,
+            Charset: 'UTF-8'
+          }
+        }
+      }
+    }));
+    console.log('Applicant confirmation email sent to:', applicantEmail, 'MessageId:', result.MessageId);
+    return true;
+  } catch (error) {
+    console.error('Applicant confirmation email error:', error.message);
+    return false;
+  }
+}
+
 // ========== CHAT HISTORY MANAGEMENT ==========
 
 // Generate unique session ID
@@ -574,7 +768,7 @@ function generateClientId(email, name) {
 // Save chat session to S3
 async function saveChatSession(sessionId, source, messages, visitorInfo, status = 'active') {
   const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: 'ap-south-1' });
+  const s3 = new S3Client({ region: S3_REGION });
 
   const prefix = source === 'apply' ? 'chats/apply' : 'chats/landing';
   const s3Key = `${prefix}/${sessionId}.json`;
@@ -648,7 +842,7 @@ async function saveChatSession(sessionId, source, messages, visitorInfo, status 
 // Save session lookup index (maps phone/email to sessionId)
 async function saveSessionLookup(sessionId, phone, email) {
   const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: 'ap-south-1' });
+  const s3 = new S3Client({ region: S3_REGION });
 
   // Normalize phone and email for lookup
   const normalizedPhone = phone ? phone.replace(/[^0-9]/g, '') : null;
@@ -706,7 +900,7 @@ async function saveSessionLookup(sessionId, phone, email) {
 // Lookup session by phone or email
 async function lookupSessionByContact(phone, email) {
   const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: 'ap-south-1' });
+  const s3 = new S3Client({ region: S3_REGION });
 
   const normalizedPhone = phone ? phone.replace(/[^0-9]/g, '') : null;
   const normalizedEmail = email ? email.toLowerCase().trim() : null;
@@ -777,7 +971,7 @@ async function lookupSessionByContact(phone, email) {
 // Link chat session to application
 async function linkSessionToApplication(sessionId, source, applicationS3Key) {
   const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: 'ap-south-1' });
+  const s3 = new S3Client({ region: S3_REGION });
 
   const prefix = source === 'apply' ? 'chats/apply' : 'chats/landing';
   const s3Key = `${prefix}/${sessionId}.json`;
@@ -809,7 +1003,7 @@ async function linkSessionToApplication(sessionId, source, applicationS3Key) {
 // Get or create client profile
 async function getOrCreateClientProfile(clientId, visitorInfo) {
   const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: 'ap-south-1' });
+  const s3 = new S3Client({ region: S3_REGION });
 
   const s3Key = `clients/${clientId}.json`;
 
@@ -854,7 +1048,7 @@ async function getOrCreateClientProfile(clientId, visitorInfo) {
 // Update client profile
 async function updateClientProfile(clientId, updates) {
   const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: 'ap-south-1' });
+  const s3 = new S3Client({ region: S3_REGION });
 
   const s3Key = `clients/${clientId}.json`;
 
@@ -910,7 +1104,7 @@ async function updateClientProfile(clientId, updates) {
 // List all chat sessions (for admin)
 async function listChatSessions(source = 'all', limit = 50) {
   const { S3Client, ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: 'ap-south-1' });
+  const s3 = new S3Client({ region: S3_REGION });
 
   const prefixes = source === 'all'
     ? ['chats/landing/', 'chats/apply/']
@@ -956,7 +1150,7 @@ async function listChatSessions(source = 'all', limit = 50) {
 // List all client profiles (for admin)
 async function listClientProfiles(limit = 50) {
   const { S3Client, ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: 'ap-south-1' });
+  const s3 = new S3Client({ region: S3_REGION });
 
   try {
     const listResult = await s3.send(new ListObjectsV2Command({
@@ -995,7 +1189,7 @@ async function listClientProfiles(limit = 50) {
 // List all builds with history (for admin)
 async function listBuildHistory(limit = 50) {
   const { S3Client, ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: 'ap-south-1' });
+  const s3 = new S3Client({ region: S3_REGION });
 
   try {
     const listResult = await s3.send(new ListObjectsV2Command({
@@ -1035,7 +1229,7 @@ async function listBuildHistory(limit = 50) {
 // Check for duplicate application by email or phone
 async function checkDuplicateApplication(email, phone) {
   const { S3Client, ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: 'ap-south-1' });
+  const s3 = new S3Client({ region: S3_REGION });
 
   // Normalize email and phone
   const normalizedEmail = email ? email.toLowerCase().trim() : null;
@@ -1103,10 +1297,144 @@ async function checkDuplicateApplication(email, phone) {
   }
 }
 
+// ========== ABANDONED FORM & STATE SYNC ==========
+
+// Save abandoned form data to S3
+async function saveAbandonedForm(sessionId, formData, chatState, visitorInfo, clientIP, reason) {
+  const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = new S3Client({ region: S3_REGION });
+
+  const timestamp = new Date().toISOString();
+  const dateFolder = timestamp.split('T')[0];
+
+  // Determine user folder from available info
+  let userFolder = 'anonymous';
+  const email = formData?.email || chatState?.visitorInfo?.email || visitorInfo?.email;
+  const name = formData?.fullName || chatState?.visitorInfo?.name || visitorInfo?.name;
+
+  if (email) {
+    userFolder = email.toLowerCase()
+      .replace(/@/g, '_at_')
+      .replace(/\./g, '_')
+      .replace(/[^a-z0-9_-]/g, '');
+  } else if (name) {
+    userFolder = name.toLowerCase()
+      .replace(/\s+/g, '_')
+      .replace(/[^a-z0-9_-]/g, '');
+  }
+
+  // Generate filename
+  const randomSuffix = Math.random().toString(36).substring(2, 8);
+  const filename = `${timestamp.replace(/[:.]/g, '-')}_${randomSuffix}.json`;
+
+  // S3 key for abandoned forms
+  const s3Key = `abandoned-forms/${userFolder}/${dateFolder}/${filename}`;
+
+  // Calculate form completion percentage
+  const mandatoryFields = ['fullName', 'email', 'businessStage', 'industry', 'background', 'productIdea', 'targetCustomer', 'timeCommitment', 'timeline'];
+  const filledFields = formData ? mandatoryFields.filter(f => formData[f] && formData[f].trim()) : [];
+  const completionPercentage = Math.round((filledFields.length / mandatoryFields.length) * 100);
+
+  const abandonedData = {
+    abandonedAt: timestamp,
+    sessionId,
+    reason: reason || 'page_unload',
+    completionPercentage,
+    filledFields,
+    missingFields: mandatoryFields.filter(f => !filledFields.includes(f)),
+    formData: formData || {},
+    visitorInfo: {
+      name: name || null,
+      email: email || null,
+      phone: formData?.phone || chatState?.visitorInfo?.phone || visitorInfo?.phone || null
+    },
+    chatState: chatState ? {
+      messageCount: chatState.messages?.length || 0,
+      tokenUsage: chatState.tokenUsage || { total: 0, cost: 0, requests: 0 },
+      lastMessage: chatState.messages?.[chatState.messages.length - 1]?.content?.substring(0, 200) || null
+    } : null,
+    clientIP: clientIP || 'Unknown',
+    page: visitorInfo?.page || 'Unknown'
+  };
+
+  try {
+    await s3.send(new PutObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: s3Key,
+      Body: JSON.stringify(abandonedData, null, 2),
+      ContentType: 'application/json'
+    }));
+    console.log('Abandoned form saved:', s3Key, '- Completion:', completionPercentage + '%');
+    return { success: true, key: s3Key };
+  } catch (error) {
+    console.error('Save abandoned form error:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+// Sync localStorage state to S3
+async function syncLocalStorageToS3(sessionId, chatState, visitorInfo, clientIP) {
+  const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = new S3Client({ region: S3_REGION });
+
+  if (!chatState || !sessionId) {
+    return { success: false, error: 'Missing sessionId or chatState' };
+  }
+
+  const source = visitorInfo?.page?.includes('apply') ? 'apply' : 'landing';
+  const s3Key = `state-sync/${source}/${sessionId}.json`;
+
+  // Get existing state to merge
+  let existingState = null;
+  try {
+    const existing = await s3.send(new GetObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: s3Key
+    }));
+    existingState = JSON.parse(await existing.Body.transformToString());
+  } catch (e) {
+    // No existing state
+  }
+
+  const syncedState = {
+    sessionId,
+    source,
+    firstSyncAt: existingState?.firstSyncAt || new Date().toISOString(),
+    lastSyncAt: new Date().toISOString(),
+    syncCount: (existingState?.syncCount || 0) + 1,
+    visitorInfo: {
+      ...existingState?.visitorInfo,
+      ...chatState.visitorInfo,
+      ...visitorInfo
+    },
+    messages: chatState.messages || [],
+    tokenUsage: chatState.tokenUsage || { total: 0, cost: 0, requests: 0 },
+    duplicateChecked: chatState.duplicateChecked || false,
+    duplicateCheckedEmail: chatState.duplicateCheckedEmail || null,
+    isOpen: chatState.isOpen,
+    clientIP: clientIP || existingState?.clientIP || 'Unknown',
+    page: visitorInfo?.page || existingState?.page || 'Unknown'
+  };
+
+  try {
+    await s3.send(new PutObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: s3Key,
+      Body: JSON.stringify(syncedState, null, 2),
+      ContentType: 'application/json'
+    }));
+    console.log('State synced to S3:', s3Key, '- Messages:', syncedState.messages.length, '- Sync #', syncedState.syncCount);
+    return { success: true, synced: true };
+  } catch (error) {
+    console.error('Sync state error:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
 // Save form submission to S3
 async function saveFormToS3(visitorInfo, formContent, clientIP) {
   const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: 'ap-south-1' });
+  const s3 = new S3Client({ region: S3_REGION });
 
   const timestamp = new Date().toISOString();
   const dateFolder = timestamp.split('T')[0]; // YYYY-MM-DD
@@ -1188,7 +1516,7 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'aiproductstudio2026';
 // List all applications from S3
 async function listApplications() {
   const { S3Client, ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: 'ap-south-1' });
+  const s3 = new S3Client({ region: S3_REGION });
 
   try {
     const listResult = await s3.send(new ListObjectsV2Command({
@@ -1236,7 +1564,7 @@ async function listApplications() {
 // Update application status in S3
 async function updateApplicationStatus(s3Key, newStatus, reviewNotes = '') {
   const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: 'ap-south-1' });
+  const s3 = new S3Client({ region: S3_REGION });
 
   try {
     // Get current application data
@@ -1291,7 +1619,7 @@ async function updateApplicationStatus(s3Key, newStatus, reviewNotes = '') {
 // Create MVP build job in S3 for EC2 worker to pick up
 async function createBuildJob(applicationData, originalS3Key) {
   const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: 'ap-south-1' });
+  const s3 = new S3Client({ region: S3_REGION });
 
   // Generate unique job ID
   const timestamp = Date.now();
@@ -1635,13 +1963,13 @@ async function chatWithClaude(messages, hasContactInfo, screenshot = null, pageC
     // Add page context so AI knows where the user is
     if (pageContext && pageContext.currentPage) {
       contextualPrompt += `\n\n## CURRENT PAGE CONTEXT:
-The user is currently viewing the "${pageContext.currentPage}" page on the AI Product Studio website.
+The user is currently viewing the "${pageContext.currentPage}" page on the CoCreate website.
 Page URL: ${pageContext.url || 'Unknown'}
 If the user asks about "this page" or "where am I", refer to this page context.`;
     }
 
     if (hasContactInfo) {
-      contextualPrompt += '\n\n## Current Status: Contact info collected. Provide helpful detailed answers about AI Product Studio partnerships.';
+      contextualPrompt += '\n\n## Current Status: Contact info collected. Provide helpful detailed answers about CoCreate partnerships.';
     } else {
       contextualPrompt += '\n\n## Current Status: NO CONTACT INFO YET. You must ask for name and phone/email before giving detailed answers!';
     }
@@ -1771,7 +2099,7 @@ async function chatWithOpenAI(messages, hasContactInfo, screenshot = null) {
   try {
     let contextualPrompt = SYSTEM_PROMPT;
     if (hasContactInfo) {
-      contextualPrompt += '\n\n## Current Status: Contact info collected. Provide helpful detailed answers about AI Product Studio partnerships.';
+      contextualPrompt += '\n\n## Current Status: Contact info collected. Provide helpful detailed answers about CoCreate partnerships.';
     } else {
       contextualPrompt += '\n\n## Current Status: NO CONTACT INFO YET. You must ask for name and phone/email before giving detailed answers!';
     }
@@ -1954,7 +2282,7 @@ export const handler = async (event) => {
 
       try {
         const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = new S3Client({ region: 'ap-south-1' });
+        const s3 = new S3Client({ region: S3_REGION });
 
         const progressResult = await s3.send(new GetObjectCommand({
           Bucket: S3_BUCKET,
@@ -2054,7 +2382,7 @@ export const handler = async (event) => {
 
       try {
         const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = new S3Client({ region: 'ap-south-1' });
+        const s3 = new S3Client({ region: S3_REGION });
 
         // Try both prefixes if source not specified
         const prefixes = source ? [`chats/${source}/`] : ['chats/landing/', 'chats/apply/'];
@@ -2111,7 +2439,7 @@ export const handler = async (event) => {
 
       try {
         const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = new S3Client({ region: 'ap-south-1' });
+        const s3 = new S3Client({ region: S3_REGION });
 
         const result = await s3.send(new GetObjectCommand({
           Bucket: S3_BUCKET,
@@ -2153,7 +2481,7 @@ export const handler = async (event) => {
 
       try {
         const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = new S3Client({ region: 'ap-south-1' });
+        const s3 = new S3Client({ region: S3_REGION });
 
         // Get metadata
         const metadataResult = await s3.send(new GetObjectCommand({
@@ -2209,7 +2537,7 @@ export const handler = async (event) => {
 
       try {
         const { S3Client, DeleteObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = new S3Client({ region: 'ap-south-1' });
+        const s3 = new S3Client({ region: S3_REGION });
 
         const deletePromises = sessionIds.map(async (sessionInfo) => {
           const { sessionId, source } = sessionInfo;
@@ -2343,6 +2671,62 @@ export const handler = async (event) => {
       }
     }
 
+    // ========== ABANDONED FORM TRACKING ENDPOINT ==========
+    // Called when user leaves page without submitting (beforeunload)
+    if (action === 'save-abandoned-form') {
+      const { sessionId, formData, chatState, reason } = body;
+
+      if (!sessionId) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'Session ID is required' })
+        };
+      }
+
+      console.log('Saving abandoned form for session:', sessionId);
+
+      const result = await saveAbandonedForm(sessionId, formData, chatState, visitorInfo, clientIP, reason);
+
+      return {
+        statusCode: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          success: result.success,
+          key: result.key || null,
+          error: result.error || null
+        })
+      };
+    }
+
+    // ========== SYNC STATE ENDPOINT ==========
+    // Periodically sync localStorage state to S3
+    if (action === 'sync-state') {
+      const { sessionId, chatState } = body;
+
+      if (!sessionId || !chatState) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'Session ID and chat state are required' })
+        };
+      }
+
+      console.log('Syncing state for session:', sessionId);
+
+      const result = await syncLocalStorageToS3(sessionId, chatState, visitorInfo, clientIP);
+
+      return {
+        statusCode: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          success: result.success,
+          synced: result.synced || false,
+          error: result.error || null
+        })
+      };
+    }
+
     // ========== CHAT ENDPOINT ==========
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -2411,7 +2795,7 @@ export const handler = async (event) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             success: true,
-            response: `It looks like you've already submitted an application on ${submittedDate} using the same ${duplicateCheck.matchedBy}. Our team is reviewing it and will contact you soon. If you have updates or questions, please email us at gopi@sunwaretechnologies.com`,
+            response: `It looks like you've already submitted an application on ${submittedDate} using the same ${duplicateCheck.matchedBy}. Our team is reviewing it and will contact you soon. If you have updates or questions, please visit our contact page.`,
             provider: 'system',
             visitorInfo: updatedVisitorInfo,
             hasContactInfo: true,
@@ -2426,16 +2810,18 @@ export const handler = async (event) => {
         };
       }
 
-      console.log('No duplicate found - saving to S3 and sending email...');
+      console.log('No duplicate found - saving to S3 and sending emails...');
 
-      // Save to S3 and send email in parallel
-      const [s3Result, emailResult] = await Promise.all([
+      // Save to S3 and send emails in parallel (admin notification + applicant confirmation)
+      const [s3Result, adminEmailResult, applicantEmailResult] = await Promise.all([
         saveFormToS3(updatedVisitorInfo, latestMessage, clientIP),
-        sendFormSubmissionEmail(updatedVisitorInfo, latestMessage, clientIP)
+        sendFormSubmissionEmail(updatedVisitorInfo, latestMessage, clientIP),
+        sendApplicantConfirmationEmail(updatedVisitorInfo, latestMessage)
       ]);
 
       console.log('S3 save result:', s3Result);
-      console.log('Email send result:', emailResult);
+      console.log('Admin email send result:', adminEmailResult);
+      console.log('Applicant confirmation email result:', applicantEmailResult);
 
       // Save chat session and link to application
       const sessionResult = await saveChatSession(sessionId, chatSource, messages, updatedVisitorInfo, 'converted');

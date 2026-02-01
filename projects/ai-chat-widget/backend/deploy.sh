@@ -1,14 +1,14 @@
 #!/bin/bash
-# Deploy AI Product Studio Chat Lambda
+# Deploy CoCreate Chat Lambda
 
 set -e
 
-PROFILE="sunwaretech"
-REGION="ap-south-1"
+PROFILE="cocreate"
+REGION="us-east-1"
 FUNCTION_NAME="ai-product-studio-chat"
 ROLE_NAME="ai-product-studio-chat-role"
 
-echo "=== AI Product Studio Chat Lambda Deployment ==="
+echo "=== CoCreate Chat Lambda Deployment ==="
 
 # Check if Lambda function exists
 FUNCTION_EXISTS=$(aws lambda get-function --function-name $FUNCTION_NAME --profile $PROFILE --region $REGION 2>&1 || true)

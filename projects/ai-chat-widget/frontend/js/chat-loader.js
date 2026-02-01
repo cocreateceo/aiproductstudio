@@ -261,9 +261,9 @@
 
         // Initialize chat widget
         window.chatWidget = new ChatWidget({
-            title: 'AI Product Studio',
+            title: 'CoCreate',
             subtitle: 'Online - Ready to help',
-            welcomeMessage: `Hi there! 👋 Welcome to AI Product Studio!
+            welcomeMessage: `Hi there! 👋 Welcome to CoCreate!
 
 I'm here to answer any questions about our partnership model. We help business founders launch AI-powered products in just 2 weeks.
 

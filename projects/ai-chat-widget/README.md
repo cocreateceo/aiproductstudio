@@ -1,6 +1,6 @@
 # AI Chat Widget
 
-A reusable chat widget for AI Product Studio with session persistence, file uploads, and login/signup integration.
+A reusable chat widget for CoCreate with session persistence, file uploads, and login/signup integration.
 
 ## Project Structure
 
@@ -142,4 +142,4 @@ ai-product-studio-applications/
 
 ## License
 
-Proprietary - AI Product Studio
+Proprietary - CoCreate

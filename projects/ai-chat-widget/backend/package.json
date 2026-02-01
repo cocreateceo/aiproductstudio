@@ -1,7 +1,7 @@
 {
   "name": "ai-product-studio-chat",
   "version": "1.0.0",
-  "description": "Chat backend for AI Product Studio landing page",
+  "description": "Chat backend for CoCreate landing page",
   "type": "module",
   "main": "index.mjs",
   "scripts": {
