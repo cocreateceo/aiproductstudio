@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <title>CoCreate AI - Chat</title>
-    <meta name="description" content="Chat with CoCreate AI assistant to learn about our AI co-founder partnership model.">
+    <title>CoCreate - Chat</title>
+    <meta name="description" content="Chat with CoCreate assistant to learn about our AI co-founder partnership model.">
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -226,7 +226,7 @@
         // Page context received from parent window
         let pageContext = {
             page: 'index',
-            title: 'CoCreate AI',
+            title: 'CoCreate',
             url: ''
         };
 
@@ -250,7 +250,7 @@
             if (data.type === 'pageContext') {
                 pageContext = {
                     page: data.page || 'index',
-                    title: data.title || 'CoCreate AI',
+                    title: data.title || 'CoCreate',
                     url: data.url || ''
                 };
                 console.log('[Chat Popup] Page context updated:', pageContext);
@@ -274,9 +274,9 @@
 
         // Initialize chat widget
         window.chatWidget = new ChatWidget({
-            title: 'CoCreate AI',
+            title: 'CoCreate',
             subtitle: 'Online - Ready to help',
-            welcomeMessage: `Hi there! Welcome to CoCreate AI!
+            welcomeMessage: `Hi there! Welcome to CoCreate!
 
 I'm here to answer any questions about our partnership model. We help business founders launch AI-powered products in just 2 weeks.
 
