@@ -544,7 +544,7 @@
                         <a href="platforms.html">Platforms</a>
                     </div>
                 </div>
-                <div class="nav-item">
+                <div class="nav-item" style="display: none;">
                     <button class="nav-link-new" type="button">
                         Insights
                         <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -631,7 +631,7 @@
                         <a href="platforms.html">Platforms</a>
                     </div>
                 </div>
-                <div class="mobile-nav-item">
+                <div class="mobile-nav-item" style="display: none;">
                     <button class="mobile-nav-btn" data-dropdown="mobile-insights">
                         Insights
                         <svg class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -937,15 +937,14 @@ Example: I'm a restaurant consultant and I want to build an AI tool that helps r
                 const result = await response.json();
 
                 if (result.success) {
-                    // Validation passed - redirect to custom scheduler
-                    const params = new URLSearchParams({
+                    // Validation passed - redirect to Calendly with prefilled info
+                    const calendlyParams = new URLSearchParams({
                         name: formData.name || '',
-                        email: formData.email || '',
-                        idea: formData.productIdea || ''
+                        email: formData.email || ''
                     });
 
-                    // Redirect to scheduler
-                    window.location.href = `schedule.html?${params.toString()}`;
+                    // Redirect to Calendly
+                    window.location.href = `https://calendly.com/cocreateceo/30min?${calendlyParams.toString()}`;
                 } else {
                     // Validation failed - show errors
                     handleValidationResult(result.fields);

@@ -2159,8 +2159,16 @@ export const handler = async (event) => {
                      'Unknown';
 
     // Get path and HTTP method for REST-style endpoints
-    const path = event.requestContext?.http?.path || event.rawPath || '/';
+    let path = event.requestContext?.http?.path || event.rawPath || '/';
     const httpMethod = event.requestContext?.http?.method || event.httpMethod || 'POST';
+    const queryParams = event.queryStringParameters || {};
+
+    // Remove stage prefix if present (e.g., /prod/scheduler/slots -> /scheduler/slots)
+    if (path.startsWith('/prod/')) {
+      path = path.substring(5); // Remove '/prod' prefix
+    }
+
+    console.log('[Handler] Path:', path, 'Method:', httpMethod, 'Query:', JSON.stringify(queryParams));
 
     // ========== FORM VALIDATION MODE ==========
     // Handle direct form validation (AI agent validates core fields)
@@ -2646,24 +2654,47 @@ export const handler = async (event) => {
 
     // ========== SCHEDULER ENDPOINTS ==========
 
-    // Get available slots for a month
-    if (path === '/scheduler/slots' && httpMethod === 'POST') {
+    // Get available slots for a month (supports both GET and POST)
+    if (path === '/scheduler/slots' && (httpMethod === 'POST' || httpMethod === 'GET')) {
       try {
-        const { month, timezone } = body;
+        let year, monthNum, userTimezone;
 
-        if (!month || !/^\d{4}-\d{2}$/.test(month)) {
-          return {
-            statusCode: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              success: false,
-              error: 'Invalid month format. Use YYYY-MM'
-            })
-          };
+        if (httpMethod === 'GET') {
+          // GET request: parse from query parameters
+          year = parseInt(queryParams.year);
+          monthNum = parseInt(queryParams.month);
+          userTimezone = queryParams.timezone || 'America/Chicago';
+
+          if (!year || !monthNum || isNaN(year) || isNaN(monthNum)) {
+            return {
+              statusCode: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                success: false,
+                error: 'Invalid parameters. Required: year, month'
+              })
+            };
+          }
+        } else {
+          // POST request: parse from body
+          const { month, timezone } = body;
+
+          if (!month || !/^\d{4}-\d{2}$/.test(month)) {
+            return {
+              statusCode: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                success: false,
+                error: 'Invalid month format. Use YYYY-MM'
+              })
+            };
+          }
+
+          [year, monthNum] = month.split('-').map(Number);
+          userTimezone = timezone || 'America/Chicago';
         }
 
-        const [year, monthNum] = month.split('-').map(Number);
-        const userTimezone = timezone || 'America/Chicago';
+        const monthStr = `${year}-${String(monthNum).padStart(2, '0')}`;
 
         // Generate all possible slots based on availability rules
         const possibleSlots = generatePossibleSlots(year, monthNum, userTimezone);
@@ -2692,7 +2723,7 @@ export const handler = async (event) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             success: true,
-            month,
+            month: monthStr,
             timezone: userTimezone,
             ceoTimezone: SCHEDULER_CONFIG.timezone,
             slotDuration: SCHEDULER_CONFIG.slotDuration,
