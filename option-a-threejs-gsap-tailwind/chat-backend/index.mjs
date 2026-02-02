@@ -257,7 +257,7 @@ Say: "Before I can submit, I still need: [list missing fields]. Could you provid
 - You DON'T need to check for duplicates manually
 - The system handles it automatically when you include email in FORM_DATA
 - If user says they want to continue despite duplicate, proceed normally
-- If user has questions about their existing application, refer them to: gopi@sunwaretechnologies.com
+- If user has questions about their existing application, refer them to: hello@cocreateidea.com
 
 ---
 
@@ -629,7 +629,7 @@ async function sendApplicantConfirmationEmail(visitorInfo, formContent) {
         </div>
       </div>
 
-      <p>If you have any questions in the meantime, simply reply to this email or reach out to us at <a href="mailto:gopi@sunwaretechnologies.com">gopi@sunwaretechnologies.com</a>.</p>
+      <p>If you have any questions in the meantime, simply reply to this email or reach out to us at <a href="mailto:hello@cocreateidea.com">hello@cocreateidea.com</a>.</p>
 
       <p>We look forward to building with you!</p>
 
@@ -669,7 +669,7 @@ WHAT HAPPENS NEXT?
 3. Partnership Agreement - We finalize terms and kick off your build
 4. Product Launch - Your AI product goes live in 2 weeks!
 
-If you have any questions, reply to this email or reach out to gopi@sunwaretechnologies.com
+If you have any questions, reply to this email or reach out to hello@cocreateidea.com
 
 We look forward to building with you!
 
@@ -2765,7 +2765,7 @@ export const handler = async (event) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             success: true,
-            response: `It looks like you've already submitted an application on ${submittedDate} using the same ${duplicateCheck.matchedBy}. Our team is reviewing it and will contact you soon. If you have updates or questions, please email us at gopi@sunwaretechnologies.com`,
+            response: `It looks like you've already submitted an application on ${submittedDate} using the same ${duplicateCheck.matchedBy}. Our team is reviewing it and will contact you soon. If you have updates or questions, please email us at hello@cocreateidea.com`,
             provider: 'system',
             visitorInfo: updatedVisitorInfo,
             hasContactInfo: true,
