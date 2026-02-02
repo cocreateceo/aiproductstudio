@@ -778,14 +778,16 @@ class ChatWidget {
                     this.syncStateToS3('form_data_received');
                 }
             } else {
-                const email = window.AppConfig?.contact?.supportEmail || 'our contact page';
-                this.addMessage('assistant', `Sorry, I'm having trouble connecting. Please try again or email us at ${email}`);
+                const contactEmail = window.AppConfig?.contact?.supportEmail;
+                const contactMsg = contactEmail ? `email us at ${contactEmail}` : 'visit our contact page';
+                this.addMessage('assistant', `Sorry, I'm having trouble connecting. Please try again or ${contactMsg}`);
             }
         } catch (error) {
             console.error('Chat error:', error);
             this.hideTyping();
-            const email = window.AppConfig?.contact?.supportEmail || 'our contact page';
-            this.addMessage('assistant', `Sorry, I'm having trouble connecting. Please try again or email us at ${email}`);
+            const contactEmail = window.AppConfig?.contact?.supportEmail;
+            const contactMsg = contactEmail ? `email us at ${contactEmail}` : 'visit our contact page';
+            this.addMessage('assistant', `Sorry, I'm having trouble connecting. Please try again or ${contactMsg}`);
         } finally {
             this.state.isLoading = false;
             this.elements.send.disabled = false;
@@ -861,7 +863,7 @@ class ChatWidget {
 
             if (duplicateResult.isDuplicate) {
                 // Show duplicate notification to user
-                const duplicateMessage = `⚠️ **Existing Application Found**\n\nIt looks like you already have an application on file (submitted ${duplicateResult.submittedAt || 'previously'}) using this ${duplicateResult.matchedBy || 'email'}.\n\nOur team is reviewing it and will contact you soon. If you have updates or questions, please email us at our contact page\n\nWould you like to continue with a new application anyway?`;
+                const duplicateMessage = `⚠️ **Existing Application Found**\n\nIt looks like you already have an application on file (submitted ${duplicateResult.submittedAt || 'previously'}) using this ${duplicateResult.matchedBy || 'email'}.\n\nOur team is reviewing it and will contact you soon. If you have updates or questions, please visit our contact page.\n\nWould you like to continue with a new application anyway?`;
 
                 this.addMessage('assistant', duplicateMessage);
                 console.log('[ChatWidget] Duplicate application detected, notified user');

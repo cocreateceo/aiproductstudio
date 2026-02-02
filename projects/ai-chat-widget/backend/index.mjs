@@ -17,7 +17,7 @@ import mammoth from 'mammoth';
 // Configuration
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const NOTIFICATION_EMAIL = process.env.NOTIFICATION_EMAIL; // Must be set and verified in SES
+const NOTIFICATION_EMAIL = process.env.NOTIFICATION_EMAIL || 'varadhg@gmail.com';
 
 // S3 bucket for storing all data (must exist in cocreate account us-east-1)
 const S3_BUCKET = process.env.S3_BUCKET || 'cocreate-applications-data';
