@@ -1631,20 +1631,27 @@ async function updateApplicationStatus(s3Key, newStatus, reviewNotes = '') {
 
     console.log('Updated application status:', s3Key, newStatus);
 
-    // If approved, trigger MVP build workflow
+    // If approved, trigger external build system
     if (newStatus === 'approved') {
-      const jobId = await createBuildJob(applicationData, s3Key);
-      applicationData.jobId = jobId;
-      console.log('MVP build job created:', jobId);
+      const buildResult = await triggerExternalBuild(applicationData);
 
-      // Save jobId back to application record
-      await s3.send(new PutObjectCommand({
-        Bucket: S3_BUCKET,
-        Key: s3Key,
-        Body: JSON.stringify(applicationData, null, 2),
-        ContentType: 'application/json'
-      }));
-      console.log('Updated application with jobId:', jobId);
+      if (buildResult.success) {
+        applicationData.guid = buildResult.guid;
+        applicationData.sessionLink = buildResult.link;
+        console.log('External build triggered:', buildResult.guid);
+
+        // Save build info back to application record
+        await s3.send(new PutObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: s3Key,
+          Body: JSON.stringify(applicationData, null, 2),
+          ContentType: 'application/json'
+        }));
+        console.log('Updated application with build link:', buildResult.link);
+      } else {
+        console.error('External build failed:', buildResult.error);
+        applicationData.sessionError = buildResult.error;
+      }
     }
 
     return applicationData;
@@ -1654,7 +1661,63 @@ async function updateApplicationStatus(s3Key, newStatus, reviewNotes = '') {
   }
 }
 
-// Create MVP build job in S3 for EC2 worker to pick up
+// Trigger external build system via API
+async function triggerExternalBuild(applicationData) {
+  const EXTERNAL_BUILD_API = 'https://d3r4k77gnvpmzn.cloudfront.net/api/admin/sessions';
+
+  const formData = applicationData.formData || {};
+  const visitorInfo = applicationData.visitorInfo || {};
+
+  // Map application data to external API format
+  const requestBody = {
+    name: visitorInfo.name || formData.fullName || formData.full_name || 'Unknown',
+    email: visitorInfo.email || formData.email || '',
+    phone: visitorInfo.phone || formData.phone || '',
+    initial_request: formData.productIdea || formData.product_idea || applicationData.rawContent || '',
+    created_at: applicationData.submittedAt || new Date().toISOString()
+  };
+
+  console.log('Triggering external build:', requestBody.name, requestBody.email);
+
+  try {
+    const response = await fetch(EXTERNAL_BUILD_API, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      console.log('External build success:', result.guid);
+      return {
+        success: true,
+        guid: result.guid,
+        link: result.link
+      };
+    } else {
+      console.error('External build API error:', result.error);
+      return {
+        success: false,
+        error: result.error || 'Unknown error from build API',
+        guid: null,
+        link: null
+      };
+    }
+  } catch (error) {
+    console.error('External build request failed:', error.message);
+    return {
+      success: false,
+      error: error.message,
+      guid: null,
+      link: null
+    };
+  }
+}
+
+// Create MVP build job in S3 for EC2 worker to pick up (DEPRECATED - kept for reference)
 async function createBuildJob(applicationData, originalS3Key) {
   const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
   const s3 = new S3Client({ region: S3_REGION });
