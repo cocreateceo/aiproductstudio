@@ -3,8 +3,8 @@
 
 set -e
 
-PROFILE="sunwaretech"
-REGION="ap-south-1"
+PROFILE="cocreate"
+REGION="us-east-1"
 FUNCTION_NAME="ai-product-studio-chat"
 ROLE_NAME="ai-product-studio-chat-role"
 

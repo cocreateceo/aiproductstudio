@@ -6,7 +6,7 @@
 #
 # Prerequisites:
 #   - AWS CLI installed and configured
-#   - sunwaretech profile with appropriate permissions
+#   - cocreate profile with appropriate permissions
 #   - Domain registered in Route 53
 #
 # Usage: ./setup-domain.sh
@@ -17,7 +17,7 @@ set -e
 # Configuration
 DOMAIN="cocreateidea.com"
 CLOUDFRONT_ID="E85ZBHF63VW9W"
-AWS_PROFILE="sunwaretech"
+AWS_PROFILE="cocreate"
 ACM_REGION="us-east-1"  # Required for CloudFront
 
 # Colors for output

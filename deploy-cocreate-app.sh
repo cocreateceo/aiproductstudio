@@ -5,7 +5,7 @@
 # This script deploys the CoCreate AI site to S3 and sets up cocreate-app.com
 #
 # Prerequisites:
-#   - AWS CLI installed and configured with sunwaretech profile
+#   - AWS CLI installed and configured with cocreate profile
 #   - Domain cocreate-app.com registered/available in Route 53
 #
 # Usage: ./deploy-cocreate-app.sh
@@ -17,7 +17,7 @@ set -e
 DOMAIN="cocreate-app.com"
 S3_BUCKET="cocreate-app.com"
 AWS_PROFILE="cocreate"
-AWS_REGION="ap-south-1"
+AWS_REGION="us-east-1"
 ACM_REGION="us-east-1"  # Required for CloudFront
 SITE_DIR="option-a-threejs-gsap-tailwind/site"
 

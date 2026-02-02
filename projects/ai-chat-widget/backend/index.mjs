@@ -117,25 +117,25 @@ What AI product idea can I help you explore today?"
 ## PARTNERSHIP APPLICATION FORM - FIELD COLLECTION
 ## ============================================
 
-## MANDATORY FIELDS (8 fields - ALL REQUIRED):
+## MANDATORY FIELDS (5 fields - ALL REQUIRED):
 
 | Step | Field ID | Question | Valid Values |
 |------|----------|----------|--------------|
 | 1 | fullName | "What's your full name?" | Any text, min 2 characters |
 | 2 | email | "What's your email address?" | Must contain @ and domain |
-| 3 | businessStage | "What's your current business stage?" | idea / validated / mvp / revenue / scaling |
-| 4 | industry | "What industry are you targeting?" | healthcare / fintech / ecommerce / education / saas / consumer / other |
-| 5 | background | "Tell me about your background and experience" | Any text, min 10 characters |
-| 6 | productIdea | "What AI product do you want to build? Describe the problem it solves." | Any text, min 20 characters |
-| 7 | targetCustomer | "Who is your target customer? Describe their pain points." | Any text, min 10 characters |
-| 8 | timeCommitment | "What's your time commitment?" | fulltime / parttime / sidehustle / minimal |
-| 9 | timeline | "When do you want to launch?" | asap / 1month / 3months / 6months / exploring |
+| 3 | productIdea | "What AI product do you want to build? Describe the problem it solves." | Any text, min 20 characters |
+| 4 | targetCustomer | "Who is your target customer? Describe their pain points." | Any text, min 10 characters |
+| 5 | timeline | "When do you want to launch?" | asap / 1month / 3months / 6months / exploring |
 
-## OPTIONAL FIELDS (5 fields - Ask after mandatory):
+## OPTIONAL FIELDS (Ask after mandatory if user wants):
 
 | Field ID | Question |
 |----------|----------|
 | phone | "What's your phone number? (Optional)" |
+| businessStage | "What's your current business stage?" (idea/validated/mvp/revenue/scaling) |
+| industry | "What industry are you targeting?" (healthcare/fintech/ecommerce/education/saas/consumer/other) |
+| background | "Tell me about your background and experience" |
+| timeCommitment | "What's your time commitment?" (fulltime/parttime/sidehustle/minimal) |
 | linkedin | "What's your LinkedIn profile URL?" |
 | marketValidation | "Have you done any market validation? Talked to customers?" |
 | additionalInfo | "Anything else you'd like us to know?" |
@@ -145,21 +145,21 @@ What AI product idea can I help you explore today?"
 ## COLLECTION FLOW - STEP BY STEP:
 
 ### STEP 1: Show progress after EACH answer
-Format: "✓ Got it! Progress: [■■■□□□□□] 3/8 required fields"
+Format: "✓ Got it! Progress: [■■■□□] 3/5 required fields"
 
 ### STEP 2: Ask ONE question at a time
 - Acknowledge previous answer
-- Show progress bar (8 boxes for 8 mandatory fields)
+- Show progress bar (5 boxes for 5 mandatory fields)
 - Ask next question
 
-### STEP 3: After ALL 8 mandatory fields collected
+### STEP 3: After ALL 5 mandatory fields collected
 Ask: "All required fields complete! Would you like to:
 1. **Submit now** - Your application is ready
-2. **Add optional details** - Phone, LinkedIn, market validation, etc."
+2. **Add optional details** - Phone, background, industry, etc."
 
 ### STEP 4: Based on user choice
 - If "submit" or "1" → Submit with mandatory fields only
-- If "optional" or "2" → Ask the 5 optional questions, then submit
+- If "optional" or "2" → Ask the optional questions, then submit
 
 ---
 
@@ -183,7 +183,7 @@ Ask: "All required fields complete! Would you like to:
 - timeCommitment: "fulltime" | "parttime" | "sidehustle" | "minimal"
 - timeline: "asap" | "1month" | "3months" | "6months" | "exploring"
 
-**CRITICAL: Use ONLY these exact values. Wrong values will not fill the dropdown!**
+**CRITICAL: Use ONLY these exact values for dropdown fields.**
 
 ---
 
@@ -1331,7 +1331,7 @@ async function saveAbandonedForm(sessionId, formData, chatState, visitorInfo, cl
   const s3Key = `abandoned-forms/${userFolder}/${dateFolder}/${filename}`;
 
   // Calculate form completion percentage
-  const mandatoryFields = ['fullName', 'email', 'businessStage', 'industry', 'background', 'productIdea', 'targetCustomer', 'timeCommitment', 'timeline'];
+  const mandatoryFields = ['fullName', 'email', 'productIdea', 'targetCustomer', 'timeline'];
   const filledFields = formData ? mandatoryFields.filter(f => formData[f] && formData[f].trim()) : [];
   const completionPercentage = Math.round((filledFields.length / mandatoryFields.length) * 100);
 
@@ -2723,6 +2723,122 @@ export const handler = async (event) => {
           success: result.success,
           synced: result.synced || false,
           error: result.error || null
+        })
+      };
+    }
+
+    // ========== FORM VALIDATION ENDPOINT ==========
+    // Called when user submits the application form
+    if (action === 'validate' || body.mode === 'validate') {
+      const { formData } = body;
+
+      if (!formData) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'Form data is required' })
+        };
+      }
+
+      console.log('Validating form data:', formData);
+
+      // Validate fields
+      const fields = {};
+      let allValid = true;
+
+      // Name validation
+      if (!formData.name || formData.name.trim().length < 2) {
+        fields.name = { valid: false, error: 'Please enter your full name (at least 2 characters)' };
+        allValid = false;
+      } else {
+        fields.name = { valid: true };
+      }
+
+      // Email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!formData.email || !emailRegex.test(formData.email.trim())) {
+        fields.email = { valid: false, error: 'Please enter a valid email address' };
+        allValid = false;
+      } else {
+        fields.email = { valid: true };
+      }
+
+      // Product idea validation
+      if (!formData.productIdea || formData.productIdea.trim().length < 20) {
+        fields.productIdea = { valid: false, error: 'Please describe your idea in at least 20 characters' };
+        allValid = false;
+      } else {
+        fields.productIdea = { valid: true };
+      }
+
+      // If validation passed, save the application
+      if (allValid) {
+        try {
+          // Save to S3
+          const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
+          const s3 = new S3Client({ region: S3_REGION });
+
+          const timestamp = new Date().toISOString();
+          const dateFolder = timestamp.split('T')[0];
+          const userEmail = formData.email.toLowerCase().replace(/[^a-z0-9]/g, '_');
+          const s3Key = `applications/${userEmail}/${dateFolder}/form-${Date.now()}.json`;
+
+          const applicationData = {
+            timestamp,
+            source: 'apply-form',
+            clientIP,
+            formData: {
+              fullName: formData.name,
+              email: formData.email,
+              productIdea: formData.productIdea
+            },
+            visitorInfo: {
+              name: formData.name,
+              email: formData.email
+            },
+            status: 'pending'
+          };
+
+          await s3.send(new PutObjectCommand({
+            Bucket: S3_BUCKET,
+            Key: s3Key,
+            Body: JSON.stringify(applicationData, null, 2),
+            ContentType: 'application/json'
+          }));
+
+          console.log('Application saved to S3:', s3Key);
+
+          // Send notification email
+          try {
+            await sendNotificationEmail(
+              `New CoCreate Application: ${formData.name}`,
+              `Name: ${formData.name}\nEmail: ${formData.email}\n\nProduct Idea:\n${formData.productIdea}`,
+              formData.email
+            );
+          } catch (emailError) {
+            console.error('Failed to send notification email:', emailError);
+          }
+
+          // Send confirmation email to applicant
+          try {
+            await sendApplicantConfirmationEmail(formData.name, formData.email);
+          } catch (emailError) {
+            console.error('Failed to send confirmation email:', emailError);
+          }
+
+        } catch (saveError) {
+          console.error('Failed to save application:', saveError);
+          // Continue anyway - don't block the user
+        }
+      }
+
+      return {
+        statusCode: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          success: allValid,
+          fields,
+          message: allValid ? 'Validation passed' : 'Please fix the highlighted fields'
         })
       };
     }

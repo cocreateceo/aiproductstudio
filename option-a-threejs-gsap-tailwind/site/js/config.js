@@ -30,7 +30,7 @@
     // API Configuration
     api: {
       // Chat endpoint - always use production API (no local backend)
-      chat: 'https://bx0ywfkona.execute-api.ap-south-1.amazonaws.com/prod/chat',
+      chat: 'https://mcndu8ynsa.execute-api.us-east-1.amazonaws.com/prod/',
 
       // Admin endpoints (local only)
       admin: isLocal ? `http://localhost:5000/api/admin` : null,
@@ -42,10 +42,10 @@
       // Scheduler endpoints
       schedulerSlots: isLocal
         ? 'http://localhost:5000/scheduler/slots'
-        : 'https://bx0ywfkona.execute-api.ap-south-1.amazonaws.com/prod/scheduler/slots',
+        : 'https://mcndu8ynsa.execute-api.us-east-1.amazonaws.com/prod/scheduler/slots',
       schedulerBook: isLocal
         ? 'http://localhost:5000/scheduler/book'
-        : 'https://bx0ywfkona.execute-api.ap-south-1.amazonaws.com/prod/scheduler/book'
+        : 'https://mcndu8ynsa.execute-api.us-east-1.amazonaws.com/prod/scheduler/book'
     },
 
     // WebSocket Configuration
@@ -58,9 +58,9 @@
 
     // AWS Configuration
     aws: {
-      region: 'ap-south-1',
-      apiGatewayId: 'bx0ywfkona',
-      s3Bucket: 'ai-product-studio-applications'
+      region: 'us-east-1',
+      apiGatewayId: 'mcndu8ynsa',
+      s3Bucket: 'cocreate-applications-data'
     },
 
     // UI Configuration
@@ -73,8 +73,8 @@
 
     // Contact/Support
     contact: {
-      supportEmail: 'support@sunwaretechnologies.com',
-      notificationEmail: 'gopi@sunwaretechnologies.com'
+      supportEmail: 'hello@cocreateidea.com',
+      notificationEmail: 'hello@cocreateidea.com'
     },
 
     // Feature Flags

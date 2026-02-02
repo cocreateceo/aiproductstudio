@@ -1,5 +1,5 @@
 /**
- * CoCreate AI Chat Lambda
+ * AI Product Studio Chat Lambda
  * - Claude API for professional responses + contact extraction
  * - OpenAI as backup
  * - AWS SES for email notifications
@@ -13,478 +13,314 @@
 import Anthropic from '@anthropic-ai/sdk';
 import pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
-import dns from 'dns';
-import { promisify } from 'util';
-import { google } from 'googleapis';
-
-// DNS MX lookup for email validation
-const resolveMx = promisify(dns.resolveMx);
 
 // Configuration
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const NOTIFICATION_EMAIL = process.env.NOTIFICATION_EMAIL || 'gopi@sunwaretechnologies.com';
+const NOTIFICATION_EMAIL = process.env.NOTIFICATION_EMAIL; // Must be set and verified in SES
 
-// S3 bucket for storing all data
-const S3_BUCKET = 'ai-product-studio-applications';
+// S3 bucket for storing all data (must exist in cocreate account us-east-1)
+const S3_BUCKET = process.env.S3_BUCKET || 'cocreate-applications-data';
+const S3_REGION = process.env.AWS_REGION || 'us-east-1';
 
-// ========== SCHEDULER CONFIGURATION ==========
-const SCHEDULER_CONFIG = {
-  // Days of week (0=Sunday, 1=Monday, ..., 6=Saturday)
-  availableDays: [1, 2, 3, 4, 5], // Monday-Friday
+// System prompt for the AI Product Studio chat agent with guardrails
+const SYSTEM_PROMPT = `You are a friendly and professional AI assistant for AI Product Studio - a venture studio that partners with business founders to build AI-powered products.
 
-  // Hours (24-hour format, in CEO's timezone)
-  startHour: 8,   // 8:00 AM
-  endHour: 18,    // 6:00 PM
+## About AI Product Studio:
+- We are your AI co-founder, not an agency
+- We build products in 2 weeks using AI-accelerated development
+- Partnership model: 40% Tech Founder (us), 40% Business Founder (them), 20% Operations
+- $0 upfront cost - we share risk and reward
+- We handle: AI architecture, development, hosting, continuous support
+- They handle: Market validation, sales, partnerships, revenue strategy
 
-  // Slot duration in minutes
-  slotDuration: 30,
+## Current Products in Portfolio:
+1. Personal Transformation - AI-powered personal growth platform
+2. Vedic Astrology - AI-enhanced astrological insights
+3. Career Builder - AI career coaching platform
 
-  // CEO's timezone
-  timezone: 'America/Chicago',
+## GUARDRAILS - Stay On Topic:
+You are ONLY here to discuss:
+- AI Product Studio partnership opportunities
+- How our venture studio model works
+- AI product development and our process
+- Business ideas that could become AI products
+- Our portfolio and success stories
+- Pricing, timelines, and partnership terms
 
-  // Meeting title prefix
-  meetingTitle: 'CoCreate Introduction',
+POLITELY DECLINE any questions about:
+- General knowledge, trivia, or random facts
+- Coding help, debugging, or technical tutorials
+- Personal advice (health, relationships, legal, financial)
+- News, politics, entertainment, or current events
+- Homework, essays, or academic work
+- Other companies or competitors
+- Anything not related to partnering with AI Product Studio
 
-  // Calendar ID (CEO's calendar)
-  calendarId: process.env.GOOGLE_CALENDAR_ID || 'primary',
-};
+When declining, say something like:
+"I appreciate your curiosity! However, I'm specifically here to help you explore partnership opportunities with AI Product Studio. Is there something about our venture model or AI product development I can help you with?"
 
-// Google Service Account credentials (from environment)
-const GOOGLE_SERVICE_ACCOUNT_EMAIL = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-const GOOGLE_PRIVATE_KEY = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+## CRITICAL - Contact Information Collection:
+You MUST collect contact information before providing detailed answers. Follow this flow:
 
-// ========== GOOGLE CALENDAR AUTH ==========
-let googleCalendar = null;
+1. On ANY relevant question from visitor, FIRST check if you have their name AND (phone OR email)
+2. If you DON'T have complete contact info yet:
+   - Acknowledge their question briefly
+   - Warmly ask for their name and phone number (or email) so your team can follow up
+   - Be friendly but persistent - explain you want to give them personalized attention
+   - DO NOT give detailed answers until you have contact info
+3. If they provide partial info (only name, or only phone), ask for the missing piece
+4. Once you have name + (phone or email), thank them and provide a helpful, enthusiastic response
 
-async function getGoogleCalendar() {
-  if (googleCalendar) {
-    return googleCalendar;
-  }
+## Example Flows:
 
-  if (!GOOGLE_SERVICE_ACCOUNT_EMAIL || !GOOGLE_PRIVATE_KEY) {
-    throw new Error('Google Calendar credentials not configured');
-  }
+User: "How does the partnership work?"
+Assistant: "Great question about our partnership model! I'd love to explain it in detail. But first, could you share your name and phone number (or email)? This way our founders can personally follow up with you about partnership opportunities. What's your name?"
 
-  const auth = new google.auth.JWT(
-    GOOGLE_SERVICE_ACCOUNT_EMAIL,
-    null,
-    GOOGLE_PRIVATE_KEY,
-    ['https://www.googleapis.com/auth/calendar']
-  );
+User: "What's the capital of France?"
+Assistant: "I appreciate your curiosity! However, I'm specifically here to help you explore partnership opportunities with AI Product Studio. Do you have a business idea you'd like to build with AI? I'd love to hear about it!"
 
-  googleCalendar = google.calendar({ version: 'v3', auth });
-  return googleCalendar;
-}
-
-// ========== SCHEDULER HELPERS ==========
-
-/**
- * Generate all possible time slots for a given month based on availability rules
- */
-function generatePossibleSlots(year, month, userTimezone) {
-  const slots = {};
-
-  // Get first and last day of the month
-  const firstDay = new Date(year, month - 1, 1);
-  const lastDay = new Date(year, month, 0);
-
-  // Get current time to filter out past slots
-  const now = new Date();
-
-  for (let day = 1; day <= lastDay.getDate(); day++) {
-    const date = new Date(year, month - 1, day);
-    const dayOfWeek = date.getDay();
-
-    // Skip if not an available day (weekend)
-    if (!SCHEDULER_CONFIG.availableDays.includes(dayOfWeek)) {
-      continue;
-    }
-
-    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    slots[dateStr] = [];
-
-    // Generate slots for this day
-    for (let hour = SCHEDULER_CONFIG.startHour; hour < SCHEDULER_CONFIG.endHour; hour++) {
-      for (let minute = 0; minute < 60; minute += SCHEDULER_CONFIG.slotDuration) {
-        // Create datetime in CEO's timezone
-        const slotTime = new Date(`${dateStr}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`);
-
-        // Skip past slots
-        if (slotTime <= now) {
-          continue;
-        }
-
-        const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-        slots[dateStr].push(timeStr);
-      }
-    }
-
-    // Remove empty dates
-    if (slots[dateStr].length === 0) {
-      delete slots[dateStr];
-    }
-  }
-
-  return slots;
-}
-
-/**
- * Remove busy times from available slots
- */
-function subtractBusyTimes(slots, busyPeriods) {
-  const result = { ...slots };
-
-  for (const busy of busyPeriods) {
-    const busyStart = new Date(busy.start);
-    const busyEnd = new Date(busy.end);
-
-    // Check each date's slots
-    for (const dateStr in result) {
-      result[dateStr] = result[dateStr].filter(timeStr => {
-        const [hour, minute] = timeStr.split(':').map(Number);
-        const slotStart = new Date(`${dateStr}T${timeStr}:00`);
-        const slotEnd = new Date(slotStart.getTime() + SCHEDULER_CONFIG.slotDuration * 60 * 1000);
-
-        // Keep slot if it doesn't overlap with busy period
-        return slotEnd <= busyStart || slotStart >= busyEnd;
-      });
-
-      // Remove empty dates
-      if (result[dateStr].length === 0) {
-        delete result[dateStr];
-      }
-    }
-  }
-
-  return result;
-}
-
-/**
- * Convert time from CEO's timezone to user's timezone for display
- */
-function convertTimezone(dateStr, timeStr, fromTz, toTz) {
-  // Create date in source timezone
-  const dateTimeStr = `${dateStr}T${timeStr}:00`;
-
-  // For now, return as-is (timezone conversion can be added later)
-  // The frontend will handle display conversion
-  return timeStr;
-}
-
-// System prompt for the CoCreate AI chat agent with guardrails
-const SYSTEM_PROMPT = `You are a concise AI assistant for CoCreate AI - a venture studio that partners with founders to build AI products.
-
-## About Us:
-- AI co-founder, not an agency
-- Build products in 2 weeks
-- 40/40/20 partnership (Tech/Business/Ops)
-- $0 upfront - shared risk & reward
-
-## STYLE - BE CONCISE:
-- Short responses (2-3 sentences max)
-- No filler words or excessive enthusiasm
-- Get to the point quickly
-- One question at a time
-
-## GUARDRAILS:
-Only discuss: partnerships, our model, AI products, business ideas, pricing/timelines.
-Decline other topics with: "I'm here to discuss CoCreate partnerships. What AI product idea can I help you explore?"
-
-## INPUT VALIDATION:
-
-### Name: Reject gibberish/test inputs. Accept real names.
-### Email: Must have @ and domain. Format: lowercase, trimmed.
-### Product Idea: Must be coherent concept, not gibberish.
-
-If invalid, ask again briefly: "Please provide a valid [field]."
+User: "Can you help me debug my code?"
+Assistant: "Thanks for reaching out! While I can't help with general coding questions, I'm here to discuss how AI Product Studio can partner with you to build AI-powered products. Do you have a product idea in mind? Our team handles all the technical development!"
 
 ## ============================================
-## PARTNERSHIP APPLICATION - 4 REQUIRED FIELDS
+## PARTNERSHIP APPLICATION FORM - FIELD COLLECTION
 ## ============================================
 
-| Step | Field ID | Question |
-|------|----------|----------|
-| 1 | fullName + email | "What's your name and email?" (ask together) |
-| 2 | productIdea | "What's your product idea?" |
-| 3 | targetCustomer | "Who's your target customer?" |
-| 4 | timeline | "When do you want to launch?" → asap / 1month / 3months / 6months / exploring |
+## MANDATORY FIELDS (8 fields - ALL REQUIRED):
 
-## OPTIONAL FIELDS (after required):
-phone, linkedin, marketValidation, additionalInfo
+| Step | Field ID | Question | Valid Values |
+|------|----------|----------|--------------|
+| 1 | fullName | "What's your full name?" | Any text, min 2 characters |
+| 2 | email | "What's your email address?" | Must contain @ and domain |
+| 3 | businessStage | "What's your current business stage?" | idea / validated / mvp / revenue / scaling |
+| 4 | industry | "What industry are you targeting?" | healthcare / fintech / ecommerce / education / saas / consumer / other |
+| 5 | background | "Tell me about your background and experience" | Any text, min 10 characters |
+| 6 | productIdea | "What AI product do you want to build? Describe the problem it solves." | Any text, min 20 characters |
+| 7 | targetCustomer | "Who is your target customer? Describe their pain points." | Any text, min 10 characters |
+| 8 | timeCommitment | "What's your time commitment?" | fulltime / parttime / sidehustle / minimal |
+| 9 | timeline | "When do you want to launch?" | asap / 1month / 3months / 6months / exploring |
 
----
+## OPTIONAL FIELDS (5 fields - Ask after mandatory):
 
-## COLLECTION FLOW:
-
-1. Ask name + email together first
-2. Show progress: "✓ [■■□□] 2/4"
-3. Ask next field
-4. After 4 fields: offer submit or add optional details
-
----
-
-## TIMELINE VALUES (exact match required):
-"asap" | "1month" | "3months" | "6months" | "exploring"
-
----
-
-## FILE UPLOAD:
-Extract data, show what was found, ask for missing fields.
+| Field ID | Question |
+|----------|----------|
+| phone | "What's your phone number? (Optional)" |
+| linkedin | "What's your LinkedIn profile URL?" |
+| marketValidation | "Have you done any market validation? Talked to customers?" |
+| additionalInfo | "Anything else you'd like us to know?" |
 
 ---
 
-## FORM SUBMISSION:
+## COLLECTION FLOW - STEP BY STEP:
 
-Only submit when all 4 required fields have values.
+### STEP 1: Show progress after EACH answer
+Format: "✓ Got it! Progress: [■■■□□□□□] 3/8 required fields"
 
-Summary format:
-"**Ready to submit:**
+### STEP 2: Ask ONE question at a time
+- Acknowledge previous answer
+- Show progress bar (8 boxes for 8 mandatory fields)
+- Ask next question
+
+### STEP 3: After ALL 8 mandatory fields collected
+Ask: "All required fields complete! Would you like to:
+1. **Submit now** - Your application is ready
+2. **Add optional details** - Phone, LinkedIn, market validation, etc."
+
+### STEP 4: Based on user choice
+- If "submit" or "1" → Submit with mandatory fields only
+- If "optional" or "2" → Ask the 5 optional questions, then submit
+
+---
+
+## DATA FORMAT & VALIDATION:
+
+### Email Validation:
+- Must contain @ symbol
+- Must have domain (e.g., .com, .in)
+- Auto-format: lowercase, trim spaces
+- If invalid, say: "That doesn't look like a valid email. Could you check and try again?"
+
+### Phone Validation:
+- Accept ANY format (international users)
+- Auto-format: Remove spaces, dashes, parentheses. Keep + and digits only
+- Examples: "+91 98765 43210" → "+919876543210", "(555) 123-4567" → "5551234567"
+- NEVER reject a phone number
+
+### Dropdown Fields (MUST match these EXACT values):
+- businessStage: "idea" | "validated" | "mvp" | "revenue" | "scaling"
+- industry: "healthcare" | "fintech" | "ecommerce" | "education" | "saas" | "consumer" | "other"
+- timeCommitment: "fulltime" | "parttime" | "sidehustle" | "minimal"
+- timeline: "asap" | "1month" | "3months" | "6months" | "exploring"
+
+**CRITICAL: Use ONLY these exact values. Wrong values will not fill the dropdown!**
+
+---
+
+## WHEN USER UPLOADS A FILE (PDF, DOCX, Resume):
+
+1. **EXTRACT ALL DATA** from file content
+2. **IMMEDIATELY INCLUDE FORM_DATA JSON** to auto-fill form
+3. **SHOW WHAT YOU EXTRACTED** with checkmarks
+4. **LIST MISSING MANDATORY FIELDS** and ask for them one by one
+
+### Example - File Upload Response:
+
+"I've extracted your details from the file!
+
+**✓ Auto-filled from your document:**
+- ✓ Name: Shreyas Jadhav
+- ✓ Email: shreyas@example.com
+- ✓ Background: DevOps Engineer with 3+ years
+
+**□ Still needed (5 more required):**
+- □ Business Stage
+- □ Industry
+- □ Product Idea
+- □ Target Customer
+- □ Time Commitment
+- □ Timeline
+
+Progress: [■■■□□□□□] 3/8 required fields
+
+Let's continue! What's your current business stage?
+- Idea stage (just an idea)
+- Validated (talked to customers)
+- MVP (have a working prototype)
+- Revenue (already making money)
+- Scaling (scaling existing business)"
+
+|||FORM_DATA|||{"fullName":"Shreyas Jadhav","email":"shreyas@example.com","phone":"","businessStage":"","industry":"","background":"DevOps Engineer with 3+ years","productIdea":"","targetCustomer":"","timeCommitment":"","timeline":"","linkedin":"","marketValidation":"","additionalInfo":""}|||END_FORM|||
+
+---
+
+## FORM SUBMISSION - CRITICAL RULES:
+
+### NEVER submit if ANY mandatory field is empty:
+- fullName, email, businessStage, industry, background, productIdea, targetCustomer, timeCommitment, timeline
+
+### Before submission, VERIFY all 8 mandatory fields have values:
+\`\`\`
+CHECKLIST (8 MANDATORY):
+□ fullName: [value or MISSING]
+□ email: [value or MISSING]
+□ businessStage: [value or MISSING]
+□ industry: [value or MISSING]
+□ background: [value or MISSING]
+□ productIdea: [value or MISSING]
+□ targetCustomer: [value or MISSING]
+□ timeCommitment: [value or MISSING]
+□ timeline: [value or MISSING]
+\`\`\`
+
+### If ANY mandatory field shows MISSING:
+Say: "Before I can submit, I still need: [list missing fields]. Could you provide [first missing field]?"
+
+### ONLY when ALL 8 mandatory fields have values:
+
+"**Application Summary:**
+
+**Your Details:**
 - Name: [fullName]
 - Email: [email]
+
+**Business Info:**
+- Stage: [businessStage]
+- Industry: [industry]
+- Background: [background]
+
+**Product Vision:**
 - Idea: [productIdea]
-- Customer: [targetCustomer]
+- Target Customer: [targetCustomer]
+
+**Commitment:**
+- Time: [timeCommitment]
 - Timeline: [timeline]
 
-Submitting..."
+✓ All 8 required fields complete! Submitting your application..."
+
+|||FORM_DATA|||{"fullName":"...","email":"...","phone":"","businessStage":"...","industry":"...","background":"...","productIdea":"...","targetCustomer":"...","timeCommitment":"...","timeline":"...","linkedin":"","marketValidation":"","additionalInfo":""}|||END_FORM|||
 
 ---
 
-## DUPLICATE CHECK:
-System auto-checks email. If duplicate, user sees notification. Questions → gopi@sunwaretechnologies.com
+## EARLY DUPLICATE CHECK (AUTOMATIC):
+
+**The system automatically checks for duplicate applications when email is first provided.**
+
+### What happens:
+1. When user provides their email for the first time
+2. System automatically checks if an application already exists with that email
+3. If duplicate found → User sees a notification asking if they want to continue
+4. If no duplicate → Normal flow continues
+
+### Your role:
+- You DON'T need to check for duplicates manually
+- The system handles it automatically when you include email in FORM_DATA
+- If user says they want to continue despite duplicate, proceed normally
+- If user has questions about their existing application, refer them to: gopi@sunwaretechnologies.com
 
 ---
 
-## CRITICAL - FORM_DATA JSON:
+## IMPORTANT RULES:
+- Be conversational and friendly
+- Show progress after EACH answer
+- Ask ONE question at a time
+- ALWAYS offer "submit now" or "add optional" choice after mandatory fields
+- NEVER claim submission complete if ANY mandatory field is empty
+- When file uploaded, ALWAYS extract and use the data
 
-**Include |||FORM_DATA||| in EVERY response with user data.**
+---
 
-Format (at end of response):
-|||FORM_DATA|||{"fullName":"","email":"","phone":"","businessStage":"","industry":"","background":"","productIdea":"","targetCustomer":"","timeCommitment":"","timeline":"","linkedin":"","marketValidation":"","additionalInfo":""}|||END_FORM|||
+## CRITICAL - FORM_DATA JSON RULE:
 
-- Fill collected values, empty "" for uncollected
-- Always include all 13 fields
-- Place at VERY END of response
+**YOU MUST INCLUDE |||FORM_DATA||| JSON IN EVERY RESPONSE WHERE USER PROVIDES ANY INFORMATION.**
 
-Example:
-User: "I'm John, john@test.com"
-Response: "Got it, John! What's your product idea?"
-|||FORM_DATA|||{"fullName":"John","email":"john@test.com","phone":"","businessStage":"","industry":"","background":"","productIdea":"","targetCustomer":"","timeCommitment":"","timeline":"","linkedin":"","marketValidation":"","additionalInfo":""}|||END_FORM|||`;
+This is NOT optional. The HTML form ONLY gets filled when you include this JSON block.
+
+### WHEN TO INCLUDE FORM_DATA:
+1. When user provides their name → include FORM_DATA
+2. When user provides email → include FORM_DATA
+3. When user provides ANY field value → include FORM_DATA
+4. When user uploads a file → include FORM_DATA
+5. When showing summary → include FORM_DATA
+6. EVERY TIME you have collected data → include FORM_DATA
+
+### FORMAT - MUST BE AT END OF YOUR RESPONSE:
+\`\`\`
+|||FORM_DATA|||{"fullName":"value","email":"value","phone":"","businessStage":"value","industry":"value","background":"value","productIdea":"value","targetCustomer":"value","timeCommitment":"value","timeline":"value","linkedin":"","marketValidation":"","additionalInfo":""}|||END_FORM|||
+\`\`\`
+
+### RULES:
+- Put collected value in field, empty string "" for uncollected fields
+- Include ALL 13 fields every time (8 mandatory + 5 optional)
+- Place at the VERY END of your response
+- NO line breaks inside the JSON
+- If field not yet collected, use empty string ""
+- For dropdown fields, use EXACT values: businessStage, industry, timeCommitment, timeline
+
+### EXAMPLE:
+User: "My name is John and email is john@test.com"
+
+Your response:
+"Great John! I've noted your details.
+
+Progress: [■■□□□□□□] 2/8 required fields
+
+What's your current business stage?
+- Idea stage (just an idea)
+- Validated (talked to customers)
+- MVP (have a working prototype)
+- Revenue (already making money)
+- Scaling (scaling existing business)"
+
+|||FORM_DATA|||{"fullName":"John","email":"john@test.com","phone":"","businessStage":"","industry":"","background":"","productIdea":"","targetCustomer":"","timeCommitment":"","timeline":"","linkedin":"","marketValidation":"","additionalInfo":""}|||END_FORM|||
+
+**IF YOU DON'T INCLUDE FORM_DATA, THE FORM WILL NOT BE FILLED. THIS IS MANDATORY.**`;
 
 // Initialize Anthropic client
 const anthropic = new Anthropic({
   apiKey: ANTHROPIC_API_KEY,
 });
-
-// ========== FORM VALIDATION AGENT ==========
-
-const FORM_VALIDATION_PROMPT = `You are a form validation agent. You receive form data as JSON and validate specific fields.
-
-VALIDATION RULES:
-
-1. NAME - Validate for:
-   - Must be at least 2 characters
-   - No numbers allowed
-   - Detect gibberish (asdf, qwerty, aasdjf, xyzabc, random letters)
-   - Detect keyboard mashing patterns (asdfgh, zxcvbn, jkl;, fghj)
-   - Detect repeated characters (aaaa, abcabc, xxxx)
-   - Detect fake names (test, admin, user, none, fake, null, undefined)
-   - Detect single words that aren't names (hello, yes, hi)
-   ACCEPT: Common names, names with hyphens/apostrophes/spaces (O'Brien, Mary-Jane, José García), uncommon but plausible names
-   If invalid: set valid=false, KEEP the original value in "value", provide helpful error message
-
-2. EMAIL - Validate FORMAT only (must be name@domain.com structure).
-   If format invalid: set valid=false, KEEP the original value in "value", provide error: "Please provide a valid email address."
-
-   // COMMENTED OUT - Username validation disabled
-   // USERNAME (before @) - REJECT if:
-   // - Gibberish or random characters (asdf, qwerty, xyz123, aaa)
-   // - Test/placeholder inputs (test, fake, admin, user, null, example, demo)
-   // - Repeated characters (aaaa, abcabc)
-
-   // COMMENTED OUT - Provider/domain validation disabled
-   // PROVIDER/DOMAIN (after @) - REJECT if:
-   // - Fake/suspicious domains (fake.com, example.com, test.com)
-   // - Disposable/temporary providers (tempmail, guerrillamail, mailinator, 10minutemail, throwaway, etc.)
-   // - Unknown/unrecognized domains
-   // - ACCEPT ONLY well-known providers (Gmail, Yahoo, Outlook, Hotmail, iCloud, ProtonMail, AOL, Zoho, etc.)
-   // - Use your knowledge to identify legitimate email providers
-   // - When in doubt, REJECT
-
-3. PRODUCT IDEA - Validate for:
-   REJECT if:
-   - Gibberish, random text, keyboard mashing (asdfasdf, xyz123)
-   - Off-topic text (weather, food, unrelated personal topics)
-   - Placeholder text (TBD, test, n/a, lorem ipsum, "will fill later")
-   - Too vague with no clear problem/solution ("an app", "something with AI", "a platform")
-   - Doesn't describe what problem it solves or who it helps
-   - Fantasy/unrealistic ideas with no feasible path ("teleportation device", "mind reading app")
-   - Just a buzzword combo with no substance ("AI blockchain metaverse solution")
-
-   ACCEPT if:
-   - Describes a specific product/service concept
-   - Identifies a problem it solves OR a target audience it helps
-   - Is feasible with current technology (even if ambitious)
-   - Brief is OK if clear: "AI tool to help restaurants price their menu based on costs and competition"
-
-   If invalid: set valid=false, KEEP the original value in "value", provide helpful error explaining what's missing (e.g., "Please describe what problem your product solves and who it helps")
-
-OTHER FIELDS: Pass through unchanged with just "value" property.
-
-RESPONSE FORMAT: Return ONLY valid JSON matching this exact structure. No explanation text before or after.
-
-{
-  "success": true/false,
-  "fields": {
-    "name": { "valid": true, "value": "the name" },
-    "email": { "valid": true, "value": "the email" },
-    "productIdea": { "valid": true, "value": "the idea" },
-    "phone": { "value": "the value" },
-    ... other fields with just "value"
-  }
-}
-
-Set "success": true only if ALL 3 validations (name, email, productIdea) pass.`;
-
-// Handle form validation requests
-async function handleFormValidation(formData, visitorInfo, clientIP) {
-  console.log('Form validation request received:', { formData: Object.keys(formData) });
-
-  // COMMENTED OUT - Using AI validation for email instead of DNS MX lookup
-  // Step 1: DNS MX lookup for email (before AI validation)
-  // let emailMxResult = { valid: true };
-  // if (formData.email) {
-  //   emailMxResult = await validateEmail(formData.email);
-  //   console.log('Email MX validation result:', formData.email, emailMxResult);
-  // }
-
-  // AI validation for name, email, and productIdea
-  const userMessage = `Validate this form data and return JSON response:
-${JSON.stringify(formData, null, 2)}`;
-
-  try {
-    const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 800,
-      system: FORM_VALIDATION_PROMPT,
-      messages: [{ role: 'user', content: userMessage }]
-    });
-
-    const responseText = response.content[0].text.trim();
-    console.log('AI validation response:', responseText);
-
-    // Parse AI response - extract JSON
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('No valid JSON in AI response');
-    }
-
-    const validationResult = JSON.parse(jsonMatch[0]);
-
-    // COMMENTED OUT - Using AI validation for email instead of DNS MX lookup
-    // Step 3: Add email MX result to validation result
-    // if (!emailMxResult.valid) {
-    //   validationResult.success = false;
-    //   validationResult.fields.email = {
-    //     valid: false,
-    //     value: formData.email,
-    //     error: getEmailValidationMessage(emailMxResult.reason)
-    //   };
-    // }
-
-    // Return if any validation failed
-    if (!validationResult.success) {
-      console.log('Validation failed:', validationResult);
-      return {
-        statusCode: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify(validationResult)
-      };
-    }
-
-    // All validation passed - save to S3 and send email
-    console.log('Validation passed - saving application...');
-
-    // Build visitorInfo from validated data
-    const updatedVisitorInfo = {
-      ...visitorInfo,
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone || ''
-    };
-
-    // Build the application message in the expected format
-    const applicationMessage = `PARTNERSHIP APPLICATION SUBMISSION:
-
-Name: ${formData.name}
-Email: ${formData.email}
-Phone: ${formData.phone || 'Not provided'}
-LinkedIn: ${formData.linkedin || 'Not provided'}
-
-Business Stage: ${formData.businessStage}
-Industry: ${formData.industry}
-Background: ${formData.background}
-
-Product Idea: ${formData.productIdea}
-Target Customer: ${formData.targetCustomer}
-Market Validation: ${formData.marketValidation || 'Not provided'}
-
-Time Commitment: ${formData.timeCommitment}
-Timeline: ${formData.timeline}
-Additional Info: ${formData.additionalInfo || 'None'}`;
-
-    // Check for duplicate
-    const duplicateCheck = await checkDuplicateApplication(
-      updatedVisitorInfo.email,
-      updatedVisitorInfo.phone
-    );
-
-    if (duplicateCheck.isDuplicate) {
-      console.log('Duplicate application detected:', duplicateCheck);
-      return {
-        statusCode: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          success: true,
-          fields: validationResult.fields,
-          message: `You've already submitted an application. Our team will contact you soon.`,
-          isDuplicate: true
-        })
-      };
-    }
-
-    // Save to S3 and send email
-    const [s3Result, emailResult] = await Promise.all([
-      saveFormToS3(updatedVisitorInfo, applicationMessage, clientIP),
-      sendFormSubmissionEmail(updatedVisitorInfo, applicationMessage, clientIP)
-    ]);
-
-    console.log('S3 save result:', s3Result);
-    console.log('Email send result:', emailResult);
-
-    return {
-      statusCode: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        success: true,
-        fields: validationResult.fields,
-        message: 'Application submitted successfully'
-      })
-    };
-
-  } catch (error) {
-    console.error('Form validation error:', error);
-    return {
-      statusCode: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        success: false,
-        error: 'Validation service error. Please try again.'
-      })
-    };
-  }
-}
 
 // CORS headers
 const corsHeaders = {
@@ -526,7 +362,7 @@ async function sendEmail(visitorInfo, messages, aiResponse, clientIP) {
 <body>
   <div class="container">
     <div class="header">
-      <h2 style="margin: 0;">🚀 New CoCreate AI Lead!</h2>
+      <h2 style="margin: 0;">🚀 New AI Product Studio Lead!</h2>
       <p style="margin: 5px 0 0 0; opacity: 0.9;">Someone is interested in partnering with you</p>
     </div>
     <div class="content">
@@ -578,7 +414,7 @@ ${aiResponse}
       },
       Message: {
         Subject: {
-          Data: `🚀 New Lead: ${visitorInfo.name || 'Anonymous'} - CoCreate AI`,
+          Data: `🚀 New Lead: ${visitorInfo.name || 'Anonymous'} - AI Product Studio`,
           Charset: 'UTF-8'
         },
         Body: {
@@ -638,7 +474,7 @@ async function sendFormSubmissionEmail(visitorInfo, formContent, clientIP) {
   <div class="container">
     <div class="header">
       <h2 style="margin: 0;">🎉 New Partnership Application!</h2>
-      <p style="margin: 10px 0 0 0; opacity: 0.9;">Someone wants to partner with CoCreate AI</p>
+      <p style="margin: 10px 0 0 0; opacity: 0.9;">Someone wants to partner with AI Product Studio</p>
     </div>
     <div class="content">
       <div class="section-title">📋 Application Details</div>
@@ -713,48 +549,166 @@ Page: ${visitorInfo.page || 'Apply Page'}
   }
 }
 
-// ========== EMAIL VALIDATION ==========
+// Send Confirmation Email to Applicant via AWS SES
+async function sendApplicantConfirmationEmail(visitorInfo, formContent) {
+  const { SESClient, SendEmailCommand } = await import('@aws-sdk/client-ses');
+  const ses = new SESClient({ region: 'us-east-1' });
 
-// Validate email format and domain MX records
-async function validateEmail(email) {
-  if (!email) {
-    return { valid: false, reason: 'missing' };
+  const applicantEmail = visitorInfo.email;
+  if (!applicantEmail) {
+    console.log('No applicant email provided, skipping confirmation email');
+    return false;
   }
 
-  // 1. Format check
-  const formatRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!formatRegex.test(email)) {
-    return { valid: false, reason: 'invalid_format' };
-  }
+  const applicantName = visitorInfo.name || 'Partner';
+  const schedulerUrl = 'https://cocreate-app.com/scheduler.html';
 
-  // 2. Extract domain
-  const domain = email.split('@')[1].toLowerCase();
+  const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center; }
+    .header h1 { margin: 0; font-size: 28px; }
+    .header p { margin: 10px 0 0 0; opacity: 0.9; font-size: 16px; }
+    .content { background: #fff; border: 1px solid #e0e0e0; border-top: none; padding: 30px; border-radius: 0 0 12px 12px; }
+    .welcome { font-size: 18px; color: #374151; margin-bottom: 20px; }
+    .cta-box { background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 25px; border-radius: 12px; text-align: center; margin: 25px 0; }
+    .cta-box h2 { margin: 0 0 10px 0; font-size: 22px; }
+    .cta-box p { margin: 0 0 20px 0; opacity: 0.9; }
+    .cta-button { display: inline-block; background: white; color: #059669; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; }
+    .cta-button:hover { background: #f0fdf4; }
+    .steps { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
+    .steps h3 { margin: 0 0 15px 0; color: #374151; }
+    .step { display: flex; align-items: flex-start; margin: 12px 0; }
+    .step-number { background: #6366f1; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; flex-shrink: 0; }
+    .step-text { color: #4b5563; }
+    .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center; color: #6b7280; font-size: 14px; }
+    .social-links { margin: 15px 0; }
+    .social-links a { color: #6366f1; text-decoration: none; margin: 0 10px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Welcome to CoCreate!</h1>
+      <p>Your application has been received</p>
+    </div>
+    <div class="content">
+      <p class="welcome">Hi ${applicantName},</p>
 
-  // 3. MX record lookup to verify domain exists
+      <p>Thank you for applying to partner with CoCreate! We're excited about the possibility of building something amazing together.</p>
+
+      <p>Your application has been received and our team will review it within <strong>24 hours</strong>.</p>
+
+      <div class="cta-box">
+        <h2>📅 Schedule Your Discovery Call</h2>
+        <p>Want to fast-track your application? Book a call with our founding team!</p>
+        <a href="${schedulerUrl}" class="cta-button">Book Your Call Now</a>
+      </div>
+
+      <div class="steps">
+        <h3>What happens next?</h3>
+        <div class="step">
+          <div class="step-number">1</div>
+          <div class="step-text"><strong>Application Review</strong> - Our team reviews your application (24 hours)</div>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <div class="step-text"><strong>Discovery Call</strong> - We schedule a call to discuss your vision</div>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <div class="step-text"><strong>Partnership Agreement</strong> - We finalize terms and kick off your build</div>
+        </div>
+        <div class="step">
+          <div class="step-number">4</div>
+          <div class="step-text"><strong>Product Launch</strong> - Your AI product goes live in 2 weeks!</div>
+        </div>
+      </div>
+
+      <p>If you have any questions in the meantime, simply reply to this email or reach out to us at <a href="mailto:gopi@sunwaretechnologies.com">gopi@sunwaretechnologies.com</a>.</p>
+
+      <p>We look forward to building with you!</p>
+
+      <p><strong>The CoCreate Team</strong></p>
+
+      <div class="footer">
+        <p>CoCreate - AI Product Studio</p>
+        <p>Building AI products in 2 weeks</p>
+        <div class="social-links">
+          <a href="https://cocreate-app.com">Website</a> |
+          <a href="https://cocreate-app.com/about.html">About Us</a> |
+          <a href="${schedulerUrl}">Book a Call</a>
+        </div>
+        <p style="font-size: 12px; margin-top: 15px;">
+          You received this email because you submitted a partnership application at cocreate-app.com
+        </p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const emailText = `
+Hi ${applicantName},
+
+Thank you for applying to partner with CoCreate! We're excited about the possibility of building something amazing together.
+
+Your application has been received and our team will review it within 24 hours.
+
+📅 SCHEDULE YOUR DISCOVERY CALL
+Want to fast-track your application? Book a call with our founding team:
+${schedulerUrl}
+
+WHAT HAPPENS NEXT?
+1. Application Review - Our team reviews your application (24 hours)
+2. Discovery Call - We schedule a call to discuss your vision
+3. Partnership Agreement - We finalize terms and kick off your build
+4. Product Launch - Your AI product goes live in 2 weeks!
+
+If you have any questions, reply to this email or reach out to gopi@sunwaretechnologies.com
+
+We look forward to building with you!
+
+The CoCreate Team
+---
+CoCreate - AI Product Studio
+Building AI products in 2 weeks
+https://cocreate-app.com
+`;
+
   try {
-    const mxRecords = await resolveMx(domain);
-    if (!mxRecords || mxRecords.length === 0) {
-      console.log(`Email validation: No MX records for domain ${domain}`);
-      return { valid: false, reason: 'invalid_domain' };
-    }
-    console.log(`Email validation: Valid MX records found for ${domain}`);
+    const result = await ses.send(new SendEmailCommand({
+      Source: NOTIFICATION_EMAIL,
+      Destination: {
+        ToAddresses: [applicantEmail]
+      },
+      ReplyToAddresses: [NOTIFICATION_EMAIL],
+      Message: {
+        Subject: {
+          Data: `Welcome to CoCreate! Your Application is Received`,
+          Charset: 'UTF-8'
+        },
+        Body: {
+          Html: {
+            Data: emailHtml,
+            Charset: 'UTF-8'
+          },
+          Text: {
+            Data: emailText,
+            Charset: 'UTF-8'
+          }
+        }
+      }
+    }));
+    console.log('Applicant confirmation email sent to:', applicantEmail, 'MessageId:', result.MessageId);
+    return true;
   } catch (error) {
-    console.log(`Email validation: MX lookup failed for ${domain}:`, error.code);
-    return { valid: false, reason: 'invalid_domain' };
-  }
-
-  return { valid: true };
-}
-
-// Get human-readable validation error message
-function getEmailValidationMessage(reason) {
-  switch (reason) {
-    case 'invalid_format':
-      return "That email doesn't look quite right. Could you check the format? (e.g., name@company.com)";
-    case 'invalid_domain':
-      return "I couldn't verify that email domain. Could you double-check the spelling or try a different email?";
-    default:
-      return "Please provide a valid email address.";
+    console.error('Applicant confirmation email error:', error.message);
+    return false;
   }
 }
 
@@ -784,7 +738,7 @@ function generateClientId(email, name) {
 // Save chat session to S3
 async function saveChatSession(sessionId, source, messages, visitorInfo, status = 'active') {
   const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: 'ap-south-1' });
+  const s3 = new S3Client({ region: S3_REGION });
 
   const prefix = source === 'apply' ? 'chats/apply' : 'chats/landing';
   const s3Key = `${prefix}/${sessionId}.json`;
@@ -858,7 +812,7 @@ async function saveChatSession(sessionId, source, messages, visitorInfo, status 
 // Save session lookup index (maps phone/email to sessionId)
 async function saveSessionLookup(sessionId, phone, email) {
   const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: 'ap-south-1' });
+  const s3 = new S3Client({ region: S3_REGION });
 
   // Normalize phone and email for lookup
   const normalizedPhone = phone ? phone.replace(/[^0-9]/g, '') : null;
@@ -916,7 +870,7 @@ async function saveSessionLookup(sessionId, phone, email) {
 // Lookup session by phone or email
 async function lookupSessionByContact(phone, email) {
   const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: 'ap-south-1' });
+  const s3 = new S3Client({ region: S3_REGION });
 
   const normalizedPhone = phone ? phone.replace(/[^0-9]/g, '') : null;
   const normalizedEmail = email ? email.toLowerCase().trim() : null;
@@ -987,7 +941,7 @@ async function lookupSessionByContact(phone, email) {
 // Link chat session to application
 async function linkSessionToApplication(sessionId, source, applicationS3Key) {
   const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: 'ap-south-1' });
+  const s3 = new S3Client({ region: S3_REGION });
 
   const prefix = source === 'apply' ? 'chats/apply' : 'chats/landing';
   const s3Key = `${prefix}/${sessionId}.json`;
@@ -1019,7 +973,7 @@ async function linkSessionToApplication(sessionId, source, applicationS3Key) {
 // Get or create client profile
 async function getOrCreateClientProfile(clientId, visitorInfo) {
   const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: 'ap-south-1' });
+  const s3 = new S3Client({ region: S3_REGION });
 
   const s3Key = `clients/${clientId}.json`;
 
@@ -1064,7 +1018,7 @@ async function getOrCreateClientProfile(clientId, visitorInfo) {
 // Update client profile
 async function updateClientProfile(clientId, updates) {
   const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: 'ap-south-1' });
+  const s3 = new S3Client({ region: S3_REGION });
 
   const s3Key = `clients/${clientId}.json`;
 
@@ -1120,7 +1074,7 @@ async function updateClientProfile(clientId, updates) {
 // List all chat sessions (for admin)
 async function listChatSessions(source = 'all', limit = 50) {
   const { S3Client, ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: 'ap-south-1' });
+  const s3 = new S3Client({ region: S3_REGION });
 
   const prefixes = source === 'all'
     ? ['chats/landing/', 'chats/apply/']
@@ -1166,7 +1120,7 @@ async function listChatSessions(source = 'all', limit = 50) {
 // List all client profiles (for admin)
 async function listClientProfiles(limit = 50) {
   const { S3Client, ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: 'ap-south-1' });
+  const s3 = new S3Client({ region: S3_REGION });
 
   try {
     const listResult = await s3.send(new ListObjectsV2Command({
@@ -1205,7 +1159,7 @@ async function listClientProfiles(limit = 50) {
 // List all builds with history (for admin)
 async function listBuildHistory(limit = 50) {
   const { S3Client, ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: 'ap-south-1' });
+  const s3 = new S3Client({ region: S3_REGION });
 
   try {
     const listResult = await s3.send(new ListObjectsV2Command({
@@ -1245,7 +1199,7 @@ async function listBuildHistory(limit = 50) {
 // Check for duplicate application by email or phone
 async function checkDuplicateApplication(email, phone) {
   const { S3Client, ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: 'ap-south-1' });
+  const s3 = new S3Client({ region: S3_REGION });
 
   // Normalize email and phone
   const normalizedEmail = email ? email.toLowerCase().trim() : null;
@@ -1313,10 +1267,144 @@ async function checkDuplicateApplication(email, phone) {
   }
 }
 
+// ========== ABANDONED FORM & STATE SYNC ==========
+
+// Save abandoned form data to S3
+async function saveAbandonedForm(sessionId, formData, chatState, visitorInfo, clientIP, reason) {
+  const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = new S3Client({ region: S3_REGION });
+
+  const timestamp = new Date().toISOString();
+  const dateFolder = timestamp.split('T')[0];
+
+  // Determine user folder from available info
+  let userFolder = 'anonymous';
+  const email = formData?.email || chatState?.visitorInfo?.email || visitorInfo?.email;
+  const name = formData?.fullName || chatState?.visitorInfo?.name || visitorInfo?.name;
+
+  if (email) {
+    userFolder = email.toLowerCase()
+      .replace(/@/g, '_at_')
+      .replace(/\./g, '_')
+      .replace(/[^a-z0-9_-]/g, '');
+  } else if (name) {
+    userFolder = name.toLowerCase()
+      .replace(/\s+/g, '_')
+      .replace(/[^a-z0-9_-]/g, '');
+  }
+
+  // Generate filename
+  const randomSuffix = Math.random().toString(36).substring(2, 8);
+  const filename = `${timestamp.replace(/[:.]/g, '-')}_${randomSuffix}.json`;
+
+  // S3 key for abandoned forms
+  const s3Key = `abandoned-forms/${userFolder}/${dateFolder}/${filename}`;
+
+  // Calculate form completion percentage
+  const mandatoryFields = ['fullName', 'email', 'businessStage', 'industry', 'background', 'productIdea', 'targetCustomer', 'timeCommitment', 'timeline'];
+  const filledFields = formData ? mandatoryFields.filter(f => formData[f] && formData[f].trim()) : [];
+  const completionPercentage = Math.round((filledFields.length / mandatoryFields.length) * 100);
+
+  const abandonedData = {
+    abandonedAt: timestamp,
+    sessionId,
+    reason: reason || 'page_unload',
+    completionPercentage,
+    filledFields,
+    missingFields: mandatoryFields.filter(f => !filledFields.includes(f)),
+    formData: formData || {},
+    visitorInfo: {
+      name: name || null,
+      email: email || null,
+      phone: formData?.phone || chatState?.visitorInfo?.phone || visitorInfo?.phone || null
+    },
+    chatState: chatState ? {
+      messageCount: chatState.messages?.length || 0,
+      tokenUsage: chatState.tokenUsage || { total: 0, cost: 0, requests: 0 },
+      lastMessage: chatState.messages?.[chatState.messages.length - 1]?.content?.substring(0, 200) || null
+    } : null,
+    clientIP: clientIP || 'Unknown',
+    page: visitorInfo?.page || 'Unknown'
+  };
+
+  try {
+    await s3.send(new PutObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: s3Key,
+      Body: JSON.stringify(abandonedData, null, 2),
+      ContentType: 'application/json'
+    }));
+    console.log('Abandoned form saved:', s3Key, '- Completion:', completionPercentage + '%');
+    return { success: true, key: s3Key };
+  } catch (error) {
+    console.error('Save abandoned form error:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+// Sync localStorage state to S3
+async function syncLocalStorageToS3(sessionId, chatState, visitorInfo, clientIP) {
+  const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = new S3Client({ region: S3_REGION });
+
+  if (!chatState || !sessionId) {
+    return { success: false, error: 'Missing sessionId or chatState' };
+  }
+
+  const source = visitorInfo?.page?.includes('apply') ? 'apply' : 'landing';
+  const s3Key = `state-sync/${source}/${sessionId}.json`;
+
+  // Get existing state to merge
+  let existingState = null;
+  try {
+    const existing = await s3.send(new GetObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: s3Key
+    }));
+    existingState = JSON.parse(await existing.Body.transformToString());
+  } catch (e) {
+    // No existing state
+  }
+
+  const syncedState = {
+    sessionId,
+    source,
+    firstSyncAt: existingState?.firstSyncAt || new Date().toISOString(),
+    lastSyncAt: new Date().toISOString(),
+    syncCount: (existingState?.syncCount || 0) + 1,
+    visitorInfo: {
+      ...existingState?.visitorInfo,
+      ...chatState.visitorInfo,
+      ...visitorInfo
+    },
+    messages: chatState.messages || [],
+    tokenUsage: chatState.tokenUsage || { total: 0, cost: 0, requests: 0 },
+    duplicateChecked: chatState.duplicateChecked || false,
+    duplicateCheckedEmail: chatState.duplicateCheckedEmail || null,
+    isOpen: chatState.isOpen,
+    clientIP: clientIP || existingState?.clientIP || 'Unknown',
+    page: visitorInfo?.page || existingState?.page || 'Unknown'
+  };
+
+  try {
+    await s3.send(new PutObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: s3Key,
+      Body: JSON.stringify(syncedState, null, 2),
+      ContentType: 'application/json'
+    }));
+    console.log('State synced to S3:', s3Key, '- Messages:', syncedState.messages.length, '- Sync #', syncedState.syncCount);
+    return { success: true, synced: true };
+  } catch (error) {
+    console.error('Sync state error:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
 // Save form submission to S3
 async function saveFormToS3(visitorInfo, formContent, clientIP) {
   const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: 'ap-south-1' });
+  const s3 = new S3Client({ region: S3_REGION });
 
   const timestamp = new Date().toISOString();
   const dateFolder = timestamp.split('T')[0]; // YYYY-MM-DD
@@ -1398,7 +1486,7 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'aiproductstudio2026';
 // List all applications from S3
 async function listApplications() {
   const { S3Client, ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: 'ap-south-1' });
+  const s3 = new S3Client({ region: S3_REGION });
 
   try {
     const listResult = await s3.send(new ListObjectsV2Command({
@@ -1443,49 +1531,10 @@ async function listApplications() {
   }
 }
 
-// Create external session via CloudFront API
-async function createExternalSession(applicationData) {
-    const formData = applicationData.formData || {};
-    const visitorInfo = applicationData.visitorInfo || {};
-
-    const requestBody = {
-        name: visitorInfo.name || formData.name || formData.full_name,
-        email: visitorInfo.email || formData.email,
-        initial_request: formData.product_idea || formData.productIdea || formData['product/service_idea'] || ''
-    };
-
-    // Only include phone if it exists
-    const phone = visitorInfo.phone || formData.phone;
-    if (phone) {
-        requestBody.phone = phone;
-    }
-
-    console.log('Creating external session:', { name: requestBody.name, email: requestBody.email });
-
-    try {
-        const response = await fetch(
-            'https://d3r4k77gnvpmzn.cloudfront.net/api/admin/sessions',
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody)
-            }
-        );
-
-        const data = await response.json();
-        console.log('External session response:', data);
-        return data; // { success, guid, link } or { success: false, error }
-
-    } catch (error) {
-        console.error('External session error:', error.message);
-        return { success: false, error: error.message, guid: null, link: null };
-    }
-}
-
 // Update application status in S3
 async function updateApplicationStatus(s3Key, newStatus, reviewNotes = '') {
   const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: 'ap-south-1' });
+  const s3 = new S3Client({ region: S3_REGION });
 
   try {
     // Get current application data
@@ -1514,52 +1563,20 @@ async function updateApplicationStatus(s3Key, newStatus, reviewNotes = '') {
 
     console.log('Updated application status:', s3Key, newStatus);
 
-    // If approved, create external session
+    // If approved, trigger MVP build workflow
     if (newStatus === 'approved') {
-        const sessionResult = await createExternalSession(applicationData);
+      const jobId = await createBuildJob(applicationData, s3Key);
+      applicationData.jobId = jobId;
+      console.log('MVP build job created:', jobId);
 
-        if (sessionResult.success) {
-            applicationData.guid = sessionResult.guid;
-            applicationData.sessionLink = sessionResult.link;
-            applicationData.sessionCreatedAt = new Date().toISOString();
-            // Clear any previous error
-            delete applicationData.sessionError;
-            delete applicationData.sessionFailedAt;
-            console.log('Session created successfully:', sessionResult.guid);
-        } else {
-            applicationData.sessionError = sessionResult.error || 'Unknown error';
-            applicationData.sessionFailedAt = new Date().toISOString();
-            // Clear any previous success data
-            delete applicationData.guid;
-            delete applicationData.sessionLink;
-            delete applicationData.sessionCreatedAt;
-            console.log('Session creation failed:', sessionResult.error);
-        }
-
-        // Save updated application with session data
-        await s3.send(new PutObjectCommand({
-            Bucket: S3_BUCKET,
-            Key: s3Key,
-            Body: JSON.stringify(applicationData, null, 2),
-            ContentType: 'application/json'
-        }));
-    }
-
-    // If rejected, clear session data
-    if (newStatus === 'rejected') {
-        delete applicationData.guid;
-        delete applicationData.sessionLink;
-        delete applicationData.sessionCreatedAt;
-        delete applicationData.sessionError;
-        delete applicationData.sessionFailedAt;
-
-        // Save updated application
-        await s3.send(new PutObjectCommand({
-            Bucket: S3_BUCKET,
-            Key: s3Key,
-            Body: JSON.stringify(applicationData, null, 2),
-            ContentType: 'application/json'
-        }));
+      // Save jobId back to application record
+      await s3.send(new PutObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: s3Key,
+        Body: JSON.stringify(applicationData, null, 2),
+        ContentType: 'application/json'
+      }));
+      console.log('Updated application with jobId:', jobId);
     }
 
     return applicationData;
@@ -1572,7 +1589,7 @@ async function updateApplicationStatus(s3Key, newStatus, reviewNotes = '') {
 // Create MVP build job in S3 for EC2 worker to pick up
 async function createBuildJob(applicationData, originalS3Key) {
   const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: 'ap-south-1' });
+  const s3 = new S3Client({ region: S3_REGION });
 
   // Generate unique job ID
   const timestamp = Date.now();
@@ -1909,32 +1926,22 @@ async function processAttachments(attachments) {
 }
 
 // Chat with Claude
-async function chatWithClaude(messages, hasContactInfo, screenshot = null, pageContext = null, processedAttachments = null, validationErrors = null) {
+async function chatWithClaude(messages, hasContactInfo, screenshot = null, pageContext = null, processedAttachments = null) {
   try {
     let contextualPrompt = SYSTEM_PROMPT;
 
     // Add page context so AI knows where the user is
     if (pageContext && pageContext.currentPage) {
       contextualPrompt += `\n\n## CURRENT PAGE CONTEXT:
-The user is currently viewing the "${pageContext.currentPage}" page on the CoCreate AI website.
+The user is currently viewing the "${pageContext.currentPage}" page on the AI Product Studio website.
 Page URL: ${pageContext.url || 'Unknown'}
 If the user asks about "this page" or "where am I", refer to this page context.`;
     }
 
     if (hasContactInfo) {
-      contextualPrompt += '\n\n## Current Status: Contact info collected. Provide helpful detailed answers about CoCreate AI partnerships.';
+      contextualPrompt += '\n\n## Current Status: Contact info collected. Provide helpful detailed answers about AI Product Studio partnerships.';
     } else {
       contextualPrompt += '\n\n## Current Status: NO CONTACT INFO YET. You must ask for name and phone/email before giving detailed answers!';
-    }
-
-    // Add validation errors if present - AI should address these
-    if (validationErrors && validationErrors.length > 0) {
-      contextualPrompt += '\n\n## VALIDATION ERRORS - ADDRESS THESE FIRST:\n';
-      contextualPrompt += 'The following validation issues were detected. Please inform the user and ask them to provide valid information:\n';
-      for (const error of validationErrors) {
-        contextualPrompt += `- ${error}\n`;
-      }
-      contextualPrompt += '\nDO NOT include invalid data in FORM_DATA. Ask the user to correct these issues.';
     }
 
     // Build attachment context for the AI
@@ -2062,7 +2069,7 @@ async function chatWithOpenAI(messages, hasContactInfo, screenshot = null) {
   try {
     let contextualPrompt = SYSTEM_PROMPT;
     if (hasContactInfo) {
-      contextualPrompt += '\n\n## Current Status: Contact info collected. Provide helpful detailed answers about CoCreate AI partnerships.';
+      contextualPrompt += '\n\n## Current Status: Contact info collected. Provide helpful detailed answers about AI Product Studio partnerships.';
     } else {
       contextualPrompt += '\n\n## Current Status: NO CONTACT INFO YET. You must ask for name and phone/email before giving detailed answers!';
     }
@@ -2158,24 +2165,6 @@ export const handler = async (event) => {
                      event.headers?.['x-forwarded-for']?.split(',')[0] ||
                      'Unknown';
 
-    // Get path and HTTP method for REST-style endpoints
-    let path = event.requestContext?.http?.path || event.rawPath || '/';
-    const httpMethod = event.requestContext?.http?.method || event.httpMethod || 'POST';
-    const queryParams = event.queryStringParameters || {};
-
-    // Remove stage prefix if present (e.g., /prod/scheduler/slots -> /scheduler/slots)
-    if (path.startsWith('/prod/')) {
-      path = path.substring(5); // Remove '/prod' prefix
-    }
-
-    console.log('[Handler] Path:', path, 'Method:', httpMethod, 'Query:', JSON.stringify(queryParams));
-
-    // ========== FORM VALIDATION MODE ==========
-    // Handle direct form validation (AI agent validates core fields)
-    if (body.mode === 'validate' && body.formData) {
-      return await handleFormValidation(body.formData, visitorInfo, clientIP);
-    }
-
     // ========== ADMIN ENDPOINTS ==========
 
     // Admin Login
@@ -2263,7 +2252,7 @@ export const handler = async (event) => {
 
       try {
         const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = new S3Client({ region: 'ap-south-1' });
+        const s3 = new S3Client({ region: S3_REGION });
 
         const progressResult = await s3.send(new GetObjectCommand({
           Bucket: S3_BUCKET,
@@ -2363,7 +2352,7 @@ export const handler = async (event) => {
 
       try {
         const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = new S3Client({ region: 'ap-south-1' });
+        const s3 = new S3Client({ region: S3_REGION });
 
         // Try both prefixes if source not specified
         const prefixes = source ? [`chats/${source}/`] : ['chats/landing/', 'chats/apply/'];
@@ -2420,7 +2409,7 @@ export const handler = async (event) => {
 
       try {
         const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = new S3Client({ region: 'ap-south-1' });
+        const s3 = new S3Client({ region: S3_REGION });
 
         const result = await s3.send(new GetObjectCommand({
           Bucket: S3_BUCKET,
@@ -2462,7 +2451,7 @@ export const handler = async (event) => {
 
       try {
         const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = new S3Client({ region: 'ap-south-1' });
+        const s3 = new S3Client({ region: S3_REGION });
 
         // Get metadata
         const metadataResult = await s3.send(new GetObjectCommand({
@@ -2518,7 +2507,7 @@ export const handler = async (event) => {
 
       try {
         const { S3Client, DeleteObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = new S3Client({ region: 'ap-south-1' });
+        const s3 = new S3Client({ region: S3_REGION });
 
         const deletePromises = sessionIds.map(async (sessionInfo) => {
           const { sessionId, source } = sessionInfo;
@@ -2652,316 +2641,60 @@ export const handler = async (event) => {
       }
     }
 
-    // ========== SCHEDULER ENDPOINTS ==========
+    // ========== ABANDONED FORM TRACKING ENDPOINT ==========
+    // Called when user leaves page without submitting (beforeunload)
+    if (action === 'save-abandoned-form') {
+      const { sessionId, formData, chatState, reason } = body;
 
-    // Get available slots for a month (supports both GET and POST)
-    if (path === '/scheduler/slots' && (httpMethod === 'POST' || httpMethod === 'GET')) {
-      try {
-        let year, monthNum, userTimezone;
-
-        if (httpMethod === 'GET') {
-          // GET request: parse from query parameters
-          year = parseInt(queryParams.year);
-          monthNum = parseInt(queryParams.month);
-          userTimezone = queryParams.timezone || 'America/Chicago';
-
-          if (!year || !monthNum || isNaN(year) || isNaN(monthNum)) {
-            return {
-              statusCode: 400,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                success: false,
-                error: 'Invalid parameters. Required: year, month'
-              })
-            };
-          }
-        } else {
-          // POST request: parse from body
-          const { month, timezone } = body;
-
-          if (!month || !/^\d{4}-\d{2}$/.test(month)) {
-            return {
-              statusCode: 400,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                success: false,
-                error: 'Invalid month format. Use YYYY-MM'
-              })
-            };
-          }
-
-          [year, monthNum] = month.split('-').map(Number);
-          userTimezone = timezone || 'America/Chicago';
-        }
-
-        const monthStr = `${year}-${String(monthNum).padStart(2, '0')}`;
-
-        // Generate all possible slots based on availability rules
-        const possibleSlots = generatePossibleSlots(year, monthNum, userTimezone);
-
-        // Get busy times from Google Calendar
-        const calendar = await getGoogleCalendar();
-        const timeMin = new Date(year, monthNum - 1, 1).toISOString();
-        const timeMax = new Date(year, monthNum, 0, 23, 59, 59).toISOString();
-
-        const freeBusyResponse = await calendar.freebusy.query({
-          requestBody: {
-            timeMin,
-            timeMax,
-            timeZone: SCHEDULER_CONFIG.timezone,
-            items: [{ id: SCHEDULER_CONFIG.calendarId }]
-          }
-        });
-
-        const busyPeriods = freeBusyResponse.data.calendars[SCHEDULER_CONFIG.calendarId]?.busy || [];
-
-        // Subtract busy times from possible slots
-        const availableSlots = subtractBusyTimes(possibleSlots, busyPeriods);
-
+      if (!sessionId) {
         return {
-          statusCode: 200,
+          statusCode: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            success: true,
-            month: monthStr,
-            timezone: userTimezone,
-            ceoTimezone: SCHEDULER_CONFIG.timezone,
-            slotDuration: SCHEDULER_CONFIG.slotDuration,
-            slots: availableSlots
-          })
-        };
-
-      } catch (error) {
-        console.error('Scheduler slots error:', error);
-        return {
-          statusCode: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            success: false,
-            error: 'Unable to fetch available slots. Please try again.'
-          })
+          body: JSON.stringify({ success: false, error: 'Session ID is required' })
         };
       }
+
+      console.log('Saving abandoned form for session:', sessionId);
+
+      const result = await saveAbandonedForm(sessionId, formData, chatState, visitorInfo, clientIP, reason);
+
+      return {
+        statusCode: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          success: result.success,
+          key: result.key || null,
+          error: result.error || null
+        })
+      };
     }
 
-    // Book a scheduler slot
-    if (path === '/scheduler/book' && httpMethod === 'POST') {
-      try {
-        const { date, time, timezone, name, email, productIdea, notes } = body;
+    // ========== SYNC STATE ENDPOINT ==========
+    // Periodically sync localStorage state to S3
+    if (action === 'sync-state') {
+      const { sessionId, chatState } = body;
 
-        // Validate required fields
-        if (!date || !time || !name || !email) {
-          return {
-            statusCode: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              success: false,
-              error: 'Missing required fields: date, time, name, email'
-            })
-          };
-        }
-
-        // Validate email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-          return {
-            statusCode: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              success: false,
-              error: 'Invalid email format'
-            })
-          };
-        }
-
-        // Validate date format (YYYY-MM-DD)
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-          return {
-            statusCode: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              success: false,
-              error: 'invalid_date',
-              message: 'Invalid date format. Use YYYY-MM-DD'
-            })
-          };
-        }
-
-        // Validate time format (HH:MM)
-        if (!/^\d{2}:\d{2}$/.test(time)) {
-          return {
-            statusCode: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              success: false,
-              error: 'invalid_time',
-              message: 'Invalid time format. Use HH:MM'
-            })
-          };
-        }
-
-        const calendar = await getGoogleCalendar();
-
-        // Convert selected time to CEO's timezone for the event
-        const userTimezone = timezone || 'America/Chicago';
-        const slotStart = new Date(`${date}T${time}:00`);
-        const slotEnd = new Date(slotStart.getTime() + SCHEDULER_CONFIG.slotDuration * 60 * 1000);
-
-        // Prevent booking past slots
-        if (slotStart <= new Date()) {
-          return {
-            statusCode: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              success: false,
-              error: 'past_slot',
-              message: 'Cannot book a time slot in the past'
-            })
-          };
-        }
-
-        // Validate slot is within allowed days and hours
-        const dayOfWeek = slotStart.getDay();
-        const hour = slotStart.getHours();
-
-        if (!SCHEDULER_CONFIG.availableDays.includes(dayOfWeek)) {
-          return {
-            statusCode: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              success: false,
-              error: 'invalid_day',
-              message: 'Bookings are only available Monday through Friday'
-            })
-          };
-        }
-
-        if (hour < SCHEDULER_CONFIG.startHour || hour >= SCHEDULER_CONFIG.endHour) {
-          return {
-            statusCode: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              success: false,
-              error: 'invalid_hour',
-              message: `Bookings are only available between ${SCHEDULER_CONFIG.startHour}:00 and ${SCHEDULER_CONFIG.endHour}:00`
-            })
-          };
-        }
-
-        // Re-verify slot is still available (prevent race conditions)
-        const freeBusyResponse = await calendar.freebusy.query({
-          requestBody: {
-            timeMin: slotStart.toISOString(),
-            timeMax: slotEnd.toISOString(),
-            timeZone: SCHEDULER_CONFIG.timezone,
-            items: [{ id: SCHEDULER_CONFIG.calendarId }]
-          }
-        });
-
-        const busyPeriods = freeBusyResponse.data.calendars[SCHEDULER_CONFIG.calendarId]?.busy || [];
-        if (busyPeriods.length > 0) {
-          return {
-            statusCode: 409,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              success: false,
-              error: 'slot_unavailable',
-              message: 'This time slot is no longer available. Please select another time.'
-            })
-          };
-        }
-
-        // Build event description
-        let description = `Introduction call with ${name}\n\nEmail: ${email}`;
-        if (productIdea) {
-          description += `\n\nProduct Idea:\n${productIdea}`;
-        }
-        if (notes) {
-          description += `\n\nAdditional Notes:\n${notes}`;
-        }
-
-        // Create Google Calendar event with Google Meet
-        const event = {
-          summary: `CoCreate Introduction - ${name}`,
-          description,
-          start: {
-            dateTime: slotStart.toISOString(),
-            timeZone: SCHEDULER_CONFIG.timezone
-          },
-          end: {
-            dateTime: slotEnd.toISOString(),
-            timeZone: SCHEDULER_CONFIG.timezone
-          },
-          attendees: [{ email }],
-          conferenceData: {
-            createRequest: {
-              requestId: `cocreate-${Date.now()}`,
-              conferenceSolutionKey: { type: 'hangoutsMeet' }
-            }
-          },
-          reminders: {
-            useDefault: false,
-            overrides: [
-              { method: 'email', minutes: 60 },
-              { method: 'popup', minutes: 15 }
-            ]
-          }
-        };
-
-        const createdEvent = await calendar.events.insert({
-          calendarId: SCHEDULER_CONFIG.calendarId,
-          requestBody: event,
-          conferenceDataVersion: 1,
-          sendUpdates: 'all'
-        });
-
-        // Extract Meet link
-        const meetLink = createdEvent.data.conferenceData?.entryPoints?.find(
-          ep => ep.entryPointType === 'video'
-        )?.uri;
-
-        console.log('Meeting booked:', {
-          eventId: createdEvent.data.id,
-          name,
-          email,
-          date,
-          time,
-          meetLink
-        });
-
-        // Format endTime as HH:MM
-        const endTime = slotEnd.toTimeString().slice(0, 5);
-
+      if (!sessionId || !chatState) {
         return {
-          statusCode: 200,
+          statusCode: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            success: true,
-            booking: {
-              eventId: createdEvent.data.id,
-              title: event.summary,
-              date,
-              time,
-              endTime,
-              duration: `${SCHEDULER_CONFIG.slotDuration} minutes`,
-              timezone: timezone || SCHEDULER_CONFIG.timezone,
-              meetLink,
-              htmlLink: createdEvent.data.htmlLink
-            }
-          })
-        };
-
-      } catch (error) {
-        console.error('Scheduler booking error:', error);
-        return {
-          statusCode: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            success: false,
-            error: 'Unable to book the meeting. Please try again.'
-          })
+          body: JSON.stringify({ success: false, error: 'Session ID and chat state are required' })
         };
       }
+
+      console.log('Syncing state for session:', sessionId);
+
+      const result = await syncLocalStorageToS3(sessionId, chatState, visitorInfo, clientIP);
+
+      return {
+        statusCode: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          success: result.success,
+          synced: result.synced || false,
+          error: result.error || null
+        })
+      };
     }
 
     // ========== CHAT ENDPOINT ==========
@@ -2981,22 +2714,10 @@ export const handler = async (event) => {
     // Use LLM to extract contact info from entire conversation
     const extractedInfo = await extractContactInfoWithLLM(messages);
 
-    // Validate extracted email if present
-    let emailValidation = { valid: true };
-    let emailValidationError = null;
-    if (extractedInfo.email) {
-      emailValidation = await validateEmail(extractedInfo.email);
-      if (!emailValidation.valid) {
-        emailValidationError = getEmailValidationMessage(emailValidation.reason);
-        console.log('Email validation failed:', extractedInfo.email, emailValidation.reason);
-      }
-    }
-
     const updatedVisitorInfo = {
       ...visitorInfo,
       ...(extractedInfo.name && { name: extractedInfo.name }),
-      // Only include email if validation passed
-      ...(extractedInfo.email && emailValidation.valid && { email: extractedInfo.email }),
+      ...(extractedInfo.email && { email: extractedInfo.email }),
       ...(extractedInfo.phone && { phone: extractedInfo.phone }),
       clientIP,
       page: visitorInfo.page || body.page
@@ -3059,16 +2780,18 @@ export const handler = async (event) => {
         };
       }
 
-      console.log('No duplicate found - saving to S3 and sending email...');
+      console.log('No duplicate found - saving to S3 and sending emails...');
 
-      // Save to S3 and send email in parallel
-      const [s3Result, emailResult] = await Promise.all([
+      // Save to S3 and send emails in parallel (admin notification + applicant confirmation)
+      const [s3Result, adminEmailResult, applicantEmailResult] = await Promise.all([
         saveFormToS3(updatedVisitorInfo, latestMessage, clientIP),
-        sendFormSubmissionEmail(updatedVisitorInfo, latestMessage, clientIP)
+        sendFormSubmissionEmail(updatedVisitorInfo, latestMessage, clientIP),
+        sendApplicantConfirmationEmail(updatedVisitorInfo, latestMessage)
       ]);
 
       console.log('S3 save result:', s3Result);
-      console.log('Email send result:', emailResult);
+      console.log('Admin email send result:', adminEmailResult);
+      console.log('Applicant confirmation email result:', applicantEmailResult);
 
       // Save chat session and link to application
       const sessionResult = await saveChatSession(sessionId, chatSource, messages, updatedVisitorInfo, 'converted');
@@ -3119,16 +2842,10 @@ export const handler = async (event) => {
       console.log('Processed attachments:', processedAttachments?.map(a => ({ type: a.type, name: a.name })));
     }
 
-    // Build validation errors array for AI context
-    const validationErrors = [];
-    if (emailValidationError) {
-      validationErrors.push(`Email validation failed: ${emailValidationError}`);
-    }
-
     // Get AI response
     let response;
     try {
-      response = await chatWithClaude(messages, hasCompleteContactInfo, screenshot, pageContext, processedAttachments, validationErrors.length > 0 ? validationErrors : null);
+      response = await chatWithClaude(messages, hasCompleteContactInfo, screenshot, pageContext, processedAttachments);
     } catch (claudeError) {
       console.log('Claude failed, trying OpenAI backup');
       response = await chatWithOpenAI(messages, hasCompleteContactInfo, screenshot);

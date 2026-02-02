@@ -32,12 +32,12 @@ const PORT = process.env.PORT || 5000;
 
 // Configuration
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-const S3_BUCKET = process.env.S3_BUCKET || 'ai-product-studio-applications';
-const S3_REGION = process.env.AWS_REGION || 'ap-south-1';
-const NOTIFICATION_EMAIL = process.env.NOTIFICATION_EMAIL || 'gopi@sunwaretechnologies.com';
+const S3_BUCKET = process.env.S3_BUCKET || 'cocreate-applications-data';
+const S3_REGION = process.env.AWS_REGION || 'us-east-1';
+const NOTIFICATION_EMAIL = process.env.NOTIFICATION_EMAIL || '';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'aiproductstudio2026';
 const SKIP_EMAIL = process.env.SKIP_EMAIL === 'true'; // Skip emails in local dev
-const AWS_PROFILE = process.env.AWS_PROFILE || 'sunwaretech';
+const AWS_PROFILE = process.env.AWS_PROFILE || 'cocreate';
 const SES_REGION = process.env.SES_REGION || 'us-east-1';
 
 // ========== SCHEDULER CONFIGURATION ==========

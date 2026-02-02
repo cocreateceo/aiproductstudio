@@ -23,9 +23,9 @@ const __dirname = path.dirname(__filename);
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '.env') });
 
-const S3_BUCKET = process.env.S3_BUCKET || 'ai-product-studio-applications';
-const S3_REGION = process.env.AWS_REGION || 'ap-south-1';
-const AWS_PROFILE = process.env.AWS_PROFILE || 'sunwaretech';
+const S3_BUCKET = process.env.S3_BUCKET || 'cocreate-applications-data';
+const S3_REGION = process.env.AWS_REGION || 'us-east-1';
+const AWS_PROFILE = process.env.AWS_PROFILE || 'cocreate';
 const POLL_INTERVAL = parseInt(process.env.POLL_INTERVAL) || 10000;
 const WS_PORT = parseInt(process.env.WS_PORT) || 5001;
 const HTTP_PORT = parseInt(process.env.PORT) || 5000;

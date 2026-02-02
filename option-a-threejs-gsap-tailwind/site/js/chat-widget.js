@@ -198,7 +198,7 @@ class ChatWidget {
         const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         return isLocal
             ? `http://localhost:5000/api/chat`
-            : 'https://bx0ywfkona.execute-api.ap-south-1.amazonaws.com/prod/chat';
+            : 'https://yzsmohmtar6d45wb47npb7m4q40kudvw.lambda-url.us-east-1.on.aws/';
     }
 
     render() {
