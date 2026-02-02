@@ -3,6 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- URL Router for clean URLs (handles 404 redirects) -->
+    <script>
+        (function() {
+            var path = window.location.pathname;
+            // Route /user.id=xyz to user.html
+            var userMatch = path.match(/\/user\.id=([^\/]+)/);
+            if (userMatch) {
+                window.location.replace('/user.html?id=' + userMatch[1]);
+            }
+        })();
+    </script>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <title>CoCreate | AI-Powered Product Studio</title>
     <meta name="description" content="CoCreate: Your AI Partner. Launch your business in 2 weeks.">
