@@ -505,6 +505,110 @@ async function sendNotificationEmail(subject, body, replyToEmail) {
   }
 }
 
+// Send Build Session Email to Customer via AWS SES
+async function sendBuildSessionEmail(customerName, customerEmail, sessionLink) {
+  const { SESClient, SendEmailCommand } = await import('@aws-sdk/client-ses');
+  const ses = new SESClient({ region: 'us-east-1' });
+
+  const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #1a0a00;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+    <div style="background: linear-gradient(135deg, #2d1810 0%, #1a0a00 100%); border-radius: 16px; padding: 40px; border: 1px solid #3d2820;">
+
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #fc2a0d; margin: 0; font-size: 28px;">🎉 Your Build Session is Ready!</h1>
+      </div>
+
+      <p style="color: #e8d5c4; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+        Hi ${customerName},
+      </p>
+
+      <p style="color: #e8d5c4; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+        Great news! Your CoCreate build session has been approved and is ready to go. Click the button below to access your personalized build environment.
+      </p>
+
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${sessionLink}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #fc2a0d, #fd6c71); color: white; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 16px;">
+          Access Your Build Session
+        </a>
+      </div>
+
+      <p style="color: #a89080; font-size: 14px; line-height: 1.6; margin-bottom: 10px;">
+        Or copy this link:
+      </p>
+      <p style="background: #2d1810; padding: 12px; border-radius: 8px; word-break: break-all; margin-bottom: 20px;">
+        <a href="${sessionLink}" style="color: #fc2a0d; text-decoration: none; font-size: 14px;">${sessionLink}</a>
+      </p>
+
+      <p style="color: #e8d5c4; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+        This is your personal workspace where we'll build your AI-powered product together. Feel free to explore and let us know if you have any questions!
+      </p>
+
+      <hr style="border: none; border-top: 1px solid #3d2820; margin: 30px 0;">
+
+      <p style="color: #a89080; font-size: 14px; text-align: center;">
+        Questions? Reply to this email or reach out at <a href="mailto:hello@cocreateidea.com" style="color: #fc2a0d;">hello@cocreateidea.com</a>
+      </p>
+
+      <div style="text-align: center; margin-top: 20px;">
+        <a href="https://cocreate-app.com" style="color: #a89080; text-decoration: none; font-size: 12px;">cocreate-app.com</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const textBody = `Hi ${customerName},
+
+Great news! Your CoCreate build session has been approved and is ready to go.
+
+Access your build session here:
+${sessionLink}
+
+This is your personal workspace where we'll build your AI-powered product together.
+
+Questions? Reply to this email or reach out at hello@cocreateidea.com
+
+- The CoCreate Team`;
+
+  try {
+    const result = await ses.send(new SendEmailCommand({
+      Source: FROM_EMAIL,
+      Destination: {
+        ToAddresses: [customerEmail]
+      },
+      ReplyToAddresses: ['hello@cocreateidea.com'],
+      Message: {
+        Subject: {
+          Data: '🎉 Your CoCreate Build Session is Ready!',
+          Charset: 'UTF-8'
+        },
+        Body: {
+          Text: {
+            Data: textBody,
+            Charset: 'UTF-8'
+          },
+          Html: {
+            Data: htmlBody,
+            Charset: 'UTF-8'
+          }
+        }
+      }
+    }));
+    console.log('Build session email sent successfully, MessageId:', result.MessageId);
+    return true;
+  } catch (error) {
+    console.error('Build session email send error:', error.message);
+    throw error;
+  }
+}
+
 // Send Form Submission Email via AWS SES
 async function sendFormSubmissionEmail(visitorInfo, formContent, clientIP) {
   const { SESClient, SendEmailCommand } = await import('@aws-sdk/client-ses');
@@ -1648,6 +1752,18 @@ async function updateApplicationStatus(s3Key, newStatus, reviewNotes = '') {
           ContentType: 'application/json'
         }));
         console.log('Updated application with build link:', buildResult.link);
+
+        // Send session link to customer email
+        const customerEmail = applicationData.visitorInfo?.email || applicationData.formData?.email;
+        const customerName = applicationData.visitorInfo?.name || applicationData.formData?.fullName || 'there';
+        if (customerEmail) {
+          try {
+            await sendBuildSessionEmail(customerName, customerEmail, buildResult.link);
+            console.log('Session email sent to:', customerEmail);
+          } catch (emailError) {
+            console.error('Failed to send session email:', emailError.message);
+          }
+        }
       } else {
         console.error('External build failed:', buildResult.error);
         applicationData.sessionError = buildResult.error;
