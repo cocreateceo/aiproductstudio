@@ -536,7 +536,7 @@ function renderApplications() {
                         <p class="text-sm text-theme-secondary mt-2 line-clamp-1">${app.formData?.product_idea || app.formData?.productIdea || 'No product idea'}</p>
                     </div>
                     <div class="flex items-center gap-3">
-                        <p class="text-theme-muted text-xs">${app.submittedAtEST || ''}</p>
+                        <p class="text-theme-muted text-xs">${(app.submittedAt || app.timestamp) ? new Date(app.submittedAt || app.timestamp).toLocaleString() : ''}</p>
                         <svg class="expand-icon w-5 h-5 text-theme-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                         </svg>

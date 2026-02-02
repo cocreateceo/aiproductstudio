@@ -51,6 +51,12 @@
     <link rel="stylesheet" href="css/chat-widget.css">
 
     <style>
+        /* Hide browser's native password reveal button */
+        input[type="password"]::-ms-reveal,
+        input[type="password"]::-webkit-reveal {
+            display: none;
+        }
+
         /* Fixed Page Background */
         body::before {
             content: '';

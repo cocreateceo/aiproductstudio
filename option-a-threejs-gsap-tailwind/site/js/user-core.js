@@ -17,6 +17,7 @@
     let currentResetToken = null;
     let dashboardData = null;
     let usernameCheckTimeout = null;
+    let userProfile = null; // Stores name and email from profile
 
     // DOM Elements
     const screens = {
@@ -81,12 +82,12 @@
         return apiCall('user-check', { guid });
     }
 
-    async function signup(guid, username, password) {
-        return apiCall('user-signup', { guid, username, password });
+    async function signup(guid, email, password) {
+        return apiCall('user-signup', { guid, email, password });
     }
 
-    async function login(guid, username, password) {
-        return apiCall('user-login', { guid, username, password });
+    async function login(guid, email, password) {
+        return apiCall('user-login', { guid, email, password });
     }
 
     async function getDashboard(guid, sessionToken) {
@@ -241,6 +242,25 @@
         showScreen('error');
     }
 
+    function populateUserDisplayFields() {
+        // Populate signup form displays
+        const signupName = document.getElementById('signup-name-display');
+        const signupEmail = document.getElementById('signup-email-display');
+
+        if (signupName) {
+            signupName.textContent = userProfile.name || 'Not provided';
+        }
+        if (signupEmail) {
+            signupEmail.textContent = userProfile.email || 'Not provided';
+        }
+
+        // Populate login form display
+        const loginEmail = document.getElementById('login-email-display');
+        if (loginEmail) {
+            loginEmail.textContent = userProfile.email || 'Not provided';
+        }
+    }
+
     // ========================
     // Toast Notifications
     // ========================
@@ -343,13 +363,13 @@
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const username = document.getElementById('signup-username').value.trim();
+            const email = userProfile?.email;
             const password = document.getElementById('signup-password').value;
             const confirm = document.getElementById('signup-confirm').value;
 
             // Validation
-            if (username.length < 3) {
-                errorEl.textContent = 'Username must be at least 3 characters';
+            if (!email) {
+                errorEl.textContent = 'Email not found. Please use the link from your email.';
                 errorEl.classList.remove('hidden');
                 return;
             }
@@ -372,7 +392,7 @@
             errorEl.classList.add('hidden');
 
             try {
-                const result = await signup(currentGuid, username, password);
+                const result = await signup(currentGuid, email, password);
 
                 if (result.success) {
                     // Save session
@@ -407,8 +427,15 @@
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const username = document.getElementById('login-username').value.trim();
+            const email = userProfile?.email;
             const password = document.getElementById('login-password').value;
+
+            // Validation
+            if (!email) {
+                errorEl.textContent = 'Email not found. Please use the link from your email.';
+                errorEl.classList.remove('hidden');
+                return;
+            }
 
             // Show loading
             btn.disabled = true;
@@ -416,7 +443,7 @@
             errorEl.classList.add('hidden');
 
             try {
-                const result = await login(currentGuid, username, password);
+                const result = await login(currentGuid, email, password);
 
                 if (result.success) {
                     // Save session
@@ -719,10 +746,10 @@
         }
 
         // Account info
-        const accountUsernameEl = document.getElementById('account-username');
+        const accountNameEl = document.getElementById('account-name');
         const accountEmailEl = document.getElementById('account-email');
-        if (accountUsernameEl && data.user?.username) {
-            accountUsernameEl.textContent = data.user.username;
+        if (accountNameEl && (data.user?.name || data.application?.visitorInfo?.name)) {
+            accountNameEl.textContent = data.user?.name || data.application?.visitorInfo?.name || '-';
         }
         if (accountEmailEl && data.application?.email) {
             accountEmailEl.textContent = data.application.email;
@@ -931,6 +958,10 @@
                 showError('This session does not exist or has been removed.');
                 return;
             }
+
+            // Store profile data for display
+            userProfile = checkResult.profile || {};
+            populateUserDisplayFields();
 
             // If has session, try to load dashboard
             if (currentSession) {

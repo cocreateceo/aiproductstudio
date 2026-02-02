@@ -1728,7 +1728,7 @@ async function listApplications() {
     // Filter out nulls and sort by date (newest first)
     return applications
       .filter(app => app !== null)
-      .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+      .sort((a, b) => new Date(b.submittedAt || b.timestamp) - new Date(a.submittedAt || a.timestamp));
   } catch (error) {
     console.error('List applications error:', error.message);
     throw error;
@@ -1835,25 +1835,52 @@ async function checkUserExists(guid) {
       return { success: false, exists: false, hasAccount: false, error: 'Invalid session ID' };
     }
 
-    // Check if user has created an account
+    // Fetch profile data
+    let profile = null;
+    try {
+      const profileResult = await s3.send(new GetObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: `users/${guid}/profile.json`
+      }));
+      profile = JSON.parse(await profileResult.Body.transformToString());
+    } catch (e) {
+      // Profile may not exist yet, use data from application
+      profile = {
+        name: app.visitorInfo?.name || app.formData?.fullName || '',
+        email: app.visitorInfo?.email || app.formData?.email || ''
+      };
+    }
+
+    // Check if user has created an account (has credentials)
+    let hasAccount = false;
     try {
       await s3.send(new GetObjectCommand({
         Bucket: S3_BUCKET,
         Key: `users/${guid}/credentials.json`
       }));
-      return { success: true, exists: true, hasAccount: true, applicationData: app };
+      hasAccount = true;
     } catch (e) {
       // No account yet
-      return { success: true, exists: true, hasAccount: false, applicationData: app };
     }
+
+    return {
+      success: true,
+      exists: true,
+      hasAccount,
+      profile: {
+        name: profile.name || '',
+        email: profile.email || ''
+      },
+      applicationData: app
+    };
   } catch (error) {
     console.error('Check user exists error:', error.message);
     return { success: false, error: error.message };
   }
 }
 
-// User signup
-async function userSignup(guid, username, password) {
+// User signup (uses email as identifier)
+async function userSignup(guid, email, password) {
   const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
   const bcrypt = (await import('bcryptjs')).default;
   const s3 = new S3Client({ region: S3_REGION });
@@ -1870,18 +1897,18 @@ async function userSignup(guid, username, password) {
       // Good - no existing account
     }
 
-    // Check if username is globally unique
-    const usernameCheck = await checkUsernameAvailable(username);
-    if (!usernameCheck.available) {
-      return { success: false, error: 'Username already taken. Please choose another.' };
-    }
-
     // Get application data for this guid
     const applications = await listApplications();
     const app = applications.find(a => a.guid === guid);
 
     if (!app) {
       return { success: false, error: 'Invalid session ID' };
+    }
+
+    // Verify email matches the application
+    const appEmail = app.visitorInfo?.email || app.formData?.email || '';
+    if (email.toLowerCase().trim() !== appEmail.toLowerCase().trim()) {
+      return { success: false, error: 'Email does not match application' };
     }
 
     // Hash password
@@ -1893,9 +1920,9 @@ async function userSignup(guid, username, password) {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
-    // Save credentials
+    // Save credentials (using email as identifier)
     const credentials = {
-      username: username.toLowerCase().trim(),
+      email: email.toLowerCase().trim(),
       passwordHash,
       createdAt: now.toISOString()
     };
@@ -1923,12 +1950,11 @@ async function userSignup(guid, username, password) {
       ContentType: 'application/json'
     }));
 
-    // Save profile
+    // Save/update profile
     const profile = {
       name: app.visitorInfo?.name || app.formData?.fullName || '',
-      email: app.visitorInfo?.email || app.formData?.email || '',
+      email: email.toLowerCase().trim(),
       phone: app.visitorInfo?.phone || app.formData?.phone || '',
-      username: username.toLowerCase().trim(),
       createdAt: now.toISOString()
     };
 
@@ -1941,12 +1967,12 @@ async function userSignup(guid, username, password) {
 
     // Send credentials email
     try {
-      await sendUserCredentialsEmail(profile.name, profile.email, username, password, app.sessionLink, guid);
+      await sendUserCredentialsEmail(profile.name, profile.email, email, password, app.sessionLink, guid);
     } catch (emailError) {
       console.error('Failed to send credentials email:', emailError.message);
     }
 
-    console.log('User signup successful:', guid, username);
+    console.log('User signup successful:', guid, email);
 
     return {
       success: true,
@@ -1960,8 +1986,8 @@ async function userSignup(guid, username, password) {
   }
 }
 
-// User login
-async function userLogin(guid, username, password) {
+// User login (uses email as identifier)
+async function userLogin(guid, email, password) {
   const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
   const bcrypt = (await import('bcryptjs')).default;
   const s3 = new S3Client({ region: S3_REGION });
@@ -1979,15 +2005,16 @@ async function userLogin(guid, username, password) {
       return { success: false, error: 'Account not found. Please sign up first.' };
     }
 
-    // Verify username
-    if (credentials.username !== username.toLowerCase().trim()) {
-      return { success: false, error: 'Invalid username or password' };
+    // Verify email (support both old username and new email format)
+    const storedIdentifier = credentials.email || credentials.username;
+    if (storedIdentifier !== email.toLowerCase().trim()) {
+      return { success: false, error: 'Invalid email or password' };
     }
 
     // Verify password
     const isValid = await bcrypt.compare(password, credentials.passwordHash);
     if (!isValid) {
-      return { success: false, error: 'Invalid username or password' };
+      return { success: false, error: 'Invalid email or password' };
     }
 
     // Create new session token
@@ -2022,7 +2049,7 @@ async function userLogin(guid, username, password) {
       ContentType: 'application/json'
     }));
 
-    console.log('User login successful:', guid, username);
+    console.log('User login successful:', guid, email);
 
     return {
       success: true,
@@ -4094,13 +4121,13 @@ export const handler = async (event) => {
 
     // User signup
     if (action === 'user-signup') {
-      const { guid, username, password } = body;
+      const { guid, email, password } = body;
 
-      if (!guid || !username || !password) {
+      if (!guid || !email || !password) {
         return {
           statusCode: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'GUID, username, and password are required' })
+          body: JSON.stringify({ success: false, error: 'GUID, email, and password are required' })
         };
       }
 
@@ -4112,7 +4139,7 @@ export const handler = async (event) => {
         };
       }
 
-      const result = await userSignup(guid, username, password);
+      const result = await userSignup(guid, email, password);
       return {
         statusCode: result.success ? 200 : 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -4122,17 +4149,17 @@ export const handler = async (event) => {
 
     // User login
     if (action === 'user-login') {
-      const { guid, username, password } = body;
+      const { guid, email, password } = body;
 
-      if (!guid || !username || !password) {
+      if (!guid || !email || !password) {
         return {
           statusCode: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'GUID, username, and password are required' })
+          body: JSON.stringify({ success: false, error: 'GUID, email, and password are required' })
         };
       }
 
-      const result = await userLogin(guid, username, password);
+      const result = await userLogin(guid, email, password);
       return {
         statusCode: result.success ? 200 : 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -4364,6 +4391,8 @@ export const handler = async (event) => {
 
           const applicationData = {
             timestamp,
+            submittedAt: timestamp,
+            submittedAtEST: new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }),
             source: 'apply-form',
             clientIP,
             formData: {
