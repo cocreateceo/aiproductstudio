@@ -18,6 +18,7 @@ import mammoth from 'mammoth';
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const NOTIFICATION_EMAIL = process.env.NOTIFICATION_EMAIL || 'varadhg@gmail.com';
+const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@cocreateidea.com';
 
 // S3 bucket for storing all data (must exist in cocreate account us-east-1)
 const S3_BUCKET = process.env.S3_BUCKET || 'cocreate-applications-data';
@@ -438,7 +439,7 @@ ${aiResponse}
 
   try {
     const result = await ses.send(new SendEmailCommand({
-      Source: NOTIFICATION_EMAIL,
+      Source: FROM_EMAIL,
       Destination: {
         ToAddresses: [NOTIFICATION_EMAIL]
       },
@@ -463,6 +464,43 @@ ${aiResponse}
     return true;
   } catch (error) {
     console.error('Email send error:', error.message);
+    return false;
+  }
+}
+
+// Send Notification Email to Admin via AWS SES
+async function sendNotificationEmail(subject, body, replyToEmail) {
+  const { SESClient, SendEmailCommand } = await import('@aws-sdk/client-ses');
+  const ses = new SESClient({ region: 'us-east-1' });
+
+  try {
+    const result = await ses.send(new SendEmailCommand({
+      Source: FROM_EMAIL,
+      Destination: {
+        ToAddresses: [NOTIFICATION_EMAIL]
+      },
+      ReplyToAddresses: replyToEmail ? [replyToEmail] : [],
+      Message: {
+        Subject: {
+          Data: subject,
+          Charset: 'UTF-8'
+        },
+        Body: {
+          Text: {
+            Data: body,
+            Charset: 'UTF-8'
+          },
+          Html: {
+            Data: `<pre style="font-family: sans-serif; white-space: pre-wrap;">${body}</pre>`,
+            Charset: 'UTF-8'
+          }
+        }
+      }
+    }));
+    console.log('Notification email sent successfully, MessageId:', result.MessageId);
+    return true;
+  } catch (error) {
+    console.error('Notification email send error:', error.message);
     return false;
   }
 }
@@ -550,7 +588,7 @@ Page: ${visitorInfo.page || 'Apply Page'}
 
   try {
     const result = await ses.send(new SendEmailCommand({
-      Source: NOTIFICATION_EMAIL,
+      Source: FROM_EMAIL,
       Destination: {
         ToAddresses: [NOTIFICATION_EMAIL]
       },
@@ -712,7 +750,7 @@ https://cocreate-app.com
 
   try {
     const result = await ses.send(new SendEmailCommand({
-      Source: NOTIFICATION_EMAIL,
+      Source: FROM_EMAIL,
       Destination: {
         ToAddresses: [applicantEmail]
       },
