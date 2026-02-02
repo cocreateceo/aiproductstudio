@@ -280,7 +280,7 @@
       const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
       const base = isLocal
         ? 'http://localhost:5000'
-        : 'https://bx0ywfkona.execute-api.ap-south-1.amazonaws.com/prod';
+        : 'https://yzsmohmtar6d45wb47npb7m4q40kudvw.lambda-url.us-east-1.on.aws';
 
       const endpoints = {
         schedulerSlots: `${base}/scheduler/slots`,

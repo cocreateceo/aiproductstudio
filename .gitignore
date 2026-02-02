@@ -33,3 +33,8 @@ npm-debug.log*
 # Security / Credentials
 *.pem
 *.key
+
+# Temporary files
+image*.png
+temp-extract/
+nul
