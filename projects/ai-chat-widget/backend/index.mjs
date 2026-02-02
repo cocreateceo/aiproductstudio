@@ -510,6 +510,11 @@ async function sendBuildSessionEmail(customerName, customerEmail, sessionLink) {
   const { SESClient, SendEmailCommand } = await import('@aws-sdk/client-ses');
   const ses = new SESClient({ region: 'us-east-1' });
 
+  // Extract GUID from session link to create dashboard link
+  const guidMatch = sessionLink.match(/guid=([^&]+)/);
+  const guid = guidMatch ? guidMatch[1] : '';
+  const dashboardLink = guid ? `https://www.cocreateidea.com/user.id=${guid}` : '';
+
   const htmlBody = `
 <!DOCTYPE html>
 <html>
@@ -530,23 +535,45 @@ async function sendBuildSessionEmail(customerName, customerEmail, sessionLink) {
       </p>
 
       <p style="color: #e8d5c4; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-        Great news! Your CoCreate build session has been approved and is ready to go. Click the button below to access your personalized build environment.
+        Great news! Your CoCreate application has been approved! You now have access to your personalized build environment and dashboard.
       </p>
 
-      <div style="text-align: center; margin: 30px 0;">
-        <a href="${sessionLink}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #fc2a0d, #fd6c71); color: white; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 16px;">
-          Access Your Build Session
+      <h2 style="color: #fc2a0d; font-size: 18px; margin: 30px 0 15px 0;">🔨 Build Session</h2>
+      <p style="color: #e8d5c4; font-size: 14px; line-height: 1.6; margin-bottom: 15px;">
+        Watch your AI-powered product come to life:
+      </p>
+      <div style="text-align: center; margin: 20px 0;">
+        <a href="${sessionLink}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #fc2a0d, #fd6c71); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 14px;">
+          Access Build Session
         </a>
       </div>
 
-      <p style="color: #a89080; font-size: 14px; line-height: 1.6; margin-bottom: 10px;">
-        Or copy this link:
+      ${dashboardLink ? `
+      <h2 style="color: #fc2a0d; font-size: 18px; margin: 30px 0 15px 0;">📊 Your Dashboard</h2>
+      <p style="color: #e8d5c4; font-size: 14px; line-height: 1.6; margin-bottom: 15px;">
+        Create your account to track progress, view project details, and manage your build:
       </p>
-      <p style="background: #2d1810; padding: 12px; border-radius: 8px; word-break: break-all; margin-bottom: 20px;">
-        <a href="${sessionLink}" style="color: #fc2a0d; text-decoration: none; font-size: 14px;">${sessionLink}</a>
-      </p>
+      <div style="text-align: center; margin: 20px 0;">
+        <a href="${dashboardLink}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #2d1810, #3d2820); color: #fc2a0d; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 14px; border: 1px solid #fc2a0d;">
+          Set Up Dashboard Account
+        </a>
+      </div>
+      ` : ''}
 
-      <p style="color: #e8d5c4; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+      <div style="background: #2d1810; padding: 16px; border-radius: 8px; margin: 25px 0;">
+        <p style="color: #a89080; font-size: 12px; margin: 0 0 8px 0;">Build Session Link:</p>
+        <p style="margin: 0; word-break: break-all;">
+          <a href="${sessionLink}" style="color: #fc2a0d; text-decoration: none; font-size: 12px;">${sessionLink}</a>
+        </p>
+        ${dashboardLink ? `
+        <p style="color: #a89080; font-size: 12px; margin: 12px 0 8px 0;">Dashboard Link:</p>
+        <p style="margin: 0; word-break: break-all;">
+          <a href="${dashboardLink}" style="color: #fc2a0d; text-decoration: none; font-size: 12px;">${dashboardLink}</a>
+        </p>
+        ` : ''}
+      </div>
+
+      <p style="color: #e8d5c4; font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
         This is your personal workspace where we'll build your AI-powered product together. Feel free to explore and let us know if you have any questions!
       </p>
 
@@ -566,11 +593,16 @@ async function sendBuildSessionEmail(customerName, customerEmail, sessionLink) {
 
   const textBody = `Hi ${customerName},
 
-Great news! Your CoCreate build session has been approved and is ready to go.
+Great news! Your CoCreate application has been approved!
 
-Access your build session here:
+BUILD SESSION
+Watch your AI-powered product come to life:
 ${sessionLink}
 
+${dashboardLink ? `YOUR DASHBOARD
+Create your account to track progress and manage your build:
+${dashboardLink}
+` : ''}
 This is your personal workspace where we'll build your AI-powered product together.
 
 Questions? Reply to this email or reach out at hello@cocreateidea.com
@@ -1777,6 +1809,1100 @@ async function updateApplicationStatus(s3Key, newStatus, reviewNotes = '') {
   }
 }
 
+// ========== USER DASHBOARD FUNCTIONS ==========
+
+// Generate random session token
+function generateSessionToken() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let token = '';
+  for (let i = 0; i < 64; i++) {
+    token += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return token;
+}
+
+// Check if user account exists
+async function checkUserExists(guid) {
+  const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = new S3Client({ region: S3_REGION });
+
+  try {
+    // First check if this guid has an application
+    const applications = await listApplications();
+    const app = applications.find(a => a.guid === guid);
+
+    if (!app) {
+      return { success: false, exists: false, hasAccount: false, error: 'Invalid session ID' };
+    }
+
+    // Check if user has created an account
+    try {
+      await s3.send(new GetObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: `users/${guid}/credentials.json`
+      }));
+      return { success: true, exists: true, hasAccount: true, applicationData: app };
+    } catch (e) {
+      // No account yet
+      return { success: true, exists: true, hasAccount: false, applicationData: app };
+    }
+  } catch (error) {
+    console.error('Check user exists error:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+// User signup
+async function userSignup(guid, username, password) {
+  const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
+  const bcrypt = (await import('bcryptjs')).default;
+  const s3 = new S3Client({ region: S3_REGION });
+
+  try {
+    // Check if account already exists
+    try {
+      await s3.send(new GetObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: `users/${guid}/credentials.json`
+      }));
+      return { success: false, error: 'Account already exists. Please login instead.' };
+    } catch (e) {
+      // Good - no existing account
+    }
+
+    // Check if username is globally unique
+    const usernameCheck = await checkUsernameAvailable(username);
+    if (!usernameCheck.available) {
+      return { success: false, error: 'Username already taken. Please choose another.' };
+    }
+
+    // Get application data for this guid
+    const applications = await listApplications();
+    const app = applications.find(a => a.guid === guid);
+
+    if (!app) {
+      return { success: false, error: 'Invalid session ID' };
+    }
+
+    // Hash password
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+
+    // Create session token
+    const sessionToken = generateSessionToken();
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+    // Save credentials
+    const credentials = {
+      username: username.toLowerCase().trim(),
+      passwordHash,
+      createdAt: now.toISOString()
+    };
+
+    await s3.send(new PutObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: `users/${guid}/credentials.json`,
+      Body: JSON.stringify(credentials, null, 2),
+      ContentType: 'application/json'
+    }));
+
+    // Save session
+    const sessions = {
+      tokens: [{
+        token: sessionToken,
+        createdAt: now.toISOString(),
+        expiresAt: expiresAt.toISOString()
+      }]
+    };
+
+    await s3.send(new PutObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: `users/${guid}/sessions.json`,
+      Body: JSON.stringify(sessions, null, 2),
+      ContentType: 'application/json'
+    }));
+
+    // Save profile
+    const profile = {
+      name: app.visitorInfo?.name || app.formData?.fullName || '',
+      email: app.visitorInfo?.email || app.formData?.email || '',
+      phone: app.visitorInfo?.phone || app.formData?.phone || '',
+      username: username.toLowerCase().trim(),
+      createdAt: now.toISOString()
+    };
+
+    await s3.send(new PutObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: `users/${guid}/profile.json`,
+      Body: JSON.stringify(profile, null, 2),
+      ContentType: 'application/json'
+    }));
+
+    // Send credentials email
+    try {
+      await sendUserCredentialsEmail(profile.name, profile.email, username, password, app.sessionLink, guid);
+    } catch (emailError) {
+      console.error('Failed to send credentials email:', emailError.message);
+    }
+
+    console.log('User signup successful:', guid, username);
+
+    return {
+      success: true,
+      sessionToken,
+      expiresAt: expiresAt.toISOString(),
+      message: 'Account created successfully'
+    };
+  } catch (error) {
+    console.error('User signup error:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+// User login
+async function userLogin(guid, username, password) {
+  const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
+  const bcrypt = (await import('bcryptjs')).default;
+  const s3 = new S3Client({ region: S3_REGION });
+
+  try {
+    // Get credentials
+    let credentials;
+    try {
+      const result = await s3.send(new GetObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: `users/${guid}/credentials.json`
+      }));
+      credentials = JSON.parse(await result.Body.transformToString());
+    } catch (e) {
+      return { success: false, error: 'Account not found. Please sign up first.' };
+    }
+
+    // Verify username
+    if (credentials.username !== username.toLowerCase().trim()) {
+      return { success: false, error: 'Invalid username or password' };
+    }
+
+    // Verify password
+    const isValid = await bcrypt.compare(password, credentials.passwordHash);
+    if (!isValid) {
+      return { success: false, error: 'Invalid username or password' };
+    }
+
+    // Create new session token
+    const sessionToken = generateSessionToken();
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+    // Get existing sessions and add new one
+    let sessions = { tokens: [] };
+    try {
+      const result = await s3.send(new GetObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: `users/${guid}/sessions.json`
+      }));
+      sessions = JSON.parse(await result.Body.transformToString());
+    } catch (e) {
+      // No sessions file yet
+    }
+
+    // Add new token, keep last 5 sessions
+    sessions.tokens.push({
+      token: sessionToken,
+      createdAt: now.toISOString(),
+      expiresAt: expiresAt.toISOString()
+    });
+    sessions.tokens = sessions.tokens.slice(-5);
+
+    await s3.send(new PutObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: `users/${guid}/sessions.json`,
+      Body: JSON.stringify(sessions, null, 2),
+      ContentType: 'application/json'
+    }));
+
+    console.log('User login successful:', guid, username);
+
+    return {
+      success: true,
+      sessionToken,
+      expiresAt: expiresAt.toISOString(),
+      message: 'Login successful'
+    };
+  } catch (error) {
+    console.error('User login error:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+// Validate session token
+async function validateSession(guid, sessionToken) {
+  const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = new S3Client({ region: S3_REGION });
+
+  try {
+    const result = await s3.send(new GetObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: `users/${guid}/sessions.json`
+    }));
+    const sessions = JSON.parse(await result.Body.transformToString());
+
+    const now = new Date();
+    const validToken = sessions.tokens.find(t =>
+      t.token === sessionToken && new Date(t.expiresAt) > now
+    );
+
+    return !!validToken;
+  } catch (error) {
+    return false;
+  }
+}
+
+// Get user dashboard data
+async function getUserDashboard(guid, sessionToken) {
+  const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = new S3Client({ region: S3_REGION });
+
+  try {
+    // Validate session
+    const isValid = await validateSession(guid, sessionToken);
+    if (!isValid) {
+      return { success: false, error: 'Invalid or expired session' };
+    }
+
+    // Get profile
+    let profile = {};
+    try {
+      const result = await s3.send(new GetObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: `users/${guid}/profile.json`
+      }));
+      profile = JSON.parse(await result.Body.transformToString());
+    } catch (e) {
+      // No profile
+    }
+
+    // Get application data
+    const applications = await listApplications();
+    const app = applications.find(a => a.guid === guid);
+
+    if (!app) {
+      return { success: false, error: 'Application not found' };
+    }
+
+    // Get chat history if available
+    let chatHistory = [];
+    if (app.s3Key) {
+      try {
+        const result = await s3.send(new GetObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: app.s3Key
+        }));
+        const appData = JSON.parse(await result.Body.transformToString());
+        // Extract chat messages if available
+        if (appData.chatHistory) {
+          chatHistory = appData.chatHistory;
+        }
+      } catch (e) {
+        // No chat history
+      }
+    }
+
+    // Build dashboard data (matching frontend expected structure)
+    const dashboardData = {
+      user: {
+        name: profile.name || app.visitorInfo?.name || app.formData?.fullName || '',
+        email: profile.email || app.visitorInfo?.email || app.formData?.email || '',
+        phone: profile.phone || app.visitorInfo?.phone || app.formData?.phone || '',
+        username: profile.username || ''
+      },
+      application: {
+        status: app.status || 'approved',
+        guid: app.guid || guid,
+        email: profile.email || app.visitorInfo?.email || app.formData?.email || '',
+        submittedAt: app.submittedAt || app.timestamp || '',
+        productIdea: app.formData?.productIdea || app.formData?.product_idea || '',
+        targetCustomer: app.formData?.targetCustomer || app.formData?.target_customer || '',
+        industry: app.formData?.industry || '',
+        timeline: app.formData?.timeline || ''
+      },
+      buildSession: {
+        link: app.sessionLink || '',
+        guid: app.guid || guid
+      },
+      buildProgress: app.buildProgress || {
+        architect: 'pending',
+        developer: 'pending',
+        deployer: 'pending'
+      },
+      chatHistory: chatHistory
+    };
+
+    return { success: true, data: dashboardData };
+  } catch (error) {
+    console.error('Get user dashboard error:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+// User change password
+async function userChangePassword(guid, sessionToken, oldPassword, newPassword) {
+  const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
+  const bcrypt = (await import('bcryptjs')).default;
+  const s3 = new S3Client({ region: S3_REGION });
+
+  try {
+    // Validate session
+    const isValid = await validateSession(guid, sessionToken);
+    if (!isValid) {
+      return { success: false, error: 'Invalid or expired session' };
+    }
+
+    // Get credentials
+    let credentials;
+    try {
+      const result = await s3.send(new GetObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: `users/${guid}/credentials.json`
+      }));
+      credentials = JSON.parse(await result.Body.transformToString());
+    } catch (e) {
+      return { success: false, error: 'Account not found' };
+    }
+
+    // Verify old password
+    const isOldValid = await bcrypt.compare(oldPassword, credentials.passwordHash);
+    if (!isOldValid) {
+      return { success: false, error: 'Current password is incorrect' };
+    }
+
+    // Hash new password
+    const saltRounds = 10;
+    const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
+
+    // Update credentials
+    credentials.passwordHash = newPasswordHash;
+    credentials.updatedAt = new Date().toISOString();
+
+    await s3.send(new PutObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: `users/${guid}/credentials.json`,
+      Body: JSON.stringify(credentials, null, 2),
+      ContentType: 'application/json'
+    }));
+
+    console.log('Password changed for user:', guid);
+
+    return { success: true, message: 'Password changed successfully' };
+  } catch (error) {
+    console.error('Change password error:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+// Check if username is globally unique
+async function checkUsernameAvailable(username, excludeGuid = null) {
+  const { S3Client, ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = new S3Client({ region: S3_REGION });
+
+  try {
+    const normalizedUsername = username.toLowerCase().trim();
+
+    // List all user folders
+    const listResult = await s3.send(new ListObjectsV2Command({
+      Bucket: S3_BUCKET,
+      Prefix: 'users/',
+      Delimiter: '/'
+    }));
+
+    const userFolders = listResult.CommonPrefixes || [];
+
+    for (const folder of userFolders) {
+      const guid = folder.Prefix.replace('users/', '').replace('/', '');
+
+      // Skip the current user's guid if provided
+      if (excludeGuid && guid === excludeGuid) continue;
+
+      try {
+        const result = await s3.send(new GetObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: `users/${guid}/credentials.json`
+        }));
+        const credentials = JSON.parse(await result.Body.transformToString());
+
+        if (credentials.username === normalizedUsername) {
+          return { available: false, error: 'Username already taken' };
+        }
+      } catch (e) {
+        // No credentials file, skip
+      }
+    }
+
+    return { available: true };
+  } catch (error) {
+    console.error('Check username error:', error.message);
+    return { available: true }; // Allow on error to not block signup
+  }
+}
+
+// Forgot password - generate reset token and send email
+async function forgotPassword(email) {
+  const { S3Client, ListObjectsV2Command, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = new S3Client({ region: S3_REGION });
+
+  try {
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Find user by email in applications
+    const applications = await listApplications();
+    const app = applications.find(a => {
+      const appEmail = (a.visitorInfo?.email || a.formData?.email || '').toLowerCase().trim();
+      return appEmail === normalizedEmail && a.guid;
+    });
+
+    if (!app || !app.guid) {
+      // Don't reveal if email exists or not for security
+      return { success: true, message: 'If an account exists with this email, a reset link has been sent.' };
+    }
+
+    // Check if user has an account
+    let credentials;
+    try {
+      const result = await s3.send(new GetObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: `users/${app.guid}/credentials.json`
+      }));
+      credentials = JSON.parse(await result.Body.transformToString());
+    } catch (e) {
+      // No account exists
+      return { success: true, message: 'If an account exists with this email, a reset link has been sent.' };
+    }
+
+    // Generate reset token
+    const resetToken = generateSessionToken();
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    // Save reset token
+    const resetData = {
+      token: resetToken,
+      guid: app.guid,
+      email: normalizedEmail,
+      createdAt: new Date().toISOString(),
+      expiresAt: expiresAt.toISOString()
+    };
+
+    await s3.send(new PutObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: `users/${app.guid}/reset-token.json`,
+      Body: JSON.stringify(resetData, null, 2),
+      ContentType: 'application/json'
+    }));
+
+    // Send reset email
+    const customerName = app.visitorInfo?.name || app.formData?.fullName || 'User';
+    await sendPasswordResetEmail(customerName, normalizedEmail, app.guid, resetToken);
+
+    console.log('Password reset email sent for:', normalizedEmail);
+    return { success: true, message: 'If an account exists with this email, a reset link has been sent.' };
+  } catch (error) {
+    console.error('Forgot password error:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+// Reset password with token
+async function resetPassword(guid, resetToken, newPassword) {
+  const { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectCommand } = await import('@aws-sdk/client-s3');
+  const bcrypt = (await import('bcryptjs')).default;
+  const s3 = new S3Client({ region: S3_REGION });
+
+  try {
+    // Verify reset token
+    let resetData;
+    try {
+      const result = await s3.send(new GetObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: `users/${guid}/reset-token.json`
+      }));
+      resetData = JSON.parse(await result.Body.transformToString());
+    } catch (e) {
+      return { success: false, error: 'Invalid or expired reset link' };
+    }
+
+    // Check token matches and not expired
+    if (resetData.token !== resetToken) {
+      return { success: false, error: 'Invalid reset link' };
+    }
+
+    if (new Date(resetData.expiresAt) < new Date()) {
+      return { success: false, error: 'Reset link has expired. Please request a new one.' };
+    }
+
+    // Get current credentials
+    let credentials;
+    try {
+      const result = await s3.send(new GetObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: `users/${guid}/credentials.json`
+      }));
+      credentials = JSON.parse(await result.Body.transformToString());
+    } catch (e) {
+      return { success: false, error: 'Account not found' };
+    }
+
+    // Hash new password
+    const saltRounds = 10;
+    const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
+
+    // Update credentials
+    credentials.passwordHash = newPasswordHash;
+    credentials.updatedAt = new Date().toISOString();
+
+    await s3.send(new PutObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: `users/${guid}/credentials.json`,
+      Body: JSON.stringify(credentials, null, 2),
+      ContentType: 'application/json'
+    }));
+
+    // Delete reset token
+    await s3.send(new DeleteObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: `users/${guid}/reset-token.json`
+    }));
+
+    console.log('Password reset successful for:', guid);
+
+    return { success: true, message: 'Password reset successfully. You can now login.' };
+  } catch (error) {
+    console.error('Reset password error:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+// Send password reset email
+async function sendPasswordResetEmail(name, email, guid, resetToken) {
+  const { SESClient, SendEmailCommand } = await import('@aws-sdk/client-ses');
+  const ses = new SESClient({ region: 'us-east-1' });
+
+  const resetLink = `https://www.cocreateidea.com/user.id=${guid}&reset=${resetToken}`;
+
+  const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #1a0a00;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+    <div style="background: linear-gradient(135deg, #2d1810 0%, #1a0a00 100%); border-radius: 16px; padding: 40px; border: 1px solid #3d2820;">
+
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #fc2a0d; margin: 0; font-size: 28px;">🔐 Reset Your Password</h1>
+      </div>
+
+      <p style="color: #e8d5c4; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+        Hi ${name},
+      </p>
+
+      <p style="color: #e8d5c4; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+        We received a request to reset your CoCreate dashboard password. Click the button below to set a new password:
+      </p>
+
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${resetLink}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #fc2a0d, #fd6c71); color: white; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 16px;">
+          Reset Password
+        </a>
+      </div>
+
+      <p style="color: #a89080; font-size: 14px; line-height: 1.6; margin-bottom: 10px;">
+        Or copy this link:
+      </p>
+      <p style="background: #2d1810; padding: 12px; border-radius: 8px; word-break: break-all; margin-bottom: 20px;">
+        <a href="${resetLink}" style="color: #fc2a0d; text-decoration: none; font-size: 14px;">${resetLink}</a>
+      </p>
+
+      <p style="color: #a89080; font-size: 14px; line-height: 1.6;">
+        This link expires in 1 hour. If you didn't request this, you can safely ignore this email.
+      </p>
+
+      <hr style="border: none; border-top: 1px solid #3d2820; margin: 30px 0;">
+
+      <p style="color: #a89080; font-size: 14px; text-align: center;">
+        Questions? Contact us at <a href="mailto:hello@cocreateidea.com" style="color: #fc2a0d;">hello@cocreateidea.com</a>
+      </p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const textBody = `Hi ${name},
+
+We received a request to reset your CoCreate dashboard password.
+
+Reset your password here:
+${resetLink}
+
+This link expires in 1 hour. If you didn't request this, you can safely ignore this email.
+
+- The CoCreate Team`;
+
+  await ses.send(new SendEmailCommand({
+    Source: FROM_EMAIL,
+    Destination: { ToAddresses: [email] },
+    ReplyToAddresses: ['hello@cocreateidea.com'],
+    Message: {
+      Subject: { Data: '🔐 Reset Your CoCreate Password', Charset: 'UTF-8' },
+      Body: {
+        Text: { Data: textBody, Charset: 'UTF-8' },
+        Html: { Data: htmlBody, Charset: 'UTF-8' }
+      }
+    }
+  }));
+}
+
+// Send Build Completion Email to Customer
+async function sendBuildCompletionEmail(customerName, customerEmail, guid, prototypeUrl) {
+  const { SESClient, SendEmailCommand } = await import('@aws-sdk/client-ses');
+  const ses = new SESClient({ region: 'us-east-1' });
+
+  const dashboardLink = `https://www.cocreateidea.com/user.id=${guid}`;
+
+  const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #1a0a00;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+    <div style="background: linear-gradient(135deg, #2d1810 0%, #1a0a00 100%); border-radius: 16px; padding: 40px; border: 1px solid #3d2820;">
+
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #fc2a0d; margin: 0; font-size: 28px;">🎉 Your Prototype is Ready!</h1>
+      </div>
+
+      <p style="color: #e8d5c4; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+        Hi ${customerName},
+      </p>
+
+      <p style="color: #e8d5c4; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+        Great news! Your AI-powered prototype has been completed and is ready for you to explore!
+      </p>
+
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${prototypeUrl}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 16px;">
+          View Your Prototype
+        </a>
+      </div>
+
+      <p style="color: #a89080; font-size: 14px; line-height: 1.6; margin-bottom: 10px;">
+        Prototype URL:
+      </p>
+      <p style="background: #2d1810; padding: 12px; border-radius: 8px; word-break: break-all; margin-bottom: 20px;">
+        <a href="${prototypeUrl}" style="color: #22c55e; text-decoration: none; font-size: 14px;">${prototypeUrl}</a>
+      </p>
+
+      <div style="background: rgba(34, 197, 94, 0.1); padding: 20px; border-radius: 12px; border: 1px solid rgba(34, 197, 94, 0.3); margin: 20px 0;">
+        <h3 style="color: #22c55e; margin: 0 0 10px 0; font-size: 16px;">What's Next?</h3>
+        <ul style="color: #e8d5c4; margin: 0; padding-left: 20px; font-size: 14px;">
+          <li>Explore your prototype and test all features</li>
+          <li>Share feedback with our team</li>
+          <li>Schedule a review call to discuss next steps</li>
+        </ul>
+      </div>
+
+      <div style="text-align: center; margin: 20px 0;">
+        <a href="${dashboardLink}" target="_blank" style="display: inline-block; background: rgba(252, 42, 13, 0.2); color: #fc2a0d; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 500; font-size: 14px; border: 1px solid #fc2a0d;">
+          Go to Dashboard
+        </a>
+      </div>
+
+      <hr style="border: none; border-top: 1px solid #3d2820; margin: 30px 0;">
+
+      <p style="color: #a89080; font-size: 14px; text-align: center;">
+        Questions? Reply to this email or reach out at <a href="mailto:hello@cocreateidea.com" style="color: #fc2a0d;">hello@cocreateidea.com</a>
+      </p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const textBody = `Hi ${customerName},
+
+Great news! Your AI-powered prototype has been completed and is ready!
+
+View your prototype here:
+${prototypeUrl}
+
+Dashboard: ${dashboardLink}
+
+What's Next?
+- Explore your prototype and test all features
+- Share feedback with our team
+- Schedule a review call to discuss next steps
+
+Questions? Reply to this email or reach out at hello@cocreateidea.com
+
+- The CoCreate Team`;
+
+  try {
+    await ses.send(new SendEmailCommand({
+      Source: FROM_EMAIL,
+      Destination: { ToAddresses: [customerEmail] },
+      ReplyToAddresses: ['hello@cocreateidea.com'],
+      Message: {
+        Subject: { Data: '🎉 Your CoCreate Prototype is Ready!', Charset: 'UTF-8' },
+        Body: {
+          Text: { Data: textBody, Charset: 'UTF-8' },
+          Html: { Data: htmlBody, Charset: 'UTF-8' }
+        }
+      }
+    }));
+    console.log('Build completion email sent to:', customerEmail);
+    return true;
+  } catch (error) {
+    console.error('Build completion email error:', error.message);
+    return false;
+  }
+}
+
+// Handle Build Completion Webhook
+async function handleBuildCompletion(guid, prototypeUrl, status) {
+  const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = new S3Client({ region: S3_REGION });
+
+  try {
+    // Find the application by guid
+    const applications = await listApplications();
+    const app = applications.find(a => a.guid === guid);
+
+    if (!app) {
+      console.error('Build completion: Application not found for guid:', guid);
+      return { success: false, error: 'Application not found' };
+    }
+
+    // Update application with prototype URL and status
+    const s3Key = app.s3Key;
+    const result = await s3.send(new GetObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: s3Key
+    }));
+    const appData = JSON.parse(await result.Body.transformToString());
+
+    appData.prototypeUrl = prototypeUrl;
+    appData.buildStatus = status || 'completed';
+    appData.buildCompletedAt = new Date().toISOString();
+
+    await s3.send(new PutObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: s3Key,
+      Body: JSON.stringify(appData, null, 2),
+      ContentType: 'application/json'
+    }));
+
+    // Send email to customer
+    const customerName = app.visitorInfo?.name || app.formData?.fullName || 'Partner';
+    const customerEmail = app.visitorInfo?.email || app.formData?.email;
+
+    if (customerEmail) {
+      await sendBuildCompletionEmail(customerName, customerEmail, guid, prototypeUrl);
+    }
+
+    console.log('Build completion processed for:', guid);
+    return { success: true, message: 'Build completion processed' };
+  } catch (error) {
+    console.error('Build completion error:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+// Verify Google OAuth Access Token
+async function verifyGoogleAccessToken(accessToken) {
+  try {
+    // Verify the access token with Google's userinfo endpoint
+    const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+
+    if (!response.ok) {
+      return { valid: false, error: 'Invalid access token' };
+    }
+
+    const data = await response.json();
+
+    if (data.error) {
+      return { valid: false, error: data.error_description || data.error };
+    }
+
+    return {
+      valid: true,
+      email: data.email,
+      name: data.name,
+      picture: data.picture,
+      googleId: data.sub
+    };
+  } catch (error) {
+    console.error('Google token verification error:', error.message);
+    return { valid: false, error: error.message };
+  }
+}
+
+// Google SSO Login/Signup
+async function googleLogin(guid, accessToken, userInfo) {
+  const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = new S3Client({ region: S3_REGION });
+
+  try {
+    // Verify Google access token to ensure it's valid
+    const googleData = await verifyGoogleAccessToken(accessToken);
+    if (!googleData.valid) {
+      return { success: false, error: googleData.error || 'Invalid Google token' };
+    }
+
+    // Use verified data from Google, not frontend userInfo (security)
+    const verifiedUserInfo = googleData;
+
+    // Check if this guid has an application
+    const applications = await listApplications();
+    const app = applications.find(a => a.guid === guid);
+
+    if (!app) {
+      return { success: false, error: 'Invalid session ID' };
+    }
+
+    // Check if user already has an account
+    let existingCredentials = null;
+    try {
+      const result = await s3.send(new GetObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: `users/${guid}/credentials.json`
+      }));
+      existingCredentials = JSON.parse(await result.Body.transformToString());
+    } catch (e) {
+      // No existing account
+    }
+
+    const now = new Date();
+    const sessionToken = generateSessionToken();
+    const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+    let isNewUser = false;
+
+    if (existingCredentials) {
+      // Existing user - verify Google ID matches or link account
+      if (existingCredentials.googleId && existingCredentials.googleId !== verifiedUserInfo.googleId) {
+        return { success: false, error: 'This account is linked to a different Google account' };
+      }
+
+      // Update Google ID if not set
+      if (!existingCredentials.googleId) {
+        existingCredentials.googleId = verifiedUserInfo.googleId;
+        existingCredentials.updatedAt = now.toISOString();
+
+        await s3.send(new PutObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: `users/${guid}/credentials.json`,
+          Body: JSON.stringify(existingCredentials, null, 2),
+          ContentType: 'application/json'
+        }));
+      }
+    } else {
+      // New user - create account with Google
+      isNewUser = true;
+      const username = verifiedUserInfo.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+
+      // Check username availability and make unique if needed
+      let finalUsername = username;
+      let counter = 1;
+      while (!(await checkUsernameAvailable(finalUsername)).available) {
+        finalUsername = `${username}${counter}`;
+        counter++;
+      }
+
+      const credentials = {
+        username: finalUsername,
+        googleId: verifiedUserInfo.googleId,
+        googleEmail: verifiedUserInfo.email,
+        authMethod: 'google',
+        createdAt: now.toISOString()
+      };
+
+      await s3.send(new PutObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: `users/${guid}/credentials.json`,
+        Body: JSON.stringify(credentials, null, 2),
+        ContentType: 'application/json'
+      }));
+
+      // Save profile
+      const profile = {
+        name: verifiedUserInfo.name || app.visitorInfo?.name || app.formData?.fullName || '',
+        email: verifiedUserInfo.email,
+        phone: app.visitorInfo?.phone || app.formData?.phone || '',
+        username: finalUsername,
+        picture: verifiedUserInfo.picture,
+        createdAt: now.toISOString()
+      };
+
+      await s3.send(new PutObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: `users/${guid}/profile.json`,
+        Body: JSON.stringify(profile, null, 2),
+        ContentType: 'application/json'
+      }));
+    }
+
+    // Create/update session
+    const sessions = {
+      tokens: [{
+        token: sessionToken,
+        createdAt: now.toISOString(),
+        expiresAt: expiresAt.toISOString(),
+        authMethod: 'google'
+      }]
+    };
+
+    await s3.send(new PutObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: `users/${guid}/sessions.json`,
+      Body: JSON.stringify(sessions, null, 2),
+      ContentType: 'application/json'
+    }));
+
+    console.log('Google login successful for guid:', guid, 'isNewUser:', isNewUser);
+
+    return {
+      success: true,
+      sessionToken,
+      expiresAt: expiresAt.toISOString(),
+      isNewUser,
+      user: {
+        name: verifiedUserInfo.name,
+        email: verifiedUserInfo.email,
+        picture: verifiedUserInfo.picture
+      }
+    };
+  } catch (error) {
+    console.error('Google login error:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+// Send user credentials email
+async function sendUserCredentialsEmail(name, email, username, password, sessionLink, guid) {
+  const { SESClient, SendEmailCommand } = await import('@aws-sdk/client-ses');
+  const ses = new SESClient({ region: 'us-east-1' });
+
+  // Extract guid from sessionLink if not provided directly
+  let userGuid = guid;
+  if (!userGuid && sessionLink) {
+    const match = sessionLink.match(/guid=([^&]+)/);
+    userGuid = match ? match[1] : '';
+  }
+  const dashboardLink = `https://www.cocreateidea.com/user.id=${userGuid}`;
+
+  const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #1a0a00;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+    <div style="background: linear-gradient(135deg, #2d1810 0%, #1a0a00 100%); border-radius: 16px; padding: 40px; border: 1px solid #3d2820;">
+
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #fc2a0d; margin: 0; font-size: 28px;">🔐 Your Dashboard Credentials</h1>
+      </div>
+
+      <p style="color: #e8d5c4; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+        Hi ${name || 'there'},
+      </p>
+
+      <p style="color: #e8d5c4; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+        Your CoCreate dashboard account has been created. Here are your login credentials:
+      </p>
+
+      <div style="background: #2d1810; padding: 20px; border-radius: 12px; margin: 20px 0;">
+        <p style="color: #a89080; margin: 0 0 10px 0; font-size: 14px;">Username:</p>
+        <p style="color: #fc2a0d; margin: 0 0 20px 0; font-size: 18px; font-weight: bold;">${username}</p>
+
+        <p style="color: #a89080; margin: 0 0 10px 0; font-size: 14px;">Password:</p>
+        <p style="color: #fc2a0d; margin: 0; font-size: 18px; font-weight: bold;">${password}</p>
+      </div>
+
+      <p style="color: #fbbf24; font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
+        ⚠️ For security, we recommend changing your password after your first login.
+      </p>
+
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${dashboardLink}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #fc2a0d, #fd6c71); color: white; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 16px;">
+          Access Your Dashboard
+        </a>
+      </div>
+
+      <hr style="border: none; border-top: 1px solid #3d2820; margin: 30px 0;">
+
+      <p style="color: #a89080; font-size: 14px; text-align: center;">
+        Questions? Reply to this email or reach out at <a href="mailto:hello@cocreateidea.com" style="color: #fc2a0d;">hello@cocreateidea.com</a>
+      </p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const textBody = `Hi ${name || 'there'},
+
+Your CoCreate dashboard account has been created. Here are your login credentials:
+
+Username: ${username}
+Password: ${password}
+
+⚠️ For security, we recommend changing your password after your first login.
+
+Access your dashboard: ${dashboardLink}
+
+Questions? Reply to this email or reach out at hello@cocreateidea.com
+
+- The CoCreate Team`;
+
+  try {
+    const result = await ses.send(new SendEmailCommand({
+      Source: FROM_EMAIL,
+      Destination: {
+        ToAddresses: [email]
+      },
+      ReplyToAddresses: ['hello@cocreateidea.com'],
+      Message: {
+        Subject: {
+          Data: '🔐 Your CoCreate Dashboard Credentials',
+          Charset: 'UTF-8'
+        },
+        Body: {
+          Text: {
+            Data: textBody,
+            Charset: 'UTF-8'
+          },
+          Html: {
+            Data: htmlBody,
+            Charset: 'UTF-8'
+          }
+        }
+      }
+    }));
+    console.log('Credentials email sent successfully, MessageId:', result.MessageId);
+    return true;
+  } catch (error) {
+    console.error('Credentials email send error:', error.message);
+    throw error;
+  }
+}
+
 // Trigger external build system via API
 async function triggerExternalBuild(applicationData) {
   const EXTERNAL_BUILD_API = 'https://d3r4k77gnvpmzn.cloudfront.net/api/admin/sessions';
@@ -2941,6 +4067,242 @@ export const handler = async (event) => {
           synced: result.synced || false,
           error: result.error || null
         })
+      };
+    }
+
+    // ========== USER DASHBOARD ENDPOINTS ==========
+
+    // Check if user account exists
+    if (action === 'user-check') {
+      const { guid } = body;
+
+      if (!guid) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'GUID is required' })
+        };
+      }
+
+      const result = await checkUserExists(guid);
+      return {
+        statusCode: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify(result)
+      };
+    }
+
+    // User signup
+    if (action === 'user-signup') {
+      const { guid, username, password } = body;
+
+      if (!guid || !username || !password) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'GUID, username, and password are required' })
+        };
+      }
+
+      if (password.length < 6) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'Password must be at least 6 characters' })
+        };
+      }
+
+      const result = await userSignup(guid, username, password);
+      return {
+        statusCode: result.success ? 200 : 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify(result)
+      };
+    }
+
+    // User login
+    if (action === 'user-login') {
+      const { guid, username, password } = body;
+
+      if (!guid || !username || !password) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'GUID, username, and password are required' })
+        };
+      }
+
+      const result = await userLogin(guid, username, password);
+      return {
+        statusCode: result.success ? 200 : 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify(result)
+      };
+    }
+
+    // User dashboard data
+    if (action === 'user-dashboard') {
+      const { guid, sessionToken } = body;
+
+      if (!guid || !sessionToken) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'GUID and session token are required' })
+        };
+      }
+
+      const result = await getUserDashboard(guid, sessionToken);
+      return {
+        statusCode: result.success ? 200 : 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify(result)
+      };
+    }
+
+    // User change password
+    if (action === 'user-change-password') {
+      const { guid, sessionToken, oldPassword, newPassword } = body;
+
+      if (!guid || !sessionToken || !oldPassword || !newPassword) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'All fields are required' })
+        };
+      }
+
+      if (newPassword.length < 6) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'New password must be at least 6 characters' })
+        };
+      }
+
+      const result = await userChangePassword(guid, sessionToken, oldPassword, newPassword);
+      return {
+        statusCode: result.success ? 200 : 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify(result)
+      };
+    }
+
+    // Check username availability
+    if (action === 'check-username') {
+      const { username, excludeGuid } = body;
+
+      if (!username) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'Username is required' })
+        };
+      }
+
+      const result = await checkUsernameAvailable(username, excludeGuid);
+      return {
+        statusCode: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ success: true, ...result })
+      };
+    }
+
+    // Forgot password - send reset link
+    if (action === 'forgot-password') {
+      const { email } = body;
+
+      if (!email) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'Email is required' })
+        };
+      }
+
+      const result = await forgotPassword(email);
+      return {
+        statusCode: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify(result)
+      };
+    }
+
+    // Reset password with token
+    if (action === 'reset-password') {
+      const { guid, resetToken, newPassword } = body;
+
+      if (!guid || !resetToken || !newPassword) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'All fields are required' })
+        };
+      }
+
+      if (newPassword.length < 6) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'Password must be at least 6 characters' })
+        };
+      }
+
+      const result = await resetPassword(guid, resetToken, newPassword);
+      return {
+        statusCode: result.success ? 200 : 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify(result)
+      };
+    }
+
+    // Google SSO Login
+    if (action === 'google-login') {
+      const { guid, googleAccessToken, googleUserInfo } = body;
+
+      if (!guid || !googleAccessToken || !googleUserInfo) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'GUID, Google access token, and user info are required' })
+        };
+      }
+
+      const result = await googleLogin(guid, googleAccessToken, googleUserInfo);
+      return {
+        statusCode: result.success ? 200 : 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify(result)
+      };
+    }
+
+    // Build Completion Webhook (called by external build system)
+    if (action === 'build-complete') {
+      const { guid, prototypeUrl, status, apiKey } = body;
+
+      // Simple API key check for webhook security
+      const WEBHOOK_API_KEY = process.env.WEBHOOK_API_KEY || 'cocreate-webhook-2026';
+      if (apiKey !== WEBHOOK_API_KEY) {
+        return {
+          statusCode: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'Invalid API key' })
+        };
+      }
+
+      if (!guid || !prototypeUrl) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'GUID and prototype URL are required' })
+        };
+      }
+
+      const result = await handleBuildCompletion(guid, prototypeUrl, status);
+      return {
+        statusCode: result.success ? 200 : 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify(result)
       };
     }
 

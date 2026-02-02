@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="ember">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <title>My Dashboard | CoCreate</title>
+    <meta name="description" content="Access your CoCreate project dashboard">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: 'var(--primary)',
+                        secondary: 'var(--secondary)',
+                        accent: 'var(--accent)',
+                    },
+                    fontFamily: {
+                        sans: ['DM Sans', 'system-ui', 'sans-serif'],
+                        display: ['Outfit', 'DM Sans', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- CoCreate Theme CSS -->
+    <link rel="stylesheet" href="css/themes/ember.css">
+
+    <!-- Config -->
+    <script src="js/config.js"></script>
+
+    <!-- Theme Manager -->
+    <script src="js/theme.js"></script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'DM Sans', system-ui, sans-serif;
+            background: #1a0a00;
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('assets/cocreate_bg.png') center bottom / cover no-repeat;
+            z-index: -2;
+            pointer-events: none;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(ellipse 120% 100% at 50% 100%, transparent 30%, rgba(26, 10, 0, 0.6) 100%),
+                linear-gradient(180deg, rgba(26, 10, 0, 0.5) 0%, transparent 40%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        h1, h2, h3, h4, h5, h6, .font-display {
+            font-family: 'Outfit', 'DM Sans', system-ui, sans-serif;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .glass-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+        }
+
+        .text-theme-primary { color: var(--text-primary); }
+        .text-theme-secondary { color: var(--text-secondary); }
+        .text-theme-muted { color: var(--text-muted); }
+
+        /* Theme Selector - matching admin.html */
+        .theme-selector { position: relative; }
+
+        .theme-toggle-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: rgba(26, 10, 0, 0.3);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .theme-toggle-btn:hover {
+            border-color: var(--primary);
+            background: var(--bg-card);
+        }
+
+        .theme-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 8px;
+            min-width: 160px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            display: none;
+        }
+
+        .theme-dropdown.open { display: block; }
+
+        .theme-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .theme-option:hover { background: rgba(26, 10, 0, 0.3); }
+        .theme-option.active { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; }
+
+        .theme-option-icon { font-size: 16px; }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            font-weight: 600;
+            border-radius: 12px;
+            padding: 14px 28px;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px var(--glow-color);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 14px 18px;
+            background: rgba(26, 10, 0, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 16px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--glow-color);
+        }
+
+        .input-field::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast.success { background: linear-gradient(135deg, #22c55e, #16a34a); }
+        .toast.error { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .toast.info { background: linear-gradient(135deg, var(--primary), var(--secondary)); }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Loading spinner */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Dashboard cards */
+        .dashboard-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .dashboard-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 10px 40px rgba(252, 42, 13, 0.1);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .status-pending { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+        .status-building { background: rgba(168, 85, 247, 0.2); color: #a855f7; }
+        .status-completed { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+        .status-approved { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+
+        /* Progress steps */
+        .progress-step {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            background: rgba(26, 10, 0, 0.3);
+            margin-bottom: 8px;
+        }
+
+        .progress-step.completed { background: rgba(34, 197, 94, 0.1); }
+        .progress-step.in_progress { background: rgba(168, 85, 247, 0.1); }
+
+        .step-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .step-icon.pending { background: rgba(107, 114, 128, 0.3); color: #9ca3af; }
+        .step-icon.in_progress { background: rgba(168, 85, 247, 0.3); color: #a855f7; }
+        .step-icon.completed { background: rgba(34, 197, 94, 0.3); color: #22c55e; }
+
+        /* Chat history */
+        .chat-message {
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            max-width: 85%;
+        }
+
+        .chat-message.user {
+            background: rgba(252, 42, 13, 0.2);
+            margin-left: auto;
+        }
+
+        .chat-message.assistant {
+            background: rgba(26, 10, 0, 0.5);
+        }
+
+        /* Hidden */
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="fixed inset-0 flex items-center justify-center z-50" style="background: #1a0a00;">
+        <div class="text-center">
+            <div class="spinner mx-auto mb-4" style="width: 40px; height: 40px; border-width: 3px;"></div>
+            <p class="text-theme-secondary">Loading your dashboard...</p>
+        </div>
+    </div>
+
+    <!-- Error Screen -->
+    <div id="error-screen" class="hidden fixed inset-0 flex items-center justify-center z-50" style="background: #1a0a00;">
+        <div class="glass-card p-8 max-w-md text-center">
+            <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style="background: rgba(239, 68, 68, 0.2);">
+                <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+            </div>
+            <h2 class="text-xl font-display font-bold text-red-400 mb-2">Invalid Session</h2>
+            <p id="error-message" class="text-theme-secondary mb-6">This session link is invalid or has expired.</p>
+            <a href="https://cocreate-app.com" class="btn-primary inline-block">Go to CoCreate</a>
+        </div>
+    </div>
+
+    <!-- Signup Screen -->
+    <div id="signup-screen" class="hidden min-h-screen flex items-center justify-center p-6">
+        <div class="glass-card p-8 w-full max-w-md">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style="background: linear-gradient(135deg, var(--primary), var(--secondary));">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+                    </svg>
+                </div>
+                <h1 class="text-2xl font-display font-bold gradient-text">Create Your Account</h1>
+                <p class="mt-2 text-theme-secondary">Set up your dashboard login</p>
+            </div>
+
+            <div id="signup-error" class="hidden bg-red-500/20 border border-red-500/50 rounded-lg p-3 mb-4 text-red-400 text-sm"></div>
+
+            <form id="signup-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-theme-secondary mb-2">Username</label>
+                    <input type="text" id="signup-username" class="input-field" placeholder="Choose a username" required minlength="3">
+                    <p id="username-status" class="text-sm mt-1 hidden"></p>
+                </div>
+                <div class="relative">
+                    <label class="block text-sm font-medium text-theme-secondary mb-2">Password</label>
+                    <input type="password" id="signup-password" class="input-field pr-12" placeholder="Create a password" required minlength="6">
+                    <button type="button" class="absolute right-3 top-9 text-theme-muted hover:text-theme-primary" onclick="togglePassword('signup-password', 'signup-eye')">
+                        <svg id="signup-eye" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="relative">
+                    <label class="block text-sm font-medium text-theme-secondary mb-2">Confirm Password</label>
+                    <input type="password" id="signup-confirm" class="input-field pr-12" placeholder="Confirm your password" required minlength="6">
+                    <button type="button" class="absolute right-3 top-9 text-theme-muted hover:text-theme-primary" onclick="togglePassword('signup-confirm', 'confirm-eye')">
+                        <svg id="confirm-eye" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                    </button>
+                </div>
+                <button type="submit" id="signup-btn" class="btn-primary w-full flex items-center justify-center gap-2">
+                    <span>Create Account</span>
+                </button>
+            </form>
+
+            <div class="relative my-6">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-theme-border"></div>
+                </div>
+                <div class="relative flex justify-center text-sm">
+                    <span class="px-4 text-theme-muted" style="background: var(--bg-card);">or continue with</span>
+                </div>
+            </div>
+
+            <button onclick="signInWithGoogle()" class="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg transition hover:opacity-90" style="background: white; color: #333;">
+                <svg class="w-5 h-5" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                <span class="font-medium">Continue with Google</span>
+            </button>
+
+            <p class="text-center text-theme-muted text-sm mt-6">
+                Already have an account? <a href="#" onclick="showLogin()" class="text-primary hover:underline">Login</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Login Screen -->
+    <div id="login-screen" class="hidden min-h-screen flex items-center justify-center p-6">
+        <div class="glass-card p-8 w-full max-w-md">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style="background: linear-gradient(135deg, var(--primary), var(--secondary));">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+                </div>
+                <h1 class="text-2xl font-display font-bold gradient-text">Welcome Back</h1>
+                <p class="mt-2 text-theme-secondary">Login to your dashboard</p>
+            </div>
+
+            <div id="login-error" class="hidden bg-red-500/20 border border-red-500/50 rounded-lg p-3 mb-4 text-red-400 text-sm"></div>
+
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-theme-secondary mb-2">Username</label>
+                    <input type="text" id="login-username" class="input-field" placeholder="Enter your username" required>
+                </div>
+                <div class="relative">
+                    <label class="block text-sm font-medium text-theme-secondary mb-2">Password</label>
+                    <input type="password" id="login-password" class="input-field pr-12" placeholder="Enter your password" required>
+                    <button type="button" class="absolute right-3 top-9 text-theme-muted hover:text-theme-primary" onclick="togglePassword('login-password', 'login-eye')">
+                        <svg id="login-eye" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                    </button>
+                </div>
+                <button type="submit" id="login-btn" class="btn-primary w-full flex items-center justify-center gap-2">
+                    <span>Login</span>
+                </button>
+            </form>
+
+            <div class="relative my-6">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-theme-border"></div>
+                </div>
+                <div class="relative flex justify-center text-sm">
+                    <span class="px-4 text-theme-muted" style="background: var(--bg-card);">or continue with</span>
+                </div>
+            </div>
+
+            <button onclick="signInWithGoogle()" class="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg transition hover:opacity-90" style="background: white; color: #333;">
+                <svg class="w-5 h-5" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                <span class="font-medium">Continue with Google</span>
+            </button>
+
+            <div class="flex justify-between items-center mt-6 text-sm">
+                <a href="#" onclick="showForgotPassword()" class="text-theme-muted hover:text-primary">Forgot password?</a>
+                <span class="text-theme-muted">No account? <a href="#" onclick="showSignup()" class="text-primary hover:underline">Sign up</a></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forgot Password Screen -->
+    <div id="forgot-screen" class="hidden min-h-screen flex items-center justify-center p-6">
+        <div class="glass-card p-8 w-full max-w-md">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style="background: linear-gradient(135deg, var(--primary), var(--secondary));">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+                <h1 class="text-2xl font-display font-bold gradient-text">Forgot Password</h1>
+                <p class="mt-2 text-theme-secondary">Enter your email to receive a reset link</p>
+            </div>
+
+            <div id="forgot-error" class="hidden bg-red-500/20 border border-red-500/50 rounded-lg p-3 mb-4 text-red-400 text-sm"></div>
+            <div id="forgot-success" class="hidden bg-green-500/20 border border-green-500/50 rounded-lg p-3 mb-4 text-green-400 text-sm"></div>
+
+            <form id="forgot-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-theme-secondary mb-2">Email Address</label>
+                    <input type="email" id="forgot-email" class="input-field" placeholder="Enter your email" required>
+                </div>
+                <button type="submit" id="forgot-btn" class="btn-primary w-full flex items-center justify-center gap-2">
+                    <span>Send Reset Link</span>
+                </button>
+            </form>
+
+            <p class="text-center text-theme-muted text-sm mt-6">
+                Remember your password? <a href="#" onclick="showLogin()" class="text-primary hover:underline">Login</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Reset Password Screen -->
+    <div id="reset-screen" class="hidden min-h-screen flex items-center justify-center p-6">
+        <div class="glass-card p-8 w-full max-w-md">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style="background: linear-gradient(135deg, var(--primary), var(--secondary));">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                    </svg>
+                </div>
+                <h1 class="text-2xl font-display font-bold gradient-text">Reset Password</h1>
+                <p class="mt-2 text-theme-secondary">Enter your new password</p>
+            </div>
+
+            <div id="reset-error" class="hidden bg-red-500/20 border border-red-500/50 rounded-lg p-3 mb-4 text-red-400 text-sm"></div>
+            <div id="reset-success" class="hidden bg-green-500/20 border border-green-500/50 rounded-lg p-3 mb-4 text-green-400 text-sm"></div>
+
+            <form id="reset-form" class="space-y-4">
+                <div class="relative">
+                    <label class="block text-sm font-medium text-theme-secondary mb-2">New Password</label>
+                    <input type="password" id="reset-password" class="input-field pr-12" placeholder="Enter new password" required minlength="6">
+                    <button type="button" class="absolute right-3 top-9 text-theme-muted hover:text-theme-primary" onclick="togglePassword('reset-password', 'reset-eye')">
+                        <svg id="reset-eye" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="relative">
+                    <label class="block text-sm font-medium text-theme-secondary mb-2">Confirm New Password</label>
+                    <input type="password" id="reset-confirm" class="input-field pr-12" placeholder="Confirm new password" required minlength="6">
+                    <button type="button" class="absolute right-3 top-9 text-theme-muted hover:text-theme-primary" onclick="togglePassword('reset-confirm', 'reset-confirm-eye')">
+                        <svg id="reset-confirm-eye" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                    </button>
+                </div>
+                <button type="submit" id="reset-btn" class="btn-primary w-full flex items-center justify-center gap-2">
+                    <span>Reset Password</span>
+                </button>
+            </form>
+
+            <p class="text-center text-theme-muted text-sm mt-6">
+                <a href="#" onclick="showLogin()" class="text-primary hover:underline">Back to Login</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Dashboard Screen -->
+    <div id="dashboard-screen" class="hidden">
+        <!-- Header -->
+        <header class="glass-card border-t-0 border-l-0 border-r-0 rounded-none sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <img src="assets/logo.png" alt="CoCreate" class="w-10 h-10">
+                    <span class="font-display font-bold text-lg">
+                        <span class="text-theme-primary">CO</span><span class="gradient-text">CREATE</span>
+                    </span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <!-- Theme Selector -->
+                    <div class="theme-selector">
+                        <button class="theme-toggle-btn" id="theme-toggle">
+                            <span id="current-theme-icon">🔥</span>
+                            <span id="current-theme-name">Ember</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div class="theme-dropdown" id="theme-dropdown">
+                            <div class="theme-option" data-theme="ember">
+                                <span class="theme-option-icon">🔥</span>
+                                <span>Ember</span>
+                            </div>
+                            <div class="theme-option" data-theme="coral">
+                                <span class="theme-option-icon">🪸</span>
+                                <span>Coral</span>
+                            </div>
+                            <div class="theme-option" data-theme="sunset">
+                                <span class="theme-option-icon">🌅</span>
+                                <span>Sunset</span>
+                            </div>
+                            <div class="theme-option" data-theme="aurora">
+                                <span class="theme-option-icon">✨</span>
+                                <span>Aurora</span>
+                            </div>
+                            <div class="theme-option" data-theme="legacy">
+                                <span class="theme-option-icon">💎</span>
+                                <span>Legacy</span>
+                            </div>
+                            <div class="theme-option" data-theme="sandstone">
+                                <span class="theme-option-icon">🏜️</span>
+                                <span>Sandstone</span>
+                            </div>
+                            <div class="theme-option" data-theme="champagne">
+                                <span class="theme-option-icon">🥂</span>
+                                <span>Champagne</span>
+                            </div>
+                            <div class="theme-option" data-theme="zoom">
+                                <span class="theme-option-icon">💙</span>
+                                <span>Zoom</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Profile Section -->
+                    <div class="relative">
+                        <button id="profile-btn" onclick="toggleProfileMenu()" class="flex items-center gap-3 px-3 py-2 rounded-full hover:bg-white/5 transition focus:outline-none">
+                            <!-- Avatar -->
+                            <div id="profile-avatar" class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg border-2 border-primary/50" style="background: linear-gradient(135deg, #fc2a0d, #fd6c71);">
+                                U
+                            </div>
+                            <!-- Username -->
+                            <span id="nav-username" class="font-semibold text-lg text-theme-primary">User</span>
+                        </button>
+
+                        <!-- Profile Dropdown -->
+                        <div id="profile-dropdown" class="hidden absolute right-0 top-14 w-72 glass-card rounded-xl shadow-2xl overflow-hidden z-50">
+                            <div class="p-4 border-b border-white/10">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-xl" style="background: linear-gradient(135deg, #fc2a0d, #fd6c71);">
+                                        <span id="dropdown-avatar-letter">U</span>
+                                    </div>
+                                    <div>
+                                        <p id="dropdown-name" class="font-semibold text-theme-primary">User</p>
+                                        <p id="dropdown-email" class="text-sm text-theme-muted">user@example.com</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="p-2">
+                                <button onclick="showChangePassword(); toggleProfileMenu();" class="w-full text-left px-4 py-3 rounded-lg text-theme-secondary hover:bg-white/5 transition flex items-center gap-3">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                                    </svg>
+                                    Change Password
+                                </button>
+                                <button onclick="logout()" class="w-full text-left px-4 py-3 rounded-lg text-red-400 hover:bg-red-500/10 transition flex items-center gap-3">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                                    </svg>
+                                    Logout
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Content -->
+        <main class="max-w-7xl mx-auto px-6 py-8">
+            <!-- Welcome Banner -->
+            <div class="glass-card p-6 mb-8">
+                <h1 class="text-2xl sm:text-3xl font-display font-bold">
+                    Welcome back, <span id="welcome-username" class="gradient-text">User</span>! 👋
+                </h1>
+                <p class="text-theme-muted mt-2">Here's an overview of your project progress.</p>
+            </div>
+
+            <h2 class="text-2xl font-display font-bold mb-6">
+                <span class="gradient-text">My Dashboard</span>
+            </h2>
+
+            <div class="grid lg:grid-cols-3 gap-6">
+                <!-- Left Column -->
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Project Overview -->
+                    <div class="dashboard-card">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-xl font-display font-semibold flex items-center gap-2">
+                                <span>🚀</span> Project Overview
+                            </h2>
+                            <span id="project-status" class="status-badge status-approved">Approved</span>
+                        </div>
+                        <div class="grid sm:grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-theme-muted text-sm mb-1">Submitted</p>
+                                <p id="project-date" class="text-theme-primary font-medium">-</p>
+                            </div>
+                            <div>
+                                <p class="text-theme-muted text-sm mb-1">Timeline</p>
+                                <p id="project-timeline" class="text-theme-primary font-medium">-</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Build Session -->
+                    <div class="dashboard-card">
+                        <h2 class="text-xl font-display font-semibold flex items-center gap-2 mb-4">
+                            <span>🔗</span> Build Session
+                        </h2>
+                        <p class="text-theme-secondary mb-4">Access your live build environment:</p>
+                        <a id="session-link" href="#" target="_blank" class="btn-primary inline-flex items-center gap-2">
+                            <span>Open Build Session</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                            </svg>
+                        </a>
+                    </div>
+
+                    <!-- Project Details -->
+                    <div class="dashboard-card">
+                        <h2 class="text-xl font-display font-semibold flex items-center gap-2 mb-4">
+                            <span>📋</span> Project Details
+                        </h2>
+                        <div class="space-y-4">
+                            <div>
+                                <p class="text-theme-muted text-sm mb-1">Product Idea</p>
+                                <p id="project-idea" class="text-theme-primary">-</p>
+                            </div>
+                            <div>
+                                <p class="text-theme-muted text-sm mb-1">Target Customer</p>
+                                <p id="project-customer" class="text-theme-primary">-</p>
+                            </div>
+                            <div class="grid sm:grid-cols-2 gap-4">
+                                <div>
+                                    <p class="text-theme-muted text-sm mb-1">Industry</p>
+                                    <p id="project-industry" class="text-theme-primary capitalize">-</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chat History -->
+                    <div class="dashboard-card">
+                        <h2 class="text-xl font-display font-semibold flex items-center gap-2 mb-4">
+                            <span>💬</span> Conversation History
+                        </h2>
+                        <div id="chat-history" class="max-h-96 overflow-y-auto space-y-2">
+                            <p class="text-theme-muted text-center py-8">No conversation history</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="space-y-6">
+                    <!-- Build Progress -->
+                    <div class="dashboard-card">
+                        <h2 class="text-xl font-display font-semibold flex items-center gap-2 mb-4">
+                            <span>📊</span> Build Progress
+                        </h2>
+                        <div id="build-progress">
+                            <div class="progress-step pending">
+                                <div class="step-icon pending">1</div>
+                                <div>
+                                    <p class="font-medium text-theme-primary">Architect</p>
+                                    <p class="text-sm text-theme-muted">Planning & Design</p>
+                                </div>
+                            </div>
+                            <div class="progress-step pending">
+                                <div class="step-icon pending">2</div>
+                                <div>
+                                    <p class="font-medium text-theme-primary">Developer</p>
+                                    <p class="text-sm text-theme-muted">Building Features</p>
+                                </div>
+                            </div>
+                            <div class="progress-step pending">
+                                <div class="step-icon pending">3</div>
+                                <div>
+                                    <p class="font-medium text-theme-primary">Deployer</p>
+                                    <p class="text-sm text-theme-muted">Launch & Deploy</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Account Settings -->
+                    <div class="dashboard-card">
+                        <h2 class="text-xl font-display font-semibold flex items-center gap-2 mb-4">
+                            <span>⚙️</span> Account
+                        </h2>
+                        <div class="space-y-3">
+                            <div>
+                                <p class="text-theme-muted text-sm">Username</p>
+                                <p id="account-username" class="text-theme-primary font-medium">-</p>
+                            </div>
+                            <div>
+                                <p class="text-theme-muted text-sm">Email</p>
+                                <p id="account-email" class="text-theme-primary font-medium">-</p>
+                            </div>
+                            <button onclick="showChangePassword()" class="w-full mt-4 px-4 py-2 rounded-lg text-theme-secondary hover:text-theme-primary transition text-sm" style="background: rgba(26, 10, 0, 0.5); border: 1px solid var(--border-color);">
+                                Change Password
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div id="password-modal" class="hidden fixed inset-0 flex items-center justify-center z-50 p-6" style="background: rgba(0,0,0,0.7);">
+        <div class="glass-card p-6 w-full max-w-md">
+            <h2 class="text-xl font-display font-semibold mb-4">Change Password</h2>
+            <div id="password-error" class="hidden bg-red-500/20 border border-red-500/50 rounded-lg p-3 mb-4 text-red-400 text-sm"></div>
+            <form id="password-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-theme-secondary mb-2">Current Password</label>
+                    <input type="password" id="current-password" class="input-field" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-theme-secondary mb-2">New Password</label>
+                    <input type="password" id="new-password" class="input-field" required minlength="6">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-theme-secondary mb-2">Confirm New Password</label>
+                    <input type="password" id="confirm-new-password" class="input-field" required minlength="6">
+                </div>
+                <div class="flex gap-3">
+                    <button type="button" onclick="hideChangePassword()" class="flex-1 px-4 py-3 rounded-lg text-theme-secondary" style="background: rgba(26, 10, 0, 0.5); border: 1px solid var(--border-color);">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn-primary flex-1">Change Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- Main Script -->
+    <script src="js/user-core.js"></script>
+
+    <!-- Theme Switcher Script -->
+    <script>
+    (function() {
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeDropdown = document.getElementById('theme-dropdown');
+        const themeIcon = document.getElementById('current-theme-icon');
+        const themeName = document.getElementById('current-theme-name');
+        const themeOptions = document.querySelectorAll('.theme-option');
+
+        // Theme emojis
+        const themeEmojis = {
+            ember: '🔥',
+            coral: '🪸',
+            sunset: '🌅',
+            aurora: '✨',
+            legacy: '💎',
+            sandstone: '🏜️',
+            champagne: '🥂',
+            zoom: '💙'
+        };
+
+        // Get current theme
+        let currentTheme = localStorage.getItem('cocreate-theme') || 'ember';
+
+        // Update UI to show current theme
+        function updateThemeUI(theme) {
+            // Update name
+            if (themeName) {
+                themeName.textContent = theme.charAt(0).toUpperCase() + theme.slice(1);
+            }
+            // Update icon
+            if (themeIcon && themeEmojis[theme]) {
+                themeIcon.textContent = themeEmojis[theme];
+            }
+            // Update active state
+            themeOptions.forEach(option => {
+                option.classList.toggle('active', option.dataset.theme === theme);
+            });
+        }
+
+        // Toggle dropdown
+        if (themeToggle) {
+            themeToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                themeDropdown.classList.toggle('open');
+            });
+        }
+
+        // Handle theme selection
+        themeOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                const theme = option.dataset.theme;
+                if (window.ThemeManager && window.ThemeManager.set) {
+                    window.ThemeManager.set(theme);
+                }
+                currentTheme = theme;
+                updateThemeUI(theme);
+                themeDropdown.classList.remove('open');
+            });
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (themeDropdown && !themeToggle.contains(e.target) && !themeDropdown.contains(e.target)) {
+                themeDropdown.classList.remove('open');
+            }
+        });
+
+        // Initialize
+        updateThemeUI(currentTheme);
+    })();
+    </script>
+</body>
+</html>

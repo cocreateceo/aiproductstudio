@@ -447,14 +447,24 @@ function renderSessionStatusBox(app) {
     }
 
     if (app.guid && app.sessionLink) {
+        const dashboardLink = `https://www.cocreateidea.com/user.id=${app.guid}`;
         return `
             <div class="session-status-box bg-green-500/10 border border-green-500/30 rounded-lg p-4 mb-4">
                 <div class="flex items-center gap-2 text-green-400 font-semibold mb-2">
                     <span>Session Created</span>
                 </div>
-                <a href="${app.sessionLink}" target="_blank" class="hover:underline break-all text-sm" style="color: var(--primary);">
-                    ${app.sessionLink}
-                </a>
+                <div class="mb-3">
+                    <p class="text-xs text-theme-muted mb-1">Build Session:</p>
+                    <a href="${app.sessionLink}" target="_blank" class="hover:underline break-all text-sm" style="color: var(--primary);">
+                        ${app.sessionLink}
+                    </a>
+                </div>
+                <div>
+                    <p class="text-xs text-theme-muted mb-1">User Dashboard:</p>
+                    <a href="${dashboardLink}" target="_blank" class="hover:underline break-all text-sm" style="color: var(--primary);">
+                        ${dashboardLink}
+                    </a>
+                </div>
             </div>
         `;
     }
