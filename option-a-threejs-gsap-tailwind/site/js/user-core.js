@@ -1046,7 +1046,9 @@
     function formatTime(dateStr) {
         try {
             const date = new Date(dateStr);
-            return date.toLocaleTimeString('en-US', {
+            return date.toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
                 hour: '2-digit',
                 minute: '2-digit'
             });
