@@ -726,13 +726,8 @@
 
                 // Fetch real-time project data from Tmux Builder
                 const tmuxData = await fetchTmuxBuilderData(currentGuid);
-                if (tmuxData) {
-                    if (tmuxData.project) {
-                        renderTmuxProject(tmuxData.project);
-                    }
-                    if (tmuxData.activities && tmuxData.activities.length > 0) {
-                        renderActivities(tmuxData.activities);
-                    }
+                if (tmuxData && tmuxData.project) {
+                    renderTmuxProject(tmuxData.project);
                 }
             } else {
                 // Session invalid, show login
