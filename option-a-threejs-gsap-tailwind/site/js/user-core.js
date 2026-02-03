@@ -680,20 +680,21 @@
     // Dashboard Rendering
     // ========================
 
-    // Fetch activities from Tmux Builder (via backend proxy to avoid CORS)
-    async function fetchTmuxBuilderActivities(guid) {
+    // Fetch project details from Tmux Builder (via backend proxy to avoid CORS)
+    async function fetchTmuxBuilderData(guid) {
         if (!guid) return null;
         try {
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'get-tmux-activities', guid })
+                body: JSON.stringify({ action: 'get-tmux-projects', guid })
             });
             const data = await response.json();
 
-            if (!data.success || !data.activities) return null;
+            if (!data.success) return null;
 
-            return data.activities.map(act => ({
+            // Map activities
+            const activities = (data.activities || []).map(act => ({
                 message: act.message,
                 status: act.status === 'done' ? 'done' :
                         act.status === 'ack' ? 'ack' :
@@ -701,8 +702,13 @@
                 time: act.time,
                 type: act.type
             }));
+
+            return {
+                project: data.project,
+                activities: activities
+            };
         } catch (error) {
-            console.log('[TmuxBuilder] Could not fetch activities:', error.message);
+            console.log('[TmuxBuilder] Could not fetch data:', error.message);
             return null;
         }
     }
@@ -718,10 +724,15 @@
                 renderDashboard(dashboardData);
                 showScreen('dashboard');
 
-                // Fetch real-time activities from Tmux Builder
-                const tmuxActivities = await fetchTmuxBuilderActivities(currentGuid);
-                if (tmuxActivities && tmuxActivities.length > 0) {
-                    renderActivities(tmuxActivities);
+                // Fetch real-time project data from Tmux Builder
+                const tmuxData = await fetchTmuxBuilderData(currentGuid);
+                if (tmuxData) {
+                    if (tmuxData.project) {
+                        renderTmuxProject(tmuxData.project);
+                    }
+                    if (tmuxData.activities && tmuxData.activities.length > 0) {
+                        renderActivities(tmuxData.activities);
+                    }
                 }
             } else {
                 // Session invalid, show login
@@ -1027,6 +1038,71 @@
                 </div>
             `;
         }).join('');
+    }
+
+    // Render project from Tmux Builder
+    function renderTmuxProject(project) {
+        const container = document.getElementById('project-history');
+        if (!container || !project) return;
+
+        const statusClass = project.status === 'completed' ? 'text-green-400' :
+                           project.status === 'ready' ? 'text-green-400' : 'text-yellow-400';
+        const statusIcon = project.status === 'completed' || project.status === 'ready' ? '✅' : '⏳';
+        const statusText = project.status === 'ready' ? 'Completed' : capitalizeFirst(project.status || 'pending');
+
+        const createdAt = project.createdAt ? formatDateTime(project.createdAt) : 'Unknown';
+        const updatedAt = project.updatedAt ? formatDateTime(project.updatedAt) : null;
+
+        // Truncate title for display
+        const title = project.title || 'Website Project';
+        const description = project.description || '';
+        const shortDesc = description.length > 150 ? description.substring(0, 150) + '...' : description;
+
+        let urlHtml = '';
+        if (project.deployedUrl) {
+            urlHtml = `
+                <div class="mt-3 pt-3 border-t border-white/10">
+                    <p class="text-theme-muted text-sm mb-2">Deployed URL:</p>
+                    <a href="${escapeHtml(project.deployedUrl)}" target="_blank"
+                       class="text-primary hover:underline text-sm break-all flex items-center gap-2">
+                        <span>🌐</span>
+                        ${escapeHtml(project.deployedUrl)}
+                    </a>
+                </div>`;
+        }
+
+        container.innerHTML = `
+            <div class="p-4 rounded-xl" style="background: rgba(26, 10, 0, 0.3); border: 1px solid var(--border-color);">
+                <div class="flex items-start justify-between gap-4">
+                    <div class="flex-1">
+                        <h3 class="font-semibold text-theme-primary text-lg">${escapeHtml(title)}</h3>
+                        <p class="text-sm text-theme-muted mt-1">${escapeHtml(shortDesc)}</p>
+                    </div>
+                    <span class="${statusClass} text-sm whitespace-nowrap">${statusIcon} ${statusText}</span>
+                </div>
+                <div class="flex flex-wrap gap-4 mt-3 text-xs text-theme-muted">
+                    <span>📅 Started: ${createdAt}</span>
+                    ${updatedAt ? `<span>✅ Finished: ${updatedAt}</span>` : ''}
+                    ${project.progress ? `<span>📊 Progress: ${project.progress}%</span>` : ''}
+                </div>
+                ${urlHtml}
+            </div>
+        `;
+    }
+
+    function formatDateTime(dateStr) {
+        try {
+            const date = new Date(dateStr);
+            return date.toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch {
+            return dateStr;
+        }
     }
 
     // ========================

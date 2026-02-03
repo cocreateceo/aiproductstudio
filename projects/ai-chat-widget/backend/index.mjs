@@ -4516,8 +4516,8 @@ export const handler = async (event) => {
       };
     }
 
-    // Proxy: Fetch activities from Tmux Builder (avoids CORS)
-    if (action === 'get-tmux-activities') {
+    // Proxy: Fetch project details from Tmux Builder (avoids CORS)
+    if (action === 'get-tmux-projects') {
       const { guid } = body;
 
       if (!guid) {
@@ -4534,14 +4534,42 @@ export const handler = async (event) => {
           return {
             statusCode: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ success: false, error: 'Session not found', activities: [] })
+            body: JSON.stringify({ success: false, error: 'Session not found', projects: [], activities: [] })
           };
         }
 
         const data = await response.json();
+        const statusJson = data.files?.['status.json'] || {};
         const activityLog = data.files?.['activity_log.jsonl'] || [];
+        const chatHistory = data.files?.['chat_history.jsonl'] || [];
 
-        // Map to our format
+        // Extract deployed URL from chat history (look for CloudFront or localhost URLs)
+        let deployedUrl = null;
+        for (const msg of chatHistory) {
+          if (msg.role === 'assistant' && msg.content) {
+            // Look for CloudFront URL
+            const cfMatch = msg.content.match(/https?:\/\/[a-z0-9]+\.cloudfront\.net[^\s\)"]*/i);
+            if (cfMatch) deployedUrl = cfMatch[0];
+            // Look for localhost deployment
+            const localMatch = msg.content.match(/http:\/\/184\.73\.78\.154:\d+[^\s\)"]*/);
+            if (localMatch) deployedUrl = localMatch[0];
+          }
+        }
+
+        // Build project info
+        const project = {
+          guid: data.guid,
+          title: statusJson.user_request?.substring(0, 60) || 'Website Project',
+          description: statusJson.user_request || '',
+          status: statusJson.state === 'ready' ? 'completed' : statusJson.state || 'pending',
+          progress: statusJson.progress || 0,
+          deployedUrl: deployedUrl,
+          createdAt: statusJson.created_at || data.created_at,
+          updatedAt: statusJson.updated_at || data.updated_at,
+          clientName: statusJson.client_name
+        };
+
+        // Map activities
         const activities = activityLog
           .filter(act => act.data || act.type === 'done')
           .map(act => ({
@@ -4554,13 +4582,13 @@ export const handler = async (event) => {
         return {
           statusCode: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: true, activities })
+          body: JSON.stringify({ success: true, project, activities })
         };
       } catch (error) {
         return {
           statusCode: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: error.message, activities: [] })
+          body: JSON.stringify({ success: false, error: error.message, projects: [], activities: [] })
         };
       }
     }
