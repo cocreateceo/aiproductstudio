@@ -680,24 +680,27 @@
     // Dashboard Rendering
     // ========================
 
-    // Fetch activities from Tmux Builder
+    // Fetch activities from Tmux Builder (via backend proxy to avoid CORS)
     async function fetchTmuxBuilderActivities(guid) {
         if (!guid) return null;
         try {
-            const response = await fetch(`https://d3r4k77gnvpmzn.cloudfront.net/api/admin/sessions/${guid}`);
-            if (!response.ok) return null;
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'get-tmux-activities', guid })
+            });
             const data = await response.json();
 
-            // Map Tmux Builder activity format to our format
-            const activityLog = data.files?.['activity_log.jsonl'] || [];
-            return activityLog.map(act => ({
-                message: act.data || act.type,
-                status: act.type === 'done' ? 'done' :
-                        act.type === 'ack' ? 'ack' :
-                        act.type === 'summary' ? 'done' : 'working',
-                time: act.timestamp,
+            if (!data.success || !data.activities) return null;
+
+            return data.activities.map(act => ({
+                message: act.message,
+                status: act.status === 'done' ? 'done' :
+                        act.status === 'ack' ? 'ack' :
+                        act.status === 'summary' ? 'done' : 'working',
+                time: act.time,
                 type: act.type
-            })).filter(act => act.message); // Filter out empty messages
+            }));
         } catch (error) {
             console.log('[TmuxBuilder] Could not fetch activities:', error.message);
             return null;

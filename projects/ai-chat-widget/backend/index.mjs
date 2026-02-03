@@ -4516,6 +4516,55 @@ export const handler = async (event) => {
       };
     }
 
+    // Proxy: Fetch activities from Tmux Builder (avoids CORS)
+    if (action === 'get-tmux-activities') {
+      const { guid } = body;
+
+      if (!guid) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'GUID is required' })
+        };
+      }
+
+      try {
+        const response = await fetch(`https://d3r4k77gnvpmzn.cloudfront.net/api/admin/sessions/${guid}`);
+        if (!response.ok) {
+          return {
+            statusCode: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ success: false, error: 'Session not found', activities: [] })
+          };
+        }
+
+        const data = await response.json();
+        const activityLog = data.files?.['activity_log.jsonl'] || [];
+
+        // Map to our format
+        const activities = activityLog
+          .filter(act => act.data || act.type === 'done')
+          .map(act => ({
+            message: act.data || (act.type === 'done' ? 'Task completed' : act.type),
+            status: act.type,
+            time: act.timestamp,
+            type: act.type
+          }));
+
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: true, activities })
+        };
+      } catch (error) {
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: error.message, activities: [] })
+        };
+      }
+    }
+
     // Google SSO Login
     if (action === 'google-login') {
       const { guid, googleAccessToken, googleUserInfo } = body;
