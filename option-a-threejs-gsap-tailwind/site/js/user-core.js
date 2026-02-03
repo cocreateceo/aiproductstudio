@@ -680,6 +680,30 @@
     // Dashboard Rendering
     // ========================
 
+    // Fetch activities from Tmux Builder
+    async function fetchTmuxBuilderActivities(guid) {
+        if (!guid) return null;
+        try {
+            const response = await fetch(`https://d3r4k77gnvpmzn.cloudfront.net/api/admin/sessions/${guid}`);
+            if (!response.ok) return null;
+            const data = await response.json();
+
+            // Map Tmux Builder activity format to our format
+            const activityLog = data.files?.['activity_log.jsonl'] || [];
+            return activityLog.map(act => ({
+                message: act.data || act.type,
+                status: act.type === 'done' ? 'done' :
+                        act.type === 'ack' ? 'ack' :
+                        act.type === 'summary' ? 'done' : 'working',
+                time: act.timestamp,
+                type: act.type
+            })).filter(act => act.message); // Filter out empty messages
+        } catch (error) {
+            console.log('[TmuxBuilder] Could not fetch activities:', error.message);
+            return null;
+        }
+    }
+
     async function loadDashboard() {
         showScreen('loading');
 
@@ -690,6 +714,12 @@
                 dashboardData = result.data;
                 renderDashboard(dashboardData);
                 showScreen('dashboard');
+
+                // Fetch real-time activities from Tmux Builder
+                const tmuxActivities = await fetchTmuxBuilderActivities(currentGuid);
+                if (tmuxActivities && tmuxActivities.length > 0) {
+                    renderActivities(tmuxActivities);
+                }
             } else {
                 // Session invalid, show login
                 deleteCookie(SESSION_COOKIE);
@@ -829,23 +859,40 @@
             return;
         }
 
-        container.innerHTML = activities.map(act => {
-            const status = act.status || 'done';
-            const statusIcon = status === 'done' || status === 'completed' ? '✅' :
-                               status === 'working' || status === 'in_progress' ? '✨' :
-                               status === 'ack' ? '✅' :
-                               status === 'summary' ? '✅' : '✅';
-            const time = act.time ? formatTime(act.time) : '';
-            const message = act.message || act;
+        // Filter and format activities
+        const formattedActivities = activities
+            .filter(act => {
+                // Skip empty ack/summary entries, keep status with data
+                const msg = act.message || act.data || '';
+                const type = act.type || act.status || '';
+                if (type === 'ack' && !msg) return false;
+                if (type === 'summary' && !msg) return false;
+                return msg || type === 'done';
+            })
+            .map(act => {
+                const type = act.type || act.status || 'done';
+                const message = act.message || act.data || (type === 'done' ? 'Task completed' : type);
+                const statusIcon = type === 'done' || type === 'completed' ? '✅' :
+                                   type === 'status' || type === 'working' || type === 'in_progress' ? '✨' :
+                                   type === 'ack' ? '🔔' :
+                                   type === 'summary' ? '📋' : '✅';
+                const time = act.time || act.timestamp ? formatTime(act.time || act.timestamp) : '';
 
-            return `
-                <div class="flex items-start gap-2 text-sm py-1">
-                    <span class="text-xs mt-0.5">${statusIcon}</span>
-                    <span class="text-theme-secondary flex-1">${escapeHtml(message)}</span>
-                    <span class="text-theme-muted text-xs whitespace-nowrap">${time}</span>
-                </div>
-            `;
-        }).join('');
+                return { message, statusIcon, time };
+            });
+
+        if (formattedActivities.length === 0) {
+            container.innerHTML = '<p class="text-theme-muted text-center py-4">No activities yet</p>';
+            return;
+        }
+
+        container.innerHTML = formattedActivities.map(act => `
+            <div class="flex items-start gap-2 text-sm py-1">
+                <span class="text-xs mt-0.5">${act.statusIcon}</span>
+                <span class="text-theme-secondary flex-1">${escapeHtml(act.message)}</span>
+                <span class="text-theme-muted text-xs whitespace-nowrap">${act.time}</span>
+            </div>
+        `).join('');
     }
 
     function renderBuildProgress(progress) {
