@@ -13,6 +13,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
+import * as dynamoService from './dynamodb-service.mjs';
 
 // Configuration
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -3074,7 +3075,7 @@ Questions? Reply to this email or reach out at hello@cocreateidea.com
 
 // Trigger external build system via API
 async function triggerExternalBuild(applicationData) {
-  const EXTERNAL_BUILD_API = 'https://d3r4k77gnvpmzn.cloudfront.net/api/admin/sessions';
+  const EXTERNAL_BUILD_API = 'https://d3tfeatcbws1ka.cloudfront.net/api/admin/sessions';
 
   const formData = applicationData.formData || {};
   const visitorInfo = applicationData.visitorInfo || {};
@@ -4529,7 +4530,7 @@ export const handler = async (event) => {
       }
 
       try {
-        const response = await fetch(`https://d3r4k77gnvpmzn.cloudfront.net/api/admin/sessions/${guid}`);
+        const response = await fetch(`https://d3tfeatcbws1ka.cloudfront.net/api/admin/sessions/${guid}`);
         if (!response.ok) {
           return {
             statusCode: 200,
@@ -4641,6 +4642,247 @@ export const handler = async (event) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         body: JSON.stringify(result)
       };
+    }
+
+    // ========== PROJECT MANAGEMENT ENDPOINTS ==========
+    // DynamoDB-backed project and resource tracking
+
+    // Create a new project
+    if (action === 'create-project') {
+      const { userId, projectId, projectName, projectType } = body;
+
+      if (!userId || !projectId || !projectName) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'userId, projectId, and projectName are required' })
+        };
+      }
+
+      try {
+        const project = await dynamoService.createProject({
+          userId,
+          projectId,
+          projectName,
+          projectType: projectType || 'frontend'
+        });
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: true, project })
+        };
+      } catch (error) {
+        console.error('Error creating project:', error);
+        return {
+          statusCode: error.name === 'ConditionalCheckFailedException' ? 409 : 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            success: false,
+            error: error.name === 'ConditionalCheckFailedException'
+              ? 'Project already exists'
+              : 'Failed to create project'
+          })
+        };
+      }
+    }
+
+    // Get all projects for a user
+    if (action === 'get-user-projects') {
+      const { userId, statusFilter } = body;
+
+      if (!userId) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'userId is required' })
+        };
+      }
+
+      try {
+        const projects = await dynamoService.getUserProjects(userId, statusFilter);
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: true, projects })
+        };
+      } catch (error) {
+        console.error('Error getting user projects:', error);
+        return {
+          statusCode: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'Failed to get projects' })
+        };
+      }
+    }
+
+    // Get a single project
+    if (action === 'get-project') {
+      const { userId, projectId } = body;
+
+      if (!userId || !projectId) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'userId and projectId are required' })
+        };
+      }
+
+      try {
+        const project = await dynamoService.getProject(userId, projectId);
+        if (!project) {
+          return {
+            statusCode: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ success: false, error: 'Project not found' })
+          };
+        }
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: true, project })
+        };
+      } catch (error) {
+        console.error('Error getting project:', error);
+        return {
+          statusCode: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'Failed to get project' })
+        };
+      }
+    }
+
+    // Update project status
+    if (action === 'update-project-status') {
+      const { userId, projectId, status, deploymentUrl } = body;
+
+      if (!userId || !projectId || !status) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'userId, projectId, and status are required' })
+        };
+      }
+
+      const validStatuses = Object.values(dynamoService.ProjectStatus);
+      if (!validStatuses.includes(status)) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` })
+        };
+      }
+
+      try {
+        const project = await dynamoService.updateProjectStatus(userId, projectId, status, deploymentUrl);
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: true, project })
+        };
+      } catch (error) {
+        console.error('Error updating project status:', error);
+        return {
+          statusCode: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'Failed to update project status' })
+        };
+      }
+    }
+
+    // Add a resource to a project
+    if (action === 'add-project-resource') {
+      const { userId, projectId, resourceType, resourceData } = body;
+
+      if (!userId || !projectId || !resourceType || !resourceData) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'userId, projectId, resourceType, and resourceData are required' })
+        };
+      }
+
+      const validResourceTypes = ['s3Bucket', 'cloudfront', 'lambda', 'apiGateway'];
+      if (!validResourceTypes.includes(resourceType)) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: `Invalid resourceType. Must be one of: ${validResourceTypes.join(', ')}` })
+        };
+      }
+
+      try {
+        const project = await dynamoService.addProjectResource(userId, projectId, resourceType, resourceData);
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: true, project })
+        };
+      } catch (error) {
+        console.error('Error adding project resource:', error);
+        return {
+          statusCode: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'Failed to add project resource' })
+        };
+      }
+    }
+
+    // Update a project resource
+    if (action === 'update-project-resource') {
+      const { userId, projectId, resourceType, resourceUpdate } = body;
+
+      if (!userId || !projectId || !resourceType || !resourceUpdate) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'userId, projectId, resourceType, and resourceUpdate are required' })
+        };
+      }
+
+      try {
+        const project = await dynamoService.updateProjectResource(userId, projectId, resourceType, resourceUpdate);
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: true, project })
+        };
+      } catch (error) {
+        console.error('Error updating project resource:', error);
+        return {
+          statusCode: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'Failed to update project resource' })
+        };
+      }
+    }
+
+    // Delete (soft) a project
+    if (action === 'delete-project') {
+      const { userId, projectId } = body;
+
+      if (!userId || !projectId) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'userId and projectId are required' })
+        };
+      }
+
+      try {
+        const project = await dynamoService.deleteProject(userId, projectId);
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: true, project, message: 'Project marked as terminated' })
+        };
+      } catch (error) {
+        console.error('Error deleting project:', error);
+        return {
+          statusCode: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'Failed to delete project' })
+        };
+      }
     }
 
     // ========== FORM VALIDATION ENDPOINT ==========
