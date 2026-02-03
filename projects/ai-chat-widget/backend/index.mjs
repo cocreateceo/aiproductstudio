@@ -4544,16 +4544,20 @@ export const handler = async (event) => {
         const activityLog = data.files?.['activity_log.jsonl'] || [];
         const chatHistory = data.files?.['chat_history.jsonl'] || [];
 
-        // Extract deployed URL from chat history (look for CloudFront or localhost URLs)
-        let deployedUrl = null;
-        for (const msg of chatHistory) {
-          if (msg.role === 'assistant' && msg.content) {
-            // Look for CloudFront URL
-            const cfMatch = msg.content.match(/https?:\/\/[a-z0-9]+\.cloudfront\.net[^\s\)"]*/i);
-            if (cfMatch) deployedUrl = cfMatch[0];
-            // Look for localhost deployment
-            const localMatch = msg.content.match(/http:\/\/184\.73\.78\.154:\d+[^\s\)"]*/);
-            if (localMatch) deployedUrl = localMatch[0];
+        // Get deployed URL directly from status.json (set by notify.sh deployed command)
+        let deployedUrl = statusJson.deployed_url || null;
+
+        // Fallback: extract from chat history if not in status.json
+        if (!deployedUrl) {
+          for (const msg of chatHistory) {
+            if (msg.role === 'assistant' && msg.content) {
+              // Look for CloudFront URL
+              const cfMatch = msg.content.match(/https?:\/\/[a-z0-9]+\.cloudfront\.net[^\s\)"]*/i);
+              if (cfMatch) deployedUrl = cfMatch[0];
+              // Look for localhost deployment
+              const localMatch = msg.content.match(/http:\/\/184\.73\.78\.154:\d+[^\s\)"]*/);
+              if (localMatch) deployedUrl = localMatch[0];
+            }
           }
         }
 
