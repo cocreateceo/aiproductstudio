@@ -812,6 +812,40 @@
 
         // Chat history
         renderChatHistory(data.chatHistory);
+
+        // Project history
+        renderProjectHistory(data.projectHistory);
+
+        // Activity log
+        renderActivities(data.activities);
+    }
+
+    function renderActivities(activities) {
+        const container = document.getElementById('activity-log');
+        if (!container) return;
+
+        if (!activities || activities.length === 0) {
+            container.innerHTML = '<p class="text-theme-muted text-center py-4">No activities yet</p>';
+            return;
+        }
+
+        container.innerHTML = activities.map(act => {
+            const status = act.status || 'done';
+            const statusIcon = status === 'done' || status === 'completed' ? '✅' :
+                               status === 'working' || status === 'in_progress' ? '✨' :
+                               status === 'ack' ? '✅' :
+                               status === 'summary' ? '✅' : '✅';
+            const time = act.time ? formatTime(act.time) : '';
+            const message = act.message || act;
+
+            return `
+                <div class="flex items-start gap-2 text-sm py-1">
+                    <span class="text-xs mt-0.5">${statusIcon}</span>
+                    <span class="text-theme-secondary flex-1">${escapeHtml(message)}</span>
+                    <span class="text-theme-muted text-xs whitespace-nowrap">${time}</span>
+                </div>
+            `;
+        }).join('');
     }
 
     function renderBuildProgress(progress) {
@@ -862,6 +896,89 @@
         }).join('');
     }
 
+    function renderProjectHistory(projects) {
+        const container = document.getElementById('project-history');
+        if (!container) return;
+
+        if (!projects || projects.length === 0) {
+            container.innerHTML = '<p class="text-theme-muted text-center py-8">No deployed projects yet</p>';
+            return;
+        }
+
+        container.innerHTML = projects.map(project => {
+            const urls = project.urls || {};
+            const hasUrls = urls.cloudfront || urls.s3 || urls.custom;
+            const createdAt = project.createdAt ? formatDate(project.createdAt) : 'Unknown';
+            const statusClass = project.status === 'deployed' ? 'text-green-400' : 'text-yellow-400';
+            const statusIcon = project.status === 'deployed' ? '✅' : '⏳';
+
+            let urlsHtml = '';
+            if (hasUrls) {
+                urlsHtml = '<div class="mt-3 space-y-2">';
+                if (urls.cloudfront) {
+                    urlsHtml += `
+                        <div class="flex items-center gap-2">
+                            <span class="text-theme-muted text-sm">CloudFront:</span>
+                            <a href="${escapeHtml(urls.cloudfront)}" target="_blank" class="text-primary hover:underline text-sm truncate">${escapeHtml(urls.cloudfront)}</a>
+                        </div>`;
+                }
+                if (urls.custom) {
+                    urlsHtml += `
+                        <div class="flex items-center gap-2">
+                            <span class="text-theme-muted text-sm">Domain:</span>
+                            <a href="${escapeHtml(urls.custom)}" target="_blank" class="text-primary hover:underline text-sm truncate">${escapeHtml(urls.custom)}</a>
+                        </div>`;
+                }
+                if (urls.s3) {
+                    urlsHtml += `
+                        <div class="flex items-center gap-2">
+                            <span class="text-theme-muted text-sm">S3:</span>
+                            <a href="${escapeHtml(urls.s3)}" target="_blank" class="text-primary hover:underline text-sm truncate">${escapeHtml(urls.s3)}</a>
+                        </div>`;
+                }
+                urlsHtml += '</div>';
+            }
+
+            let activityHtml = '';
+            if (project.activity && project.activity.length > 0) {
+                activityHtml = `
+                    <div class="mt-3 pt-3 border-t border-white/10">
+                        <p class="text-theme-muted text-sm mb-2">Recent Activity:</p>
+                        <div class="space-y-2">
+                            ${project.activity.slice(0, 5).map(act => {
+                                const actStatus = act.status || 'done';
+                                const actTime = act.time ? formatTime(act.time) : '';
+                                const statusIcon = actStatus === 'done' || actStatus === 'completed' ? '✅' :
+                                                   actStatus === 'working' || actStatus === 'in_progress' ? '✨' : '✅';
+                                const message = act.message || act;
+                                return `
+                                    <div class="flex items-start gap-2 text-sm">
+                                        <span>${statusIcon}</span>
+                                        <span class="text-theme-secondary flex-1">${escapeHtml(message)}</span>
+                                        ${actTime ? `<span class="text-theme-muted text-xs">${actTime}</span>` : ''}
+                                    </div>`;
+                            }).join('')}
+                        </div>
+                    </div>`;
+            }
+
+            return `
+                <div class="p-4 rounded-xl" style="background: rgba(26, 10, 0, 0.3); border: 1px solid var(--border-color);">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <h3 class="font-semibold text-theme-primary">${escapeHtml(project.projectName || 'Untitled Project')}</h3>
+                            ${project.description ? `<p class="text-sm text-theme-muted mt-1">${escapeHtml(project.description)}</p>` : ''}
+                        </div>
+                        <span class="${statusClass} text-sm">${statusIcon} ${capitalizeFirst(project.status || 'pending')}</span>
+                    </div>
+                    <p class="text-xs text-theme-muted mt-2">Created: ${createdAt}</p>
+                    ${urlsHtml}
+                    ${activityHtml}
+                </div>
+            `;
+        }).join('');
+    }
+
     // ========================
     // Utility Functions
     // ========================
@@ -876,6 +993,18 @@
             });
         } catch {
             return dateStr;
+        }
+    }
+
+    function formatTime(dateStr) {
+        try {
+            const date = new Date(dateStr);
+            return date.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch {
+            return '';
         }
     }
 

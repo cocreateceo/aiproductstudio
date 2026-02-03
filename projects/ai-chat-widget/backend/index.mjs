@@ -2086,6 +2086,146 @@ async function validateSession(guid, sessionToken) {
   }
 }
 
+// Get project history for a user
+async function getProjectHistory(guid) {
+  const { S3Client, ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = new S3Client({ region: S3_REGION });
+
+  try {
+    const listResult = await s3.send(new ListObjectsV2Command({
+      Bucket: S3_BUCKET,
+      Prefix: `users/${guid}/deployments/`
+    }));
+
+    if (!listResult.Contents || listResult.Contents.length === 0) {
+      return [];
+    }
+
+    const projects = [];
+    for (const obj of listResult.Contents) {
+      try {
+        const result = await s3.send(new GetObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: obj.Key
+        }));
+        const projectData = JSON.parse(await result.Body.transformToString());
+        projects.push(projectData);
+      } catch (e) {
+        // Skip invalid files
+      }
+    }
+
+    // Sort by creation date, newest first
+    projects.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return projects;
+  } catch (error) {
+    console.error('Get project history error:', error.message);
+    return [];
+  }
+}
+
+// Save project deployment (called by webhook from build system)
+async function saveProjectDeployment(guid, deploymentData) {
+  const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = new S3Client({ region: S3_REGION });
+
+  const deploymentId = `deploy-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+
+  const deployment = {
+    id: deploymentId,
+    guid: guid,
+    projectName: deploymentData.projectName || 'Untitled Project',
+    description: deploymentData.description || '',
+    urls: {
+      cloudfront: deploymentData.cloudfrontUrl || '',
+      s3: deploymentData.s3Url || '',
+      custom: deploymentData.customDomain || ''
+    },
+    status: deploymentData.status || 'deployed',
+    createdAt: new Date().toISOString(),
+    createdAtEST: new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }),
+    activity: deploymentData.activity || [],
+    metadata: deploymentData.metadata || {}
+  };
+
+  await s3.send(new PutObjectCommand({
+    Bucket: S3_BUCKET,
+    Key: `users/${guid}/deployments/${deploymentId}.json`,
+    Body: JSON.stringify(deployment, null, 2),
+    ContentType: 'application/json'
+  }));
+
+  console.log(`Saved deployment ${deploymentId} for user ${guid}`);
+  return { success: true, deployment };
+}
+
+// Save activity from Tmux Builder
+async function saveActivity(guid, activity) {
+  const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = new S3Client({ region: S3_REGION });
+
+  try {
+    // Get or create activities file
+    let activities = [];
+    try {
+      const result = await s3.send(new GetObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: `users/${guid}/activities.json`
+      }));
+      activities = JSON.parse(await result.Body.transformToString());
+    } catch (e) {
+      // No existing activities file
+    }
+
+    // Add new activity
+    const newActivity = {
+      id: `act-${Date.now()}`,
+      message: activity.message || activity,
+      status: activity.status || 'done',
+      time: activity.time || new Date().toISOString(),
+      type: activity.type || 'general'
+    };
+
+    activities.push(newActivity);
+
+    // Keep last 100 activities
+    if (activities.length > 100) {
+      activities = activities.slice(-100);
+    }
+
+    // Save activities
+    await s3.send(new PutObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: `users/${guid}/activities.json`,
+      Body: JSON.stringify(activities, null, 2),
+      ContentType: 'application/json'
+    }));
+
+    console.log(`Saved activity for user ${guid}: ${newActivity.message}`);
+    return { success: true, activity: newActivity };
+  } catch (error) {
+    console.error('Save activity error:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+// Get activities for a user
+async function getActivities(guid) {
+  const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = new S3Client({ region: S3_REGION });
+
+  try {
+    const result = await s3.send(new GetObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: `users/${guid}/activities.json`
+    }));
+    const activities = JSON.parse(await result.Body.transformToString());
+    return activities.reverse(); // Newest first
+  } catch (error) {
+    return [];
+  }
+}
+
 // Get user dashboard data
 async function getUserDashboard(guid, sessionToken) {
   const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
@@ -2163,7 +2303,9 @@ async function getUserDashboard(guid, sessionToken) {
         developer: 'pending',
         deployer: 'pending'
       },
-      chatHistory: chatHistory
+      chatHistory: chatHistory,
+      projectHistory: await getProjectHistory(guid),
+      activities: await getActivities(guid)
     };
 
     return { success: true, data: dashboardData };
@@ -4278,6 +4420,97 @@ export const handler = async (event) => {
       const result = await resetPassword(guid, resetToken, newPassword);
       return {
         statusCode: result.success ? 200 : 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify(result)
+      };
+    }
+
+    // Webhook: Save project deployment (called by external build system)
+    if (action === 'webhook-deployment') {
+      const { guid, apiKey, projectName, description, cloudfrontUrl, s3Url, customDomain, status, activity, metadata } = body;
+
+      // Simple API key validation (can be enhanced)
+      const WEBHOOK_API_KEY = process.env.WEBHOOK_API_KEY || 'cocreate-webhook-key-2026';
+      if (apiKey !== WEBHOOK_API_KEY) {
+        return {
+          statusCode: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'Invalid API key' })
+        };
+      }
+
+      if (!guid) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'GUID is required' })
+        };
+      }
+
+      const result = await saveProjectDeployment(guid, {
+        projectName, description, cloudfrontUrl, s3Url, customDomain, status, activity, metadata
+      });
+
+      return {
+        statusCode: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify(result)
+      };
+    }
+
+    // Get project history (public endpoint for dashboard)
+    if (action === 'get-project-history') {
+      const { guid, sessionToken } = body;
+
+      if (!guid || !sessionToken) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'GUID and session token are required' })
+        };
+      }
+
+      const isValid = await validateSession(guid, sessionToken);
+      if (!isValid) {
+        return {
+          statusCode: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'Invalid or expired session' })
+        };
+      }
+
+      const projectHistory = await getProjectHistory(guid);
+      return {
+        statusCode: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ success: true, projectHistory })
+      };
+    }
+
+    // Webhook: Receive activity updates from Tmux Builder
+    if (action === 'webhook-activity') {
+      const { guid, apiKey, activity } = body;
+
+      const WEBHOOK_API_KEY = process.env.WEBHOOK_API_KEY || 'cocreate-webhook-key-2026';
+      if (apiKey !== WEBHOOK_API_KEY) {
+        return {
+          statusCode: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'Invalid API key' })
+        };
+      }
+
+      if (!guid || !activity) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'GUID and activity are required' })
+        };
+      }
+
+      const result = await saveActivity(guid, activity);
+      return {
+        statusCode: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         body: JSON.stringify(result)
       };

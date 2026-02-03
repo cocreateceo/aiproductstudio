@@ -55,6 +55,74 @@ function showToast(message, type = 'info') {
     console.log(`[Toast] ${type.toUpperCase()}: ${message}`);
 }
 
+// Sync activity to user's dashboard (real-time updates during build)
+async function syncActivityToUser(guid, message, status = 'working') {
+    if (!guid) return;
+
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'webhook-activity',
+                apiKey: 'cocreate-webhook-key-2026',
+                guid: guid,
+                activity: {
+                    message: message,
+                    status: status,
+                    time: new Date().toISOString(),
+                    type: 'build'
+                }
+            })
+        });
+        const result = await response.json();
+        if (result.success) {
+            console.log('[Activity] Synced:', message);
+        }
+    } catch (error) {
+        // Silently fail - don't disrupt build flow
+        console.log('[Activity] Sync failed:', error.message);
+    }
+}
+
+// Save deployment to user's project history for dashboard
+async function saveDeploymentToHistory(app, mvpUrl) {
+    if (!app || !app.guid) {
+        console.log('[Deployment] No app or guid, skipping save');
+        return;
+    }
+
+    try {
+        const projectName = app.formData?.productIdea?.substring(0, 50) || 'Website Project';
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'webhook-deployment',
+                apiKey: 'cocreate-webhook-key-2026',
+                guid: app.guid,
+                projectName: projectName,
+                description: app.formData?.productIdea || '',
+                cloudfrontUrl: mvpUrl,
+                status: 'deployed',
+                activity: [
+                    { message: 'Build completed', time: new Date().toISOString() },
+                    { message: `Deployed to ${mvpUrl}`, time: new Date().toISOString() }
+                ]
+            })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            console.log('[Deployment] Saved to project history:', app.guid);
+        } else {
+            console.error('[Deployment] Failed to save:', result.error);
+        }
+    } catch (error) {
+        console.error('[Deployment] Error saving to history:', error);
+    }
+}
+
 function initWebSocket() {
     if (!WS_URL) return;
 
@@ -109,6 +177,11 @@ function handleWebSocketMessage(msg) {
                 client: msg.data.client
             };
             addLiveLog('Build started...');
+            // Sync activity to user dashboard
+            const startedApp = applications.find(a => a.s3Key === msg.data.s3Key);
+            if (startedApp?.guid) {
+                syncActivityToUser(startedApp.guid, 'Build started', 'working');
+            }
             renderApplications();
             if (msg.data.s3Key) {
                 setTimeout(() => {
@@ -121,6 +194,7 @@ function handleWebSocketMessage(msg) {
             break;
 
         case 'progress':
+            const prevPhase = currentBuildState?.phase;
             currentBuildState = {
                 ...currentBuildState,
                 s3Key: msg.data.s3Key || currentBuildState?.s3Key,
@@ -129,6 +203,13 @@ function handleWebSocketMessage(msg) {
                 phase: msg.data.phase || 'working',
                 message: msg.data.message || 'Processing...'
             };
+            // Sync activity when phase changes (avoids spam)
+            if (msg.data.phase && msg.data.phase !== prevPhase && msg.data.message) {
+                const progressApp = applications.find(a => a.s3Key === currentBuildState.s3Key);
+                if (progressApp?.guid) {
+                    syncActivityToUser(progressApp.guid, msg.data.message, 'working');
+                }
+            }
             updateInlineProgress();
             break;
 
@@ -163,6 +244,12 @@ function handleWebSocketMessage(msg) {
             if (completedApp) {
                 completedApp.buildUrl = fixedMvpUrl;
                 completedApp.buildProgress = currentBuildState;
+                // Sync final activity with done status
+                if (completedApp.guid) {
+                    syncActivityToUser(completedApp.guid, `Build complete! Deployed to ${fixedMvpUrl}`, 'done');
+                }
+                // Save deployment to user's project history
+                saveDeploymentToHistory(completedApp, fixedMvpUrl);
             }
             renderApplications();
             currentBuildState = null;
@@ -180,6 +267,10 @@ function handleWebSocketMessage(msg) {
             const failedApp = applications.find(a => a.s3Key === currentBuildState?.s3Key);
             if (failedApp) {
                 failedApp.buildProgress = currentBuildState;
+                // Sync failure activity
+                if (failedApp.guid) {
+                    syncActivityToUser(failedApp.guid, `Build failed: ${msg.data.error || 'Unknown error'}`, 'done');
+                }
             }
             renderApplications();
             currentBuildState = null;
