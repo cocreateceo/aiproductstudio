@@ -1223,6 +1223,12 @@
                     dashboardData = dashResult.data;
                     renderDashboard(dashboardData);
                     showScreen('dashboard');
+
+                    // Fetch real-time project data from Tmux Builder
+                    const tmuxData = await fetchTmuxBuilderData(currentGuid);
+                    if (tmuxData && tmuxData.project) {
+                        renderTmuxProject(tmuxData.project);
+                    }
                     return;
                 }
 
