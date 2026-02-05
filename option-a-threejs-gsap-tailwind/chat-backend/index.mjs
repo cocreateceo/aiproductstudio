@@ -2827,16 +2827,23 @@ export const handler = async (event) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             success: true,
-            user: {
-              name: profile.name || app.visitorInfo?.name || app.formData?.fullName || '',
-              email: profile.email || app.visitorInfo?.email || app.formData?.email || ''
-            },
-            application: {
-              status: app.status || 'approved',
-              guid: app.guid || guid,
-              formData: app.formData || {},
-              submittedAt: app.submittedAt,
-              sessionLink: app.sessionLink || ''
+            data: {
+              user: {
+                name: profile.name || app.visitorInfo?.name || app.formData?.fullName || '',
+                email: profile.email || app.visitorInfo?.email || app.formData?.email || ''
+              },
+              application: {
+                status: app.status || 'approved',
+                guid: app.guid || guid,
+                email: app.visitorInfo?.email || app.formData?.email || '',
+                formData: app.formData || {},
+                submittedAt: app.submittedAt,
+                sessionLink: app.sessionLink || '',
+                productIdea: app.formData?.productIdea || app.formData?.product_idea || '',
+                targetCustomer: app.formData?.targetCustomer || app.formData?.target_customer || '',
+                industry: app.formData?.industry || '',
+                timeline: app.formData?.timeline || ''
+              }
             }
           })
         };
