@@ -712,10 +712,51 @@
                             <p class="text-theme-muted text-center py-8">No deployed projects yet</p>
                         </div>
                     </div>
+
                 </div>
 
                 <!-- Right Column -->
                 <div class="space-y-6">
+                    <!-- AWS Cost Dashboard -->
+                    <div class="dashboard-card" style="background: linear-gradient(135deg, var(--bg-card), rgba(var(--primary-rgb), 0.05));">
+                        <h2 class="text-xl font-display font-semibold flex items-center gap-2 mb-4">
+                            <span>💰</span> <span class="gradient-text">My Cost Dashboard</span>
+                        </h2>
+                        <div id="user-costs-section">
+                            <!-- Monthly Total - Featured -->
+                            <div class="text-center p-4 mb-4 rounded-xl" style="background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.15), rgba(var(--secondary-rgb), 0.1)); border: 1px solid var(--border-color);">
+                                <p class="text-xs text-theme-muted mb-1">Estimated Monthly Cost</p>
+                                <p id="user-cost-total" class="text-3xl font-bold gradient-text">$0.00</p>
+                            </div>
+
+                            <!-- Service Breakdown -->
+                            <div class="grid grid-cols-2 gap-2 mb-4">
+                                <div class="p-3 rounded-lg text-center" style="background: rgba(26, 10, 0, 0.3);">
+                                    <div class="text-lg mb-1">🗄️</div>
+                                    <p class="text-xs text-theme-muted mb-1">S3 Storage</p>
+                                    <p id="user-cost-s3" class="font-semibold text-sm" style="color: var(--primary);">$0.00</p>
+                                </div>
+                                <div class="p-3 rounded-lg text-center" style="background: rgba(26, 10, 0, 0.3);">
+                                    <div class="text-lg mb-1">🌐</div>
+                                    <p class="text-xs text-theme-muted mb-1">CloudFront</p>
+                                    <p id="user-cost-cloudfront" class="font-semibold text-sm" style="color: var(--accent);">$0.00</p>
+                                </div>
+                            </div>
+
+                            <!-- Per Project Costs -->
+                            <div class="mb-3">
+                                <p class="text-xs font-semibold text-theme-secondary mb-2">Per Project</p>
+                                <div id="user-project-costs" class="space-y-2 max-h-48 overflow-y-auto">
+                                    <p class="text-theme-muted text-xs text-center py-3">Loading cost data...</p>
+                                </div>
+                            </div>
+
+                            <p class="text-xs text-theme-muted text-center pt-2" style="border-top: 1px solid var(--border-color);">
+                                Based on S3 + CloudFront usage
+                            </p>
+                        </div>
+                    </div>
+
                     <!-- Build Progress -->
                     <div class="dashboard-card">
                         <h2 class="text-xl font-display font-semibold flex items-center gap-2 mb-4">

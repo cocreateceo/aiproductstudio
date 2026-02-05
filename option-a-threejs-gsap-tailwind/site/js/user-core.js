@@ -729,6 +729,9 @@
                 if (tmuxData && tmuxData.project) {
                     renderTmuxProject(tmuxData.project);
                 }
+
+                // Fetch user AWS costs
+                fetchUserCosts(currentGuid);
             } else {
                 // Session invalid, show login
                 deleteCookie(SESSION_COOKIE);
@@ -1142,6 +1145,99 @@
     }
 
     // ========================
+    // AWS Costs
+    // ========================
+
+    // Format currency
+    function formatCurrency(amount) {
+        return '$' + (amount || 0).toFixed(2);
+    }
+
+    // Format bytes to human readable
+    function formatBytesCompact(bytes) {
+        if (!bytes || bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    // Fetch user costs from API
+    async function fetchUserCosts(guid) {
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'user-costs',
+                    guid: guid,
+                    sessionToken: currentSession
+                })
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                renderUserCosts(data.costs);
+            } else {
+                console.log('[Costs] Could not fetch:', data.error);
+                renderUserCostsError('Could not load cost data');
+            }
+        } catch (error) {
+            console.log('[Costs] Fetch error:', error.message);
+            renderUserCostsError('Could not connect to cost service');
+        }
+    }
+
+    // Render user costs section
+    function renderUserCosts(costs) {
+        // Update totals
+        const totalEl = document.getElementById('user-cost-total');
+        const s3El = document.getElementById('user-cost-s3');
+        const cloudfrontEl = document.getElementById('user-cost-cloudfront');
+
+        if (totalEl) totalEl.textContent = formatCurrency(costs.costs?.total);
+        if (s3El) s3El.textContent = formatCurrency(costs.costs?.s3);
+        if (cloudfrontEl) cloudfrontEl.textContent = formatCurrency(costs.costs?.cloudfront);
+
+        // Render project costs
+        const projectCostsEl = document.getElementById('user-project-costs');
+        if (!projectCostsEl) return;
+
+        if (!costs.projects || costs.projects.length === 0) {
+            projectCostsEl.innerHTML = '<p class="text-theme-muted text-xs text-center py-2">No deployed projects yet</p>';
+            return;
+        }
+
+        projectCostsEl.innerHTML = costs.projects.map(project => `
+            <div class="p-2 rounded-lg" style="background: rgba(26, 10, 0, 0.3); border: 1px solid var(--border-color);">
+                <div class="flex justify-between items-center">
+                    <div class="flex-1 min-w-0 mr-2">
+                        <p class="font-medium text-theme-primary text-xs truncate">${escapeHtml(project.projectName || 'Project')}</p>
+                        ${project.deployedUrl ? `
+                            <a href="${escapeHtml(project.deployedUrl)}" target="_blank" class="text-xs hover:underline truncate block" style="color: var(--accent); font-size: 10px;">
+                                View Site
+                            </a>
+                        ` : ''}
+                    </div>
+                    <span class="font-bold text-sm whitespace-nowrap" style="color: var(--primary);">${formatCurrency(project.costs?.total)}</span>
+                </div>
+                <div class="flex gap-2 mt-1 text-xs text-theme-muted">
+                    <span>S3: ${formatCurrency(project.costs?.s3?.total)}</span>
+                    <span>CF: ${formatCurrency(project.costs?.cloudfront?.total)}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Render error state for costs
+    function renderUserCostsError(message) {
+        const projectCostsEl = document.getElementById('user-project-costs');
+        if (projectCostsEl) {
+            projectCostsEl.innerHTML = `<p class="text-theme-muted text-xs text-center py-2">${escapeHtml(message)}</p>`;
+        }
+    }
+
+    // ========================
     // Initialization
     // ========================
 
@@ -1229,6 +1325,9 @@
                     if (tmuxData && tmuxData.project) {
                         renderTmuxProject(tmuxData.project);
                     }
+
+                    // Fetch user AWS costs
+                    fetchUserCosts(currentGuid);
                     return;
                 }
 

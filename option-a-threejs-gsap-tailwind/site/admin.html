@@ -494,6 +494,9 @@
                 <button class="nav-tab px-6 py-3 rounded-lg font-semibold" data-view="builds" style="background: rgba(26, 10, 0, 0.3); color: var(--text-secondary); border: 1px solid transparent;">
                     🔨 Builds
                 </button>
+                <button class="nav-tab px-6 py-3 rounded-lg font-semibold" data-view="costs" style="background: rgba(26, 10, 0, 0.3); color: var(--text-secondary); border: 1px solid transparent;">
+                    💰 Costs
+                </button>
             </div>
 
             <!-- Applications View -->
@@ -555,6 +558,103 @@
             <div id="view-builds" class="view-content hidden">
                 <div id="builds-list" class="space-y-4">
                     <div class="text-center py-12 text-theme-muted">Loading build history...</div>
+                </div>
+            </div>
+
+            <!-- Costs View -->
+            <div id="view-costs" class="view-content hidden">
+                <!-- Costs Summary Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="glass-card rounded-xl p-4">
+                        <p class="text-sm text-theme-secondary">Estimated Monthly</p>
+                        <p id="cost-stat-estimated" class="text-3xl font-bold mt-1 gradient-text">$0.00</p>
+                    </div>
+                    <div class="glass-card rounded-xl p-4">
+                        <p class="text-sm text-theme-secondary">S3 Storage</p>
+                        <p id="cost-stat-s3" class="text-3xl font-bold mt-1" style="color: var(--primary);">$0.00</p>
+                    </div>
+                    <div class="glass-card rounded-xl p-4">
+                        <p class="text-sm text-theme-secondary">CloudFront</p>
+                        <p id="cost-stat-cloudfront" class="text-3xl font-bold mt-1" style="color: var(--accent);">$0.00</p>
+                    </div>
+                    <div class="glass-card rounded-xl p-4">
+                        <p class="text-sm text-theme-secondary">Total Projects</p>
+                        <p id="cost-stat-projects" class="text-3xl font-bold mt-1 text-theme-primary">0</p>
+                    </div>
+                </div>
+
+                <!-- Email Reports Section -->
+                <div class="glass-card rounded-xl p-4 mb-6">
+                    <div class="flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                            <h3 class="font-display font-semibold text-theme-primary flex items-center gap-2">
+                                <span>📧</span> Email Cost Reports
+                            </h3>
+                            <p class="text-sm text-theme-muted mt-1">Send cost reports to users and admin</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <!-- Weekly Reports -->
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-theme-muted">Weekly:</span>
+                                <button onclick="sendAllReports('weekly')" class="px-3 py-2 rounded-lg text-sm font-medium transition hover:opacity-90" style="background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white;">
+                                    📤 Send All
+                                </button>
+                                <button onclick="sendAdminReport('weekly')" class="px-3 py-2 rounded-lg text-sm font-medium transition hover:bg-white/10" style="background: rgba(26, 10, 0, 0.3); border: 1px solid var(--border-color); color: var(--text-secondary);">
+                                    👤 Admin Only
+                                </button>
+                            </div>
+                            <!-- Monthly Reports -->
+                            <div class="flex items-center gap-2 ml-4">
+                                <span class="text-xs text-theme-muted">Monthly:</span>
+                                <button onclick="sendAllReports('monthly')" class="px-3 py-2 rounded-lg text-sm font-medium transition hover:opacity-90" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white;">
+                                    📤 Send All
+                                </button>
+                                <button onclick="sendAdminReport('monthly')" class="px-3 py-2 rounded-lg text-sm font-medium transition hover:bg-white/10" style="background: rgba(26, 10, 0, 0.3); border: 1px solid var(--border-color); color: var(--text-secondary);">
+                                    👤 Admin Only
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Last Updated -->
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-display font-semibold text-theme-primary">Per-User Cost Breakdown</h3>
+                    <div class="flex items-center gap-2 text-sm text-theme-muted">
+                        <span>Last updated:</span>
+                        <span id="costs-last-updated">-</span>
+                        <button id="refresh-costs-btn" class="ml-2 px-3 py-1 rounded-lg transition hover:bg-white/10" style="background: rgba(26, 10, 0, 0.3); border: 1px solid var(--border-color);">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Costs Table -->
+                <div class="glass-card rounded-xl overflow-hidden">
+                    <table class="w-full">
+                        <thead>
+                            <tr style="background: rgba(26, 10, 0, 0.5); border-bottom: 1px solid var(--border-color);">
+                                <th class="px-4 py-3 text-left text-sm font-semibold text-theme-secondary">User</th>
+                                <th class="px-4 py-3 text-center text-sm font-semibold text-theme-secondary">Projects</th>
+                                <th class="px-4 py-3 text-right text-sm font-semibold text-theme-secondary">S3</th>
+                                <th class="px-4 py-3 text-right text-sm font-semibold text-theme-secondary">CloudFront</th>
+                                <th class="px-4 py-3 text-right text-sm font-semibold text-theme-secondary">Total</th>
+                                <th class="px-4 py-3 text-center text-sm font-semibold text-theme-secondary"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="costs-table-body">
+                            <tr>
+                                <td colspan="6" class="px-4 py-12 text-center text-theme-muted">
+                                    <svg class="w-8 h-8 mx-auto mb-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                    </svg>
+                                    Loading cost data...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

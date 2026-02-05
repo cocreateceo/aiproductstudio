@@ -941,6 +941,9 @@ if (userFilterDropdown) {
             case 'builds':
                 renderBuildHistory();
                 break;
+            case 'costs':
+                loadCostsSummary();
+                break;
         }
     });
 }
@@ -1138,8 +1141,12 @@ navTabs.forEach(tab => {
         else if (view === 'chats') renderChatSessions();
         else if (view === 'clients') renderClientProfiles();
         else if (view === 'builds') renderBuildHistory();
+        else if (view === 'costs') loadCostsSummary();
     });
 });
+
+// Initialize costs view handlers
+initCostsView();
 
 // Chat History
 let chatSessions = [];
@@ -1800,5 +1807,332 @@ async function viewBuildLogs(buildId) {
                 <p class="text-sm text-theme-muted mt-2">${e.message}</p>
             </div>
         `;
+    }
+}
+
+// ==================== AWS COSTS ====================
+
+let costsData = null;
+let costsLastUpdated = null;
+
+// Load costs summary from API
+async function loadCostsSummary() {
+    const tableBody = document.getElementById('costs-table-body');
+    if (!tableBody) return;
+
+    tableBody.innerHTML = `
+        <tr>
+            <td colspan="6" class="px-4 py-12 text-center text-theme-muted">
+                <svg class="w-8 h-8 mx-auto mb-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Loading cost data from AWS...
+            </td>
+        </tr>
+    `;
+
+    try {
+        const res = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'admin-costs-summary', password: adminPassword })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            costsData = data;
+            costsLastUpdated = data.lastUpdated;
+            renderCostsSummary(data);
+        } else {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="px-4 py-12 text-center text-red-400">
+                        Error: ${data.error || 'Failed to load costs'}
+                    </td>
+                </tr>
+            `;
+        }
+    } catch (e) {
+        console.error('Error loading costs:', e);
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="px-4 py-12 text-center text-red-400">
+                    Connection error: ${e.message}
+                </td>
+            </tr>
+        `;
+    }
+}
+
+// Format currency
+function formatCurrency(amount) {
+    return '$' + (amount || 0).toFixed(2);
+}
+
+// Format bytes to human readable
+function formatBytes(bytes) {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Render costs summary stats and table
+function renderCostsSummary(data) {
+    // Update stats
+    document.getElementById('cost-stat-estimated').textContent = formatCurrency(data.totals?.estimated);
+    document.getElementById('cost-stat-s3').textContent = formatCurrency(data.totals?.s3);
+    document.getElementById('cost-stat-cloudfront').textContent = formatCurrency(data.totals?.cloudfront);
+    document.getElementById('cost-stat-projects').textContent = data.totals?.projectCount || 0;
+
+    // Update last updated
+    const lastUpdatedEl = document.getElementById('costs-last-updated');
+    if (lastUpdatedEl && data.lastUpdated) {
+        lastUpdatedEl.textContent = new Date(data.lastUpdated).toLocaleString();
+    }
+
+    // Render table
+    const tableBody = document.getElementById('costs-table-body');
+    if (!tableBody) return;
+
+    if (!data.users || data.users.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="px-4 py-12 text-center text-theme-muted">
+                    <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    No deployments found with cost data
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    // Sort users by total cost (highest first)
+    const sortedUsers = [...data.users].sort((a, b) => (b.costs?.total || 0) - (a.costs?.total || 0));
+
+    tableBody.innerHTML = sortedUsers.map(user => `
+        <tr class="cost-row cursor-pointer hover:bg-white/5 transition" data-user-id="${user.userId}" onclick="toggleCostRow('${user.userId}')" style="border-bottom: 1px solid var(--border-color);">
+            <td class="px-4 py-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white" style="background: linear-gradient(135deg, var(--primary), var(--secondary));">
+                        ${(user.name?.[0] || user.email?.[0] || '?').toUpperCase()}
+                    </div>
+                    <div>
+                        <p class="font-medium text-theme-primary">${user.name || user.email?.split('@')[0] || 'Unknown'}</p>
+                        <p class="text-xs text-theme-muted">${user.email || ''}</p>
+                    </div>
+                </div>
+            </td>
+            <td class="px-4 py-3 text-center text-theme-secondary">${user.projectCount || 0}</td>
+            <td class="px-4 py-3 text-right text-theme-secondary">${formatCurrency(user.costs?.s3)}</td>
+            <td class="px-4 py-3 text-right text-theme-secondary">${formatCurrency(user.costs?.cloudfront)}</td>
+            <td class="px-4 py-3 text-right font-semibold" style="color: var(--primary);">${formatCurrency(user.costs?.total)}</td>
+            <td class="px-4 py-3 text-center">
+                <svg class="expand-cost-icon w-4 h-4 text-theme-muted transition-transform inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </td>
+        </tr>
+        <tr class="cost-detail-row hidden" data-user-detail="${user.userId}">
+            <td colspan="6" class="px-4 py-4" style="background: rgba(26, 10, 0, 0.3);">
+                ${renderUserProjectCosts(user.projects)}
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Render per-project costs for a user
+function renderUserProjectCosts(projects) {
+    if (!projects || projects.length === 0) {
+        return '<p class="text-theme-muted text-center">No projects found</p>';
+    }
+
+    return `
+        <div class="space-y-3">
+            <h4 class="font-semibold text-theme-secondary text-sm mb-3">Project Breakdown:</h4>
+            ${projects.map(project => `
+                <div class="glass-card rounded-lg p-4" style="border: 1px solid var(--border-color);">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h5 class="font-medium text-theme-primary">${project.projectName || 'Unnamed Project'}</h5>
+                            ${project.awsResources?.cloudFrontUrl ? `
+                                <a href="${project.awsResources.cloudFrontUrl}" target="_blank" class="text-xs hover:underline" style="color: var(--primary);">
+                                    ${project.awsResources.cloudFrontUrl}
+                                </a>
+                            ` : ''}
+                        </div>
+                        <span class="font-bold" style="color: var(--primary);">${formatCurrency(project.costs?.total)}</span>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                            <p class="text-theme-muted text-xs">S3 Storage</p>
+                            <p class="text-theme-secondary">${formatCurrency(project.costs?.s3?.storage)}</p>
+                            <p class="text-xs text-theme-muted">${formatBytes(project.costs?.metrics?.s3SizeBytes)}</p>
+                        </div>
+                        <div>
+                            <p class="text-theme-muted text-xs">CloudFront Transfer</p>
+                            <p class="text-theme-secondary">${formatCurrency(project.costs?.cloudfront?.dataTransfer)}</p>
+                            <p class="text-xs text-theme-muted">${formatBytes(project.costs?.metrics?.cloudfrontBytesTransferred)}</p>
+                        </div>
+                        <div>
+                            <p class="text-theme-muted text-xs">CloudFront Requests</p>
+                            <p class="text-theme-secondary">${formatCurrency(project.costs?.cloudfront?.requests)}</p>
+                            <p class="text-xs text-theme-muted">${(project.costs?.metrics?.cloudfrontRequests || 0).toLocaleString()} requests</p>
+                        </div>
+                        <div>
+                            <p class="text-theme-muted text-xs">Resources</p>
+                            <p class="text-xs text-theme-muted">S3: ${project.awsResources?.s3Bucket || '-'}</p>
+                            <p class="text-xs text-theme-muted">CF: ${project.awsResources?.cloudFrontId || '-'}</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+// Toggle cost row expansion
+function toggleCostRow(userId) {
+    const detailRow = document.querySelector(`tr[data-user-detail="${userId}"]`);
+    const mainRow = document.querySelector(`tr[data-user-id="${userId}"]`);
+    const icon = mainRow?.querySelector('.expand-cost-icon');
+
+    if (detailRow) {
+        const isHidden = detailRow.classList.contains('hidden');
+        detailRow.classList.toggle('hidden', !isHidden);
+
+        if (icon) {
+            icon.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+    }
+}
+
+// Initialize costs view
+function initCostsView() {
+    const refreshBtn = document.getElementById('refresh-costs-btn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            loadCostsSummary();
+            showToast('Refreshing cost data...', 'info');
+        });
+    }
+}
+
+// ==================== EMAIL REPORTS ====================
+
+// Send reports to all users (weekly or monthly)
+async function sendAllReports(period) {
+    const btnSelector = period === 'weekly' ? 'button[onclick*="sendAllReports(\'weekly\')"]' : 'button[onclick*="sendAllReports(\'monthly\')"]';
+    const btn = document.querySelector(btnSelector);
+    const originalText = btn?.textContent;
+
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Sending...';
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+
+    showToast(`Sending ${period} reports to all users...`, 'info');
+
+    try {
+        const res = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'send-all-reports',
+                password: adminPassword,
+                period: period
+            })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            showToast(`${period.charAt(0).toUpperCase() + period.slice(1)} reports sent! ${data.userReportsSent || 0} user reports, ${data.adminReportSent ? '1 admin report' : 'no admin report'}`, 'success');
+        } else {
+            showToast(`Error: ${data.error || 'Failed to send reports'}`, 'error');
+        }
+    } catch (e) {
+        console.error('Error sending reports:', e);
+        showToast(`Connection error: ${e.message}`, 'error');
+    }
+
+    if (btn) {
+        btn.disabled = false;
+        btn.textContent = originalText;
+        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+}
+
+// Send admin report only (weekly or monthly)
+async function sendAdminReport(period) {
+    const btnSelector = period === 'weekly' ? 'button[onclick*="sendAdminReport(\'weekly\')"]' : 'button[onclick*="sendAdminReport(\'monthly\')"]';
+    const btn = document.querySelector(btnSelector);
+    const originalText = btn?.textContent;
+
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Sending...';
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+
+    showToast(`Sending ${period} admin report...`, 'info');
+
+    try {
+        const res = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'send-admin-report',
+                password: adminPassword,
+                period: period
+            })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            showToast(`${period.charAt(0).toUpperCase() + period.slice(1)} admin report sent successfully!`, 'success');
+        } else {
+            showToast(`Error: ${data.error || 'Failed to send admin report'}`, 'error');
+        }
+    } catch (e) {
+        console.error('Error sending admin report:', e);
+        showToast(`Connection error: ${e.message}`, 'error');
+    }
+
+    if (btn) {
+        btn.disabled = false;
+        btn.textContent = originalText;
+        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+}
+
+// Send report to a specific user
+async function sendUserReport(userId, period) {
+    showToast(`Sending ${period} report to ${userId}...`, 'info');
+
+    try {
+        const res = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'send-user-report',
+                password: adminPassword,
+                userId: userId,
+                period: period
+            })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            showToast(`${period.charAt(0).toUpperCase() + period.slice(1)} report sent to ${userId}!`, 'success');
+        } else {
+            showToast(`Error: ${data.error || 'Failed to send report'}`, 'error');
+        }
+    } catch (e) {
+        console.error('Error sending user report:', e);
+        showToast(`Connection error: ${e.message}`, 'error');
     }
 }

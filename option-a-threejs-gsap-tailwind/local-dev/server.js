@@ -11,10 +11,14 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import dns from 'dns';
+import crypto from 'crypto';
 import { promisify } from 'util';
 import Anthropic from '@anthropic-ai/sdk';
-import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command, HeadBucketCommand } from '@aws-sdk/client-s3';
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
+import { CloudWatchClient, GetMetricStatisticsCommand } from '@aws-sdk/client-cloudwatch';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, ScanCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { fromIni } from '@aws-sdk/credential-providers';
 import { google } from 'googleapis';
 
@@ -76,6 +80,32 @@ const ses = new SESClient({
   region: SES_REGION,
   credentials: fromIni({ profile: AWS_PROFILE })
 });
+
+// CloudWatch client for cost metrics
+const cloudwatch = new CloudWatchClient({
+  region: S3_REGION,
+  credentials: fromIni({ profile: AWS_PROFILE })
+});
+
+// DynamoDB client for tmux-deployments table
+const dynamoClient = new DynamoDBClient({
+  region: S3_REGION,
+  credentials: fromIni({ profile: AWS_PROFILE })
+});
+const dynamodb = DynamoDBDocumentClient.from(dynamoClient);
+
+// AWS Pricing Constants (us-east-1)
+const AWS_PRICING = {
+  s3: {
+    storagePerGBMonth: 0.023,      // $0.023/GB-month
+    putRequestsPer1000: 0.005,     // $0.005/1000 PUT requests
+    getRequestsPer1000: 0.0004     // $0.0004/1000 GET requests
+  },
+  cloudfront: {
+    dataTransferPerGB: 0.085,      // $0.085/GB (first 10TB)
+    httpsRequestsPer10K: 0.01      // $0.01/10K HTTPS requests
+  }
+};
 
 // ========== GOOGLE CALENDAR AUTH ==========
 let googleCalendar = null;
@@ -575,6 +605,41 @@ async function listApplications() {
   return applications.filter(app => app !== null).sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
 }
 
+// Helper: Generate GUID from email (consistent with Tmux Builder)
+function generateGuid(email, phone = '') {
+  const input = `${email}:${phone}`;
+  return crypto.createHash('sha256').update(input).digest('hex');
+}
+
+// Tmux Builder base URL
+const TMUX_BUILDER_URL = process.env.TMUX_BUILDER_URL || 'https://d3tfeatcbws1ka.cloudfront.net';
+
+// Helper: Register user with Tmux Builder
+async function registerWithTmuxBuilder(email, phone, initialRequest) {
+  try {
+    const response = await fetch(`${TMUX_BUILDER_URL}/api/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: email,
+        phone: phone || '',
+        initial_request: initialRequest || 'New project'
+      })
+    });
+    const data = await response.json();
+    if (data.success) {
+      console.log('✓ Registered with Tmux Builder:', data.guid);
+      return { success: true, guid: data.guid, url: data.url };
+    } else {
+      console.error('✗ Tmux Builder registration failed:', data.error);
+      return { success: false, error: data.error };
+    }
+  } catch (error) {
+    console.error('✗ Tmux Builder API error:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
 // Helper: Update application status
 async function updateApplicationStatus(s3Key, newStatus, reviewNotes = '') {
   const getResult = await s3.send(new GetObjectCommand({
@@ -588,6 +653,33 @@ async function updateApplicationStatus(s3Key, newStatus, reviewNotes = '') {
   applicationData.reviewedAt = new Date().toISOString();
   applicationData.reviewedAtEST = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
   if (reviewNotes) applicationData.reviewNotes = reviewNotes;
+
+  // If approved, generate GUID and create session
+  if (newStatus === 'approved') {
+    const email = applicationData.visitorInfo?.email || applicationData.formData?.email;
+    const phone = applicationData.visitorInfo?.phone || applicationData.formData?.phone || '';
+    const productIdea = applicationData.formData?.productIdea || applicationData.formData?.product_idea || '';
+
+    if (email) {
+      // Try to register with Tmux Builder first
+      const tmuxResult = await registerWithTmuxBuilder(email, phone, productIdea);
+
+      if (tmuxResult.success) {
+        applicationData.guid = tmuxResult.guid;
+        applicationData.sessionLink = `${TMUX_BUILDER_URL}/client?guid=${tmuxResult.guid}`;
+        console.log('✓ Session created via Tmux Builder:', applicationData.guid);
+      } else {
+        // Fallback: Generate GUID locally if Tmux Builder fails
+        applicationData.guid = generateGuid(email, phone);
+        applicationData.sessionLink = `${TMUX_BUILDER_URL}/client?guid=${applicationData.guid}`;
+        applicationData.sessionError = tmuxResult.error || 'Failed to register with Tmux Builder';
+        console.log('⚠ Using local GUID (Tmux Builder failed):', applicationData.guid);
+      }
+    } else {
+      applicationData.sessionError = 'No email provided - cannot create session';
+      console.log('⚠ No email for session creation');
+    }
+  }
 
   await s3.send(new PutObjectCommand({
     Bucket: S3_BUCKET,
@@ -1202,6 +1294,758 @@ Submitted: ${applicationData.submittedAtEST} EST`;
   }
 }
 
+// ==================== AWS COST CALCULATION ====================
+
+// Get S3 bucket size using ListObjectsV2 with summary
+async function getS3BucketSize(bucketName) {
+  try {
+    let totalSize = 0;
+    let continuationToken = null;
+
+    do {
+      const params = {
+        Bucket: bucketName,
+        ...(continuationToken && { ContinuationToken: continuationToken })
+      };
+
+      const response = await s3.send(new ListObjectsV2Command(params));
+
+      if (response.Contents) {
+        for (const obj of response.Contents) {
+          totalSize += obj.Size || 0;
+        }
+      }
+
+      continuationToken = response.IsTruncated ? response.NextContinuationToken : null;
+    } while (continuationToken);
+
+    return totalSize;
+  } catch (error) {
+    console.log(`[Cost] Could not get size for bucket ${bucketName}:`, error.message);
+    return 0;
+  }
+}
+
+// Get CloudFront request count from CloudWatch
+async function getCloudFrontRequests(distributionId, daysBack = 30) {
+  try {
+    const endTime = new Date();
+    const startTime = new Date();
+    startTime.setDate(startTime.getDate() - daysBack);
+
+    const response = await cloudwatch.send(new GetMetricStatisticsCommand({
+      Namespace: 'AWS/CloudFront',
+      MetricName: 'Requests',
+      Dimensions: [
+        { Name: 'DistributionId', Value: distributionId },
+        { Name: 'Region', Value: 'Global' }
+      ],
+      StartTime: startTime,
+      EndTime: endTime,
+      Period: 86400 * daysBack, // One period for the entire range
+      Statistics: ['Sum']
+    }));
+
+    if (response.Datapoints && response.Datapoints.length > 0) {
+      return response.Datapoints[0].Sum || 0;
+    }
+    return 0;
+  } catch (error) {
+    console.log(`[Cost] Could not get CloudFront requests for ${distributionId}:`, error.message);
+    return 0;
+  }
+}
+
+// Get CloudFront bytes downloaded from CloudWatch
+async function getCloudFrontBytesDownloaded(distributionId, daysBack = 30) {
+  try {
+    const endTime = new Date();
+    const startTime = new Date();
+    startTime.setDate(startTime.getDate() - daysBack);
+
+    const response = await cloudwatch.send(new GetMetricStatisticsCommand({
+      Namespace: 'AWS/CloudFront',
+      MetricName: 'BytesDownloaded',
+      Dimensions: [
+        { Name: 'DistributionId', Value: distributionId },
+        { Name: 'Region', Value: 'Global' }
+      ],
+      StartTime: startTime,
+      EndTime: endTime,
+      Period: 86400 * daysBack,
+      Statistics: ['Sum']
+    }));
+
+    if (response.Datapoints && response.Datapoints.length > 0) {
+      return response.Datapoints[0].Sum || 0;
+    }
+    return 0;
+  } catch (error) {
+    console.log(`[Cost] Could not get CloudFront bytes for ${distributionId}:`, error.message);
+    return 0;
+  }
+}
+
+// Calculate estimated cost for a project's AWS resources
+async function calculateProjectCost(awsResources) {
+  const costs = {
+    s3: { storage: 0, requests: 0, total: 0 },
+    cloudfront: { dataTransfer: 0, requests: 0, total: 0 },
+    total: 0,
+    metrics: {
+      s3SizeBytes: 0,
+      cloudfrontRequests: 0,
+      cloudfrontBytesTransferred: 0
+    }
+  };
+
+  // S3 Cost: Get bucket size
+  if (awsResources?.s3Bucket) {
+    const sizeBytes = await getS3BucketSize(awsResources.s3Bucket);
+    const sizeGB = sizeBytes / (1024 ** 3);
+    costs.s3.storage = sizeGB * AWS_PRICING.s3.storagePerGBMonth;
+    costs.s3.total = costs.s3.storage;
+    costs.metrics.s3SizeBytes = sizeBytes;
+  }
+
+  // CloudFront Cost: Get request count and bytes transferred
+  if (awsResources?.cloudFrontId) {
+    const requests = await getCloudFrontRequests(awsResources.cloudFrontId);
+    const bytesTransferred = await getCloudFrontBytesDownloaded(awsResources.cloudFrontId);
+    const dataTransferGB = bytesTransferred / (1024 ** 3);
+
+    costs.cloudfront.dataTransfer = dataTransferGB * AWS_PRICING.cloudfront.dataTransferPerGB;
+    costs.cloudfront.requests = (requests / 10000) * AWS_PRICING.cloudfront.httpsRequestsPer10K;
+    costs.cloudfront.total = costs.cloudfront.dataTransfer + costs.cloudfront.requests;
+
+    costs.metrics.cloudfrontRequests = requests;
+    costs.metrics.cloudfrontBytesTransferred = bytesTransferred;
+  }
+
+  costs.total = costs.s3.total + costs.cloudfront.total;
+
+  return costs;
+}
+
+// Get all deployments from tmux-deployments DynamoDB table
+async function getAllDeployments() {
+  try {
+    const response = await dynamodb.send(new ScanCommand({
+      TableName: 'tmux-deployments'
+    }));
+    return response.Items || [];
+  } catch (error) {
+    console.log('[Cost] Could not scan tmux-deployments table:', error.message);
+    return [];
+  }
+}
+
+// Get all approved users from S3 applications
+async function getApprovedUsers() {
+  try {
+    const applications = await listApplications();
+    const approvedUsers = applications
+      .filter(app => app.status === 'approved' && app.visitorInfo?.email)
+      .map(app => ({
+        email: app.visitorInfo.email,
+        name: app.visitorInfo.name || app.visitorInfo.email.split('@')[0],
+        guid: app.guid,
+        productIdea: app.formData?.productIdea || app.formData?.product_idea || '',
+        approvedAt: app.reviewedAt || app.timestamp
+      }));
+
+    // Remove duplicates by email
+    const uniqueUsers = [];
+    const seenEmails = new Set();
+    for (const user of approvedUsers) {
+      if (!seenEmails.has(user.email.toLowerCase())) {
+        seenEmails.add(user.email.toLowerCase());
+        uniqueUsers.push(user);
+      }
+    }
+
+    console.log(`[Report] Found ${uniqueUsers.length} approved users`);
+    return uniqueUsers;
+  } catch (error) {
+    console.error('[Report] Error fetching approved users:', error.message);
+    return [];
+  }
+}
+
+// Get deployments for a specific user
+async function getUserDeployments(userId) {
+  try {
+    const response = await dynamodb.send(new QueryCommand({
+      TableName: 'tmux-deployments',
+      KeyConditionExpression: 'userId = :uid',
+      ExpressionAttributeValues: {
+        ':uid': userId
+      }
+    }));
+    return response.Items || [];
+  } catch (error) {
+    console.log(`[Cost] Could not query deployments for ${userId}:`, error.message);
+    return [];
+  }
+}
+
+// Calculate costs for all users (admin summary)
+async function calculateAllUserCosts() {
+  const deployments = await getAllDeployments();
+  const userCosts = {};
+
+  for (const deployment of deployments) {
+    const userId = deployment.userId || deployment.email || 'unknown';
+
+    if (!userCosts[userId]) {
+      userCosts[userId] = {
+        userId,
+        email: deployment.email || userId,
+        name: deployment.projectName ? deployment.projectName.split(' ')[0] : userId.split('@')[0],
+        projectCount: 0,
+        costs: {
+          s3: 0,
+          cloudfront: 0,
+          total: 0
+        },
+        projects: []
+      };
+    }
+
+    // Calculate cost for this project
+    const projectCosts = await calculateProjectCost(deployment.awsResources);
+
+    userCosts[userId].projectCount++;
+    userCosts[userId].costs.s3 += projectCosts.s3.total;
+    userCosts[userId].costs.cloudfront += projectCosts.cloudfront.total;
+    userCosts[userId].costs.total += projectCosts.total;
+
+    userCosts[userId].projects.push({
+      projectId: deployment.projectId,
+      projectName: deployment.projectName || 'Unnamed Project',
+      awsResources: deployment.awsResources,
+      costs: projectCosts,
+      createdAt: deployment.createdAt,
+      updatedAt: deployment.updatedAt
+    });
+  }
+
+  return Object.values(userCosts);
+}
+
+// Calculate costs for a single user
+async function calculateUserCosts(userId) {
+  const deployments = await getUserDeployments(userId);
+
+  const userCosts = {
+    userId,
+    email: userId,
+    projectCount: deployments.length,
+    costs: {
+      s3: 0,
+      cloudfront: 0,
+      total: 0
+    },
+    projects: []
+  };
+
+  for (const deployment of deployments) {
+    const projectCosts = await calculateProjectCost(deployment.awsResources);
+
+    userCosts.costs.s3 += projectCosts.s3.total;
+    userCosts.costs.cloudfront += projectCosts.cloudfront.total;
+    userCosts.costs.total += projectCosts.total;
+
+    userCosts.projects.push({
+      projectId: deployment.projectId,
+      projectName: deployment.projectName || 'Unnamed Project',
+      deployedUrl: deployment.awsResources?.cloudFrontUrl,
+      awsResources: deployment.awsResources,
+      costs: projectCosts,
+      createdAt: deployment.createdAt,
+      updatedAt: deployment.updatedAt
+    });
+  }
+
+  return userCosts;
+}
+
+// ==================== EMAIL COST REPORTS ====================
+
+// Classify website as static or dynamic based on resources
+function classifyWebsiteType(awsResources) {
+  // Static: Only S3 + CloudFront (no Lambda, API Gateway, DynamoDB)
+  // Dynamic: Has Lambda, API Gateway, or DynamoDB
+  if (awsResources?.lambdaFunction || awsResources?.apiGateway || awsResources?.dynamoTable) {
+    return 'Dynamic';
+  }
+  return 'Static';
+}
+
+// Format currency for emails
+function formatCurrencyEmail(amount) {
+  return '$' + (amount || 0).toFixed(2);
+}
+
+// Format bytes for emails
+function formatBytesEmail(bytes) {
+  if (!bytes || bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Get date range for report period
+function getReportDateRange(period) {
+  const endDate = new Date();
+  const startDate = new Date();
+
+  if (period === 'weekly') {
+    startDate.setDate(startDate.getDate() - 7);
+  } else if (period === 'monthly') {
+    startDate.setMonth(startDate.getMonth() - 1);
+  }
+
+  return {
+    start: startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    end: endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    period: period === 'weekly' ? 'Weekly' : 'Monthly'
+  };
+}
+
+// Generate email styles (shared between user and admin reports)
+function getEmailStyles() {
+  return `
+    <style>
+      body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; }
+      .container { max-width: 600px; margin: 0 auto; background: #ffffff; }
+      .header { background: linear-gradient(135deg, #fc2a0d 0%, #fd6c71 100%); padding: 30px; text-align: center; }
+      .header h1 { color: #ffffff; margin: 0; font-size: 24px; }
+      .header p { color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 14px; }
+      .content { padding: 30px; }
+      .summary-box { background: #f8f9fa; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+      .summary-grid { display: flex; flex-wrap: wrap; gap: 15px; }
+      .summary-item { flex: 1; min-width: 120px; text-align: center; padding: 15px; background: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+      .summary-item .label { font-size: 12px; color: #666; margin-bottom: 5px; }
+      .summary-item .value { font-size: 24px; font-weight: bold; color: #fc2a0d; }
+      .summary-item .value.green { color: #22c55e; }
+      .summary-item .value.blue { color: #3b82f6; }
+      .section-title { font-size: 18px; font-weight: 600; color: #333; margin: 25px 0 15px 0; padding-bottom: 10px; border-bottom: 2px solid #fc2a0d; }
+      .project-card { background: #f8f9fa; border-radius: 8px; padding: 15px; margin-bottom: 12px; border-left: 4px solid #fc2a0d; }
+      .project-card.dynamic { border-left-color: #8b5cf6; }
+      .project-name { font-weight: 600; color: #333; margin-bottom: 5px; }
+      .project-url { font-size: 12px; color: #fc2a0d; text-decoration: none; word-break: break-all; }
+      .project-details { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 10px; font-size: 13px; }
+      .project-details .item { }
+      .project-details .item .label { color: #666; }
+      .project-details .item .value { font-weight: 600; color: #333; }
+      .badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+      .badge.static { background: #dbeafe; color: #1d4ed8; }
+      .badge.dynamic { background: #ede9fe; color: #7c3aed; }
+      .user-section { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+      .user-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #e5e7eb; }
+      .user-name { font-weight: 600; font-size: 16px; color: #333; }
+      .user-email { font-size: 13px; color: #666; }
+      .user-total { font-size: 20px; font-weight: bold; color: #fc2a0d; }
+      .footer { background: #1a0a00; padding: 25px; text-align: center; }
+      .footer p { color: rgba(255,255,255,0.7); font-size: 12px; margin: 5px 0; }
+      .footer a { color: #fc2a0d; text-decoration: none; }
+      .total-row { background: linear-gradient(135deg, #fc2a0d 0%, #fd6c71 100%); color: white; padding: 20px; border-radius: 12px; text-align: center; margin-top: 20px; }
+      .total-row .label { font-size: 14px; opacity: 0.9; }
+      .total-row .value { font-size: 32px; font-weight: bold; margin-top: 5px; }
+      table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+      th { background: #f8f9fa; padding: 12px; text-align: left; font-size: 12px; color: #666; border-bottom: 2px solid #e5e7eb; }
+      td { padding: 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px; }
+      .text-right { text-align: right; }
+    </style>
+  `;
+}
+
+// Generate User Cost Report Email (Weekly or Monthly)
+function generateUserReportEmail(userCosts, period = 'weekly') {
+  const dateRange = getReportDateRange(period);
+  const styles = getEmailStyles();
+
+  const staticCount = userCosts.projects.filter(p => classifyWebsiteType(p.awsResources) === 'Static').length;
+  const dynamicCount = userCosts.projects.length - staticCount;
+
+  const projectsHtml = userCosts.projects.map(project => {
+    const type = classifyWebsiteType(project.awsResources);
+    const badgeClass = type === 'Static' ? 'static' : 'dynamic';
+    const cardClass = type === 'Dynamic' ? 'dynamic' : '';
+
+    return `
+      <div class="project-card ${cardClass}">
+        <div style="display: flex; justify-content: space-between; align-items: start;">
+          <div>
+            <div class="project-name">${project.projectName}</div>
+            ${project.deployedUrl ? `<a href="${project.deployedUrl}" class="project-url">${project.deployedUrl}</a>` : ''}
+          </div>
+          <span class="badge ${badgeClass}">${type}</span>
+        </div>
+        <div class="project-details">
+          <div class="item">
+            <span class="label">S3 Storage:</span>
+            <span class="value">${formatCurrencyEmail(project.costs?.s3?.total)} (${formatBytesEmail(project.costs?.metrics?.s3SizeBytes)})</span>
+          </div>
+          <div class="item">
+            <span class="label">CloudFront:</span>
+            <span class="value">${formatCurrencyEmail(project.costs?.cloudfront?.total)}</span>
+          </div>
+          <div class="item">
+            <span class="label">Total:</span>
+            <span class="value" style="color: #fc2a0d; font-weight: bold;">${formatCurrencyEmail(project.costs?.total)}/mo</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      ${styles}
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🚀 CoCreate ${dateRange.period} Cost Report</h1>
+          <p>${dateRange.start} - ${dateRange.end}</p>
+        </div>
+
+        <div class="content">
+          <div class="summary-box">
+            <div class="summary-grid">
+              <div class="summary-item">
+                <div class="label">Total Websites</div>
+                <div class="value blue">${userCosts.projectCount}</div>
+              </div>
+              <div class="summary-item">
+                <div class="label">Static Sites</div>
+                <div class="value green">${staticCount}</div>
+              </div>
+              <div class="summary-item">
+                <div class="label">Dynamic Sites</div>
+                <div class="value" style="color: #8b5cf6;">${dynamicCount}</div>
+              </div>
+              <div class="summary-item">
+                <div class="label">Est. Monthly Cost</div>
+                <div class="value">${formatCurrencyEmail(userCosts.costs.total)}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title">💰 Cost Breakdown by Service</div>
+          <table>
+            <tr>
+              <th>Service</th>
+              <th class="text-right">Cost</th>
+            </tr>
+            <tr>
+              <td>S3 Storage</td>
+              <td class="text-right"><strong>${formatCurrencyEmail(userCosts.costs.s3)}</strong></td>
+            </tr>
+            <tr>
+              <td>CloudFront CDN</td>
+              <td class="text-right"><strong>${formatCurrencyEmail(userCosts.costs.cloudfront)}</strong></td>
+            </tr>
+            <tr style="background: #f8f9fa;">
+              <td><strong>Total Monthly Estimate</strong></td>
+              <td class="text-right" style="color: #fc2a0d;"><strong>${formatCurrencyEmail(userCosts.costs.total)}</strong></td>
+            </tr>
+          </table>
+
+          <div class="section-title">🌐 Your Websites</div>
+          ${projectsHtml || '<p style="color: #666; text-align: center;">No websites deployed yet</p>'}
+
+          <div class="total-row">
+            <div class="label">Total Estimated ${dateRange.period} Cost</div>
+            <div class="value">${formatCurrencyEmail(userCosts.costs.total)}</div>
+          </div>
+        </div>
+
+        <div class="footer">
+          <p><strong>CoCreate</strong> - Your AI Co-Founder</p>
+          <p>Questions? Reply to this email or visit <a href="https://cocreateidea.com">cocreateidea.com</a></p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+// Generate Admin Cost Report Email (Weekly or Monthly)
+function generateAdminReportEmail(allUserCosts, period = 'weekly') {
+  const dateRange = getReportDateRange(period);
+  const styles = getEmailStyles();
+
+  // Calculate platform totals
+  const platformTotals = {
+    users: allUserCosts.length,
+    websites: allUserCosts.reduce((sum, u) => sum + u.projectCount, 0),
+    staticSites: 0,
+    dynamicSites: 0,
+    s3Cost: allUserCosts.reduce((sum, u) => sum + u.costs.s3, 0),
+    cloudfrontCost: allUserCosts.reduce((sum, u) => sum + u.costs.cloudfront, 0),
+    totalCost: allUserCosts.reduce((sum, u) => sum + u.costs.total, 0)
+  };
+
+  // Count static/dynamic across all users
+  allUserCosts.forEach(user => {
+    user.projects.forEach(project => {
+      if (classifyWebsiteType(project.awsResources) === 'Static') {
+        platformTotals.staticSites++;
+      } else {
+        platformTotals.dynamicSites++;
+      }
+    });
+  });
+
+  // Sort users by total cost (highest first)
+  const sortedUsers = [...allUserCosts].sort((a, b) => b.costs.total - a.costs.total);
+
+  const usersHtml = sortedUsers.map(user => {
+    const userStaticCount = user.projects.filter(p => classifyWebsiteType(p.awsResources) === 'Static').length;
+    const userDynamicCount = user.projects.length - userStaticCount;
+
+    const projectsTable = user.projects.map(project => {
+      const type = classifyWebsiteType(project.awsResources);
+      const badgeClass = type === 'Static' ? 'static' : 'dynamic';
+
+      return `
+        <tr>
+          <td>
+            <div style="font-weight: 500;">${project.projectName}</div>
+            ${project.deployedUrl ? `<a href="${project.deployedUrl}" style="font-size: 11px; color: #fc2a0d;">${project.deployedUrl}</a>` : ''}
+          </td>
+          <td><span class="badge ${badgeClass}">${type}</span></td>
+          <td class="text-right">${formatCurrencyEmail(project.costs?.s3?.total)}</td>
+          <td class="text-right">${formatCurrencyEmail(project.costs?.cloudfront?.total)}</td>
+          <td class="text-right" style="font-weight: bold; color: #fc2a0d;">${formatCurrencyEmail(project.costs?.total)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <div class="user-section">
+        <div class="user-header">
+          <div>
+            <div class="user-name">${user.name || user.email?.split('@')[0] || 'Unknown User'}</div>
+            <div class="user-email">${user.email}</div>
+          </div>
+          <div style="text-align: right;">
+            <div class="user-total">${formatCurrencyEmail(user.costs.total)}</div>
+            <div style="font-size: 12px; color: #666;">${user.projectCount} website${user.projectCount !== 1 ? 's' : ''} (${userStaticCount} static, ${userDynamicCount} dynamic)</div>
+          </div>
+        </div>
+
+        <table>
+          <tr>
+            <th>Website</th>
+            <th>Type</th>
+            <th class="text-right">S3</th>
+            <th class="text-right">CloudFront</th>
+            <th class="text-right">Total</th>
+          </tr>
+          ${projectsTable}
+        </table>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      ${styles}
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>📊 CoCreate Admin ${dateRange.period} Cost Report</h1>
+          <p>${dateRange.start} - ${dateRange.end}</p>
+        </div>
+
+        <div class="content">
+          <div class="summary-box">
+            <div class="summary-grid">
+              <div class="summary-item">
+                <div class="label">Total Users</div>
+                <div class="value blue">${platformTotals.users}</div>
+              </div>
+              <div class="summary-item">
+                <div class="label">Total Websites</div>
+                <div class="value green">${platformTotals.websites}</div>
+              </div>
+              <div class="summary-item">
+                <div class="label">Static Sites</div>
+                <div class="value" style="color: #3b82f6;">${platformTotals.staticSites}</div>
+              </div>
+              <div class="summary-item">
+                <div class="label">Dynamic Sites</div>
+                <div class="value" style="color: #8b5cf6;">${platformTotals.dynamicSites}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title">💰 Platform Cost Summary</div>
+          <table>
+            <tr>
+              <th>Service</th>
+              <th class="text-right">Cost</th>
+            </tr>
+            <tr>
+              <td>S3 Storage (All Users)</td>
+              <td class="text-right"><strong>${formatCurrencyEmail(platformTotals.s3Cost)}</strong></td>
+            </tr>
+            <tr>
+              <td>CloudFront CDN (All Users)</td>
+              <td class="text-right"><strong>${formatCurrencyEmail(platformTotals.cloudfrontCost)}</strong></td>
+            </tr>
+            <tr style="background: linear-gradient(135deg, #fc2a0d 0%, #fd6c71 100%); color: white;">
+              <td><strong>Total Platform Cost</strong></td>
+              <td class="text-right"><strong>${formatCurrencyEmail(platformTotals.totalCost)}</strong></td>
+            </tr>
+          </table>
+
+          <div class="section-title">👥 Per-User Breakdown (${platformTotals.users} Users)</div>
+          ${usersHtml || '<p style="color: #666; text-align: center;">No users with deployments</p>'}
+
+          <div class="total-row">
+            <div class="label">Total Platform ${dateRange.period} Cost</div>
+            <div class="value">${formatCurrencyEmail(platformTotals.totalCost)}</div>
+          </div>
+        </div>
+
+        <div class="footer">
+          <p><strong>CoCreate Admin</strong></p>
+          <p>Generated on ${new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+// Send cost report email to a user (approved user - may or may not have deployments)
+async function sendUserCostReport(userEmail, period = 'weekly') {
+  try {
+    // Try to get deployment costs for this user
+    let userCosts = await calculateUserCosts(userEmail);
+
+    // If no deployments, create empty cost structure (user is approved but hasn't deployed)
+    if (!userCosts || userCosts.projectCount === 0) {
+      userCosts = {
+        userId: userEmail,
+        email: userEmail,
+        projectCount: 0,
+        costs: { s3: 0, cloudfront: 0, total: 0 },
+        projects: []
+      };
+    }
+
+    const emailHtml = generateUserReportEmail(userCosts, period);
+    const periodLabel = period === 'weekly' ? 'Weekly' : 'Monthly';
+
+    await ses.send(new SendEmailCommand({
+      Destination: { ToAddresses: [userEmail] },
+      Message: {
+        Subject: { Data: `🚀 Your CoCreate ${periodLabel} Report` },
+        Body: { Html: { Data: emailHtml } }
+      },
+      Source: NOTIFICATION_EMAIL
+    }));
+
+    console.log(`[Report] Sent ${period} report to user: ${userEmail} (${userCosts.projectCount} projects)`);
+    return { success: true, email: userEmail, period, projectCount: userCosts.projectCount };
+  } catch (error) {
+    console.error(`[Report] Failed to send to ${userEmail}:`, error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+// Send cost report email to admin (includes all approved users)
+async function sendAdminCostReport(period = 'weekly') {
+  try {
+    // Get approved users from S3 and deployment costs from DynamoDB
+    const approvedUsers = await getApprovedUsers();
+    const deploymentCosts = await calculateAllUserCosts();
+
+    // Create a map of email -> deployment costs
+    const costsByEmail = {};
+    for (const user of deploymentCosts) {
+      costsByEmail[user.email.toLowerCase()] = user;
+    }
+
+    // Merge approved users with their deployment costs
+    const allUserCosts = approvedUsers.map(user => {
+      const costs = costsByEmail[user.email.toLowerCase()];
+      return {
+        userId: user.email,
+        email: user.email,
+        name: user.name,
+        projectCount: costs?.projectCount || 0,
+        costs: costs?.costs || { s3: 0, cloudfront: 0, total: 0 },
+        projects: costs?.projects || [],
+        status: costs?.projectCount > 0 ? 'deployed' : 'approved'
+      };
+    });
+
+    const emailHtml = generateAdminReportEmail(allUserCosts, period);
+    const periodLabel = period === 'weekly' ? 'Weekly' : 'Monthly';
+    const deployedCount = allUserCosts.filter(u => u.status === 'deployed').length;
+
+    await ses.send(new SendEmailCommand({
+      Destination: { ToAddresses: [NOTIFICATION_EMAIL] },
+      Message: {
+        Subject: { Data: `📊 CoCreate Admin ${periodLabel} Report - ${allUserCosts.length} Users (${deployedCount} Deployed)` },
+        Body: { Html: { Data: emailHtml } }
+      },
+      Source: NOTIFICATION_EMAIL
+    }));
+
+    console.log(`[Report] Sent ${period} admin report to: ${NOTIFICATION_EMAIL} (${allUserCosts.length} approved, ${deployedCount} deployed)`);
+    return { success: true, userCount: allUserCosts.length, deployedCount, period };
+  } catch (error) {
+    console.error(`[Report] Failed to send admin report:`, error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+// Send reports to all approved users (from S3 applications)
+async function sendAllUserReports(period = 'weekly') {
+  const approvedUsers = await getApprovedUsers();
+  const results = { success: 0, failed: 0, skipped: 0, details: [] };
+
+  console.log(`[Report] Sending ${period} reports to ${approvedUsers.length} approved users`);
+
+  for (const user of approvedUsers) {
+    if (!user.email) {
+      results.skipped++;
+      continue;
+    }
+
+    const result = await sendUserCostReport(user.email, period);
+    if (result.success) {
+      results.success++;
+    } else {
+      results.failed++;
+    }
+    results.details.push({ email: user.email, name: user.name, ...result });
+
+    // Small delay between emails to avoid rate limiting
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+
+  return results;
+}
+
 // ==================== API ENDPOINTS ====================
 
 // Chat endpoint
@@ -1291,6 +2135,165 @@ app.post('/api/chat', async (req, res) => {
       }
       const builds = await listBuildHistory(req.body.limit || 50);
       return res.json({ success: true, builds });
+    }
+
+    // Admin Costs Summary - All users with total costs
+    if (action === 'admin-costs-summary') {
+      if (password !== ADMIN_PASSWORD) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+      }
+      try {
+        console.log('[Admin] Fetching costs summary...');
+        const userCosts = await calculateAllUserCosts();
+
+        // Calculate totals
+        const totals = {
+          estimated: userCosts.reduce((sum, u) => sum + u.costs.total, 0),
+          s3: userCosts.reduce((sum, u) => sum + u.costs.s3, 0),
+          cloudfront: userCosts.reduce((sum, u) => sum + u.costs.cloudfront, 0),
+          projectCount: userCosts.reduce((sum, u) => sum + u.projectCount, 0),
+          userCount: userCosts.length
+        };
+
+        return res.json({
+          success: true,
+          totals,
+          users: userCosts,
+          lastUpdated: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error('[Admin] Costs summary error:', error);
+        return res.status(500).json({ success: false, error: error.message });
+      }
+    }
+
+    // Admin Costs for Single User - Detailed breakdown
+    if (action === 'admin-costs-user') {
+      if (password !== ADMIN_PASSWORD) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+      }
+      try {
+        const { userId } = req.body;
+        if (!userId) {
+          return res.status(400).json({ success: false, error: 'userId is required' });
+        }
+
+        console.log(`[Admin] Fetching costs for user: ${userId}`);
+        const userCosts = await calculateUserCosts(userId);
+
+        return res.json({
+          success: true,
+          user: userCosts,
+          lastUpdated: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error('[Admin] User costs error:', error);
+        return res.status(500).json({ success: false, error: error.message });
+      }
+    }
+
+    // User Costs - Current user's projects with costs
+    if (action === 'user-costs') {
+      try {
+        const { guid, sessionToken } = req.body;
+        if (!guid) {
+          return res.status(400).json({ success: false, error: 'guid is required' });
+        }
+
+        // Get user email from session data (simplified - in production would validate session)
+        console.log(`[User] Fetching costs for guid: ${guid}`);
+
+        // Query deployments by userId (which is the email/guid)
+        const userCosts = await calculateUserCosts(guid);
+
+        return res.json({
+          success: true,
+          costs: userCosts,
+          lastUpdated: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error('[User] Costs error:', error);
+        return res.status(500).json({ success: false, error: error.message });
+      }
+    }
+
+    // Send User Cost Report Email (Weekly or Monthly)
+    if (action === 'send-user-report') {
+      if (password !== ADMIN_PASSWORD) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+      }
+      try {
+        const { userEmail, period = 'weekly' } = req.body;
+        if (!userEmail) {
+          return res.status(400).json({ success: false, error: 'userEmail is required' });
+        }
+        if (!['weekly', 'monthly'].includes(period)) {
+          return res.status(400).json({ success: false, error: 'period must be weekly or monthly' });
+        }
+
+        console.log(`[Report] Sending ${period} report to: ${userEmail}`);
+        const result = await sendUserCostReport(userEmail, period);
+
+        return res.json(result);
+      } catch (error) {
+        console.error('[Report] Error:', error);
+        return res.status(500).json({ success: false, error: error.message });
+      }
+    }
+
+    // Send Admin Cost Report Email (Weekly or Monthly)
+    if (action === 'send-admin-report') {
+      if (password !== ADMIN_PASSWORD) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+      }
+      try {
+        const { period = 'weekly' } = req.body;
+        if (!['weekly', 'monthly'].includes(period)) {
+          return res.status(400).json({ success: false, error: 'period must be weekly or monthly' });
+        }
+
+        console.log(`[Report] Sending ${period} admin report`);
+        const result = await sendAdminCostReport(period);
+
+        return res.json(result);
+      } catch (error) {
+        console.error('[Report] Error:', error);
+        return res.status(500).json({ success: false, error: error.message });
+      }
+    }
+
+    // Send Reports to All Users (for scheduled jobs)
+    if (action === 'send-all-reports') {
+      if (password !== ADMIN_PASSWORD) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+      }
+      try {
+        const { period = 'weekly', includeAdmin = true } = req.body;
+        if (!['weekly', 'monthly'].includes(period)) {
+          return res.status(400).json({ success: false, error: 'period must be weekly or monthly' });
+        }
+
+        console.log(`[Report] Sending ${period} reports to all users`);
+
+        // Send to all users
+        const userResults = await sendAllUserReports(period);
+
+        // Optionally send admin report too
+        let adminResult = null;
+        if (includeAdmin) {
+          adminResult = await sendAdminCostReport(period);
+        }
+
+        return res.json({
+          success: true,
+          period,
+          users: userResults,
+          admin: adminResult
+        });
+      } catch (error) {
+        console.error('[Report] Error:', error);
+        return res.status(500).json({ success: false, error: error.message });
+      }
     }
 
     // Admin Get Chat Session Detail
