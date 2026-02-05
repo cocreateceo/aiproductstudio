@@ -2331,6 +2331,214 @@ export const handler = async (event) => {
       };
     }
 
+    // ==================== AWS COSTS ENDPOINTS ====================
+
+    // Admin Costs Summary - All users with total costs
+    if (action === 'admin-costs-summary') {
+      const { password } = body;
+      if (password !== ADMIN_PASSWORD) {
+        return {
+          statusCode: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'Unauthorized' })
+        };
+      }
+
+      try {
+        const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+        const { DynamoDBDocumentClient, ScanCommand } = await import('@aws-sdk/lib-dynamodb');
+        const { S3Client, ListObjectsV2Command, HeadObjectCommand } = await import('@aws-sdk/client-s3');
+
+        const dynamoClient = new DynamoDBClient({ region: S3_REGION });
+        const dynamodb = DynamoDBDocumentClient.from(dynamoClient);
+        const s3 = new S3Client({ region: S3_REGION });
+
+        // Scan all deployments from DynamoDB
+        const scanResult = await dynamodb.send(new ScanCommand({
+          TableName: 'tmux-deployments'
+        }));
+
+        const deployments = scanResult.Items || [];
+
+        // Group by user
+        const userMap = {};
+        for (const dep of deployments) {
+          const userId = dep.userId || dep.email || 'unknown';
+          if (!userMap[userId]) {
+            userMap[userId] = {
+              userId,
+              email: dep.email || userId,
+              projectCount: 0,
+              projects: [],
+              costs: { s3: 0, cloudfront: 0, total: 0 }
+            };
+          }
+          userMap[userId].projectCount++;
+          userMap[userId].projects.push({
+            projectId: dep.projectId,
+            projectName: dep.projectName || 'Project',
+            awsResources: dep.awsResources || {},
+            deployedUrl: dep.awsResources?.deployed_url || dep.awsResources?.cloudFrontUrl || '',
+            createdAt: dep.createdAt
+          });
+        }
+
+        // Calculate costs for each user's projects
+        const AWS_PRICING = { s3StoragePerGB: 0.023, cloudfrontPerGB: 0.085, cloudfrontPer10kRequests: 0.01 };
+
+        for (const userId in userMap) {
+          const user = userMap[userId];
+          for (const project of user.projects) {
+            const bucket = project.awsResources?.s3Bucket;
+            let projectCost = { s3: { storage: 0, total: 0 }, cloudfront: { dataTransfer: 0, requests: 0, total: 0 }, total: 0, metrics: { s3SizeBytes: 0, cloudfrontRequests: 0 } };
+
+            if (bucket) {
+              try {
+                // Get S3 bucket size
+                let totalSize = 0;
+                let continuationToken = undefined;
+                do {
+                  const listResult = await s3.send(new ListObjectsV2Command({
+                    Bucket: bucket,
+                    ContinuationToken: continuationToken
+                  }));
+                  for (const obj of listResult.Contents || []) {
+                    totalSize += obj.Size || 0;
+                  }
+                  continuationToken = listResult.NextContinuationToken;
+                } while (continuationToken);
+
+                const sizeGB = totalSize / (1024 * 1024 * 1024);
+                projectCost.metrics.s3SizeBytes = totalSize;
+                projectCost.s3.storage = sizeGB * AWS_PRICING.s3StoragePerGB;
+                projectCost.s3.total = projectCost.s3.storage;
+              } catch (e) {
+                // Bucket may not exist or no access
+              }
+            }
+
+            // Estimate CloudFront cost based on typical usage (simplified)
+            projectCost.cloudfront.dataTransfer = 0.01; // Minimal base cost
+            projectCost.cloudfront.total = projectCost.cloudfront.dataTransfer;
+            projectCost.total = projectCost.s3.total + projectCost.cloudfront.total;
+
+            project.costs = projectCost;
+            user.costs.s3 += projectCost.s3.total;
+            user.costs.cloudfront += projectCost.cloudfront.total;
+            user.costs.total += projectCost.total;
+          }
+        }
+
+        const users = Object.values(userMap);
+        const totals = {
+          estimated: users.reduce((sum, u) => sum + u.costs.total, 0),
+          s3: users.reduce((sum, u) => sum + u.costs.s3, 0),
+          cloudfront: users.reduce((sum, u) => sum + u.costs.cloudfront, 0),
+          projectCount: users.reduce((sum, u) => sum + u.projectCount, 0)
+        };
+
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: true, totals, users, lastUpdated: new Date().toISOString() })
+        };
+      } catch (error) {
+        console.error('[Admin Costs] Error:', error);
+        return {
+          statusCode: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: error.message })
+        };
+      }
+    }
+
+    // User Costs - Current user's projects with costs
+    if (action === 'user-costs') {
+      try {
+        const { guid } = body;
+        if (!guid) {
+          return {
+            statusCode: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ success: false, error: 'guid is required' })
+          };
+        }
+
+        const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+        const { DynamoDBDocumentClient, QueryCommand, ScanCommand } = await import('@aws-sdk/lib-dynamodb');
+        const { S3Client, ListObjectsV2Command } = await import('@aws-sdk/client-s3');
+
+        const dynamoClient = new DynamoDBClient({ region: S3_REGION });
+        const dynamodb = DynamoDBDocumentClient.from(dynamoClient);
+        const s3 = new S3Client({ region: S3_REGION });
+
+        // Find user by guid (projectId) or userId
+        const scanResult = await dynamodb.send(new ScanCommand({
+          TableName: 'tmux-deployments',
+          FilterExpression: 'projectId = :guid OR userId = :guid',
+          ExpressionAttributeValues: { ':guid': guid }
+        }));
+
+        const deployments = scanResult.Items || [];
+        if (deployments.length === 0) {
+          return {
+            statusCode: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ success: true, costs: { costs: { s3: 0, cloudfront: 0, total: 0 }, projects: [] } })
+          };
+        }
+
+        const AWS_PRICING = { s3StoragePerGB: 0.023, cloudfrontPerGB: 0.085 };
+        const result = { costs: { s3: 0, cloudfront: 0, total: 0 }, projects: [] };
+
+        for (const dep of deployments) {
+          const bucket = dep.awsResources?.s3Bucket;
+          let projectCost = { s3: { storage: 0, total: 0 }, cloudfront: { dataTransfer: 0, total: 0 }, total: 0, metrics: { s3SizeBytes: 0 } };
+
+          if (bucket) {
+            try {
+              let totalSize = 0;
+              const listResult = await s3.send(new ListObjectsV2Command({ Bucket: bucket }));
+              for (const obj of listResult.Contents || []) {
+                totalSize += obj.Size || 0;
+              }
+              const sizeGB = totalSize / (1024 * 1024 * 1024);
+              projectCost.metrics.s3SizeBytes = totalSize;
+              projectCost.s3.storage = sizeGB * AWS_PRICING.s3StoragePerGB;
+              projectCost.s3.total = projectCost.s3.storage;
+            } catch (e) { /* ignore */ }
+          }
+
+          projectCost.cloudfront.total = 0.01;
+          projectCost.total = projectCost.s3.total + projectCost.cloudfront.total;
+
+          result.projects.push({
+            projectId: dep.projectId,
+            projectName: dep.projectName || 'Project',
+            deployedUrl: dep.awsResources?.deployed_url || dep.awsResources?.cloudFrontUrl || '',
+            costs: projectCost
+          });
+
+          result.costs.s3 += projectCost.s3.total;
+          result.costs.cloudfront += projectCost.cloudfront.total;
+          result.costs.total += projectCost.total;
+        }
+
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: true, costs: result })
+        };
+      } catch (error) {
+        console.error('[User Costs] Error:', error);
+        return {
+          statusCode: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: error.message })
+        };
+      }
+    }
+
     // Admin Get Single Chat Session Detail
     if (action === 'admin-chat-detail') {
       const { password, sessionId, source } = body;
