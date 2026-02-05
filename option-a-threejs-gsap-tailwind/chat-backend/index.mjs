@@ -2843,6 +2843,9 @@ export const handler = async (event) => {
                 targetCustomer: app.formData?.targetCustomer || app.formData?.target_customer || '',
                 industry: app.formData?.industry || '',
                 timeline: app.formData?.timeline || ''
+              },
+              buildSession: {
+                link: app.sessionLink || ''
               }
             }
           })
