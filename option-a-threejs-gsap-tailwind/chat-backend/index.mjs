@@ -2539,6 +2539,375 @@ export const handler = async (event) => {
       }
     }
 
+    // ==================== USER DASHBOARD ENDPOINTS ====================
+
+    // Helper: Generate session token
+    function generateSessionToken() {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      let token = '';
+      for (let i = 0; i < 64; i++) {
+        token += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return token;
+    }
+
+    // Helper: Validate session
+    async function validateSession(guid, sessionToken) {
+      const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+      const s3 = new S3Client({ region: S3_REGION });
+      try {
+        const result = await s3.send(new GetObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: `users/${guid}/sessions.json`
+        }));
+        const sessions = JSON.parse(await result.Body.transformToString());
+        const now = new Date();
+        const validToken = sessions.tokens?.find(t =>
+          t.token === sessionToken && new Date(t.expiresAt) > now
+        );
+        return !!validToken;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    // User check - does user exist and have account?
+    if (action === 'user-check') {
+      const { guid } = body;
+      if (!guid) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'GUID is required' })
+        };
+      }
+
+      try {
+        const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const s3 = new S3Client({ region: S3_REGION });
+
+        // Get application by guid
+        const applications = await listApplications();
+        const app = applications.find(a => a.guid === guid);
+        if (!app) {
+          return {
+            statusCode: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ success: false, exists: false, hasAccount: false, error: 'Invalid session ID' })
+          };
+        }
+
+        // Check if has account
+        let hasAccount = false;
+        let profile = { name: app.visitorInfo?.name || app.formData?.fullName || '', email: app.visitorInfo?.email || app.formData?.email || '' };
+        try {
+          await s3.send(new GetObjectCommand({ Bucket: S3_BUCKET, Key: `users/${guid}/credentials.json` }));
+          hasAccount = true;
+          const profileResult = await s3.send(new GetObjectCommand({ Bucket: S3_BUCKET, Key: `users/${guid}/profile.json` }));
+          profile = JSON.parse(await profileResult.Body.transformToString());
+        } catch (e) { /* No account or profile */ }
+
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: true, exists: true, hasAccount, profile, applicationData: app })
+        };
+      } catch (error) {
+        return {
+          statusCode: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: error.message })
+        };
+      }
+    }
+
+    // User signup
+    if (action === 'user-signup') {
+      const { guid, email, password } = body;
+      if (!guid || !email || !password) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'GUID, email, and password are required' })
+        };
+      }
+      if (password.length < 6) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'Password must be at least 6 characters' })
+        };
+      }
+
+      try {
+        const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
+        const bcrypt = (await import('bcryptjs')).default;
+        const s3 = new S3Client({ region: S3_REGION });
+
+        // Check if account exists
+        try {
+          await s3.send(new GetObjectCommand({ Bucket: S3_BUCKET, Key: `users/${guid}/credentials.json` }));
+          return {
+            statusCode: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ success: false, error: 'Account already exists. Please login instead.' })
+          };
+        } catch (e) { /* Good - no existing account */ }
+
+        // Verify guid exists
+        const applications = await listApplications();
+        const app = applications.find(a => a.guid === guid);
+        if (!app) {
+          return {
+            statusCode: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ success: false, error: 'Invalid session ID' })
+          };
+        }
+
+        // Hash password and save credentials
+        const passwordHash = await bcrypt.hash(password, 10);
+        const sessionToken = generateSessionToken();
+        const now = new Date();
+        const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+        await s3.send(new PutObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: `users/${guid}/credentials.json`,
+          Body: JSON.stringify({ email: email.toLowerCase().trim(), passwordHash, createdAt: now.toISOString() }),
+          ContentType: 'application/json'
+        }));
+
+        await s3.send(new PutObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: `users/${guid}/sessions.json`,
+          Body: JSON.stringify({ tokens: [{ token: sessionToken, createdAt: now.toISOString(), expiresAt: expiresAt.toISOString() }] }),
+          ContentType: 'application/json'
+        }));
+
+        await s3.send(new PutObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: `users/${guid}/profile.json`,
+          Body: JSON.stringify({ name: app.visitorInfo?.name || app.formData?.fullName || '', email: email.toLowerCase().trim(), createdAt: now.toISOString() }),
+          ContentType: 'application/json'
+        }));
+
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: true, sessionToken, expiresAt: expiresAt.toISOString() })
+        };
+      } catch (error) {
+        return {
+          statusCode: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: error.message })
+        };
+      }
+    }
+
+    // User login
+    if (action === 'user-login') {
+      const { guid, email, password } = body;
+      if (!guid || !email || !password) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'GUID, email, and password are required' })
+        };
+      }
+
+      try {
+        const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
+        const bcrypt = (await import('bcryptjs')).default;
+        const s3 = new S3Client({ region: S3_REGION });
+
+        // Get credentials
+        let credentials;
+        try {
+          const result = await s3.send(new GetObjectCommand({ Bucket: S3_BUCKET, Key: `users/${guid}/credentials.json` }));
+          credentials = JSON.parse(await result.Body.transformToString());
+        } catch (e) {
+          return {
+            statusCode: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ success: false, error: 'Account not found. Please sign up first.' })
+          };
+        }
+
+        // Verify password
+        const isValid = await bcrypt.compare(password, credentials.passwordHash);
+        if (!isValid || credentials.email !== email.toLowerCase().trim()) {
+          return {
+            statusCode: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ success: false, error: 'Invalid email or password' })
+          };
+        }
+
+        // Create session
+        const sessionToken = generateSessionToken();
+        const now = new Date();
+        const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+        let sessions = { tokens: [] };
+        try {
+          const result = await s3.send(new GetObjectCommand({ Bucket: S3_BUCKET, Key: `users/${guid}/sessions.json` }));
+          sessions = JSON.parse(await result.Body.transformToString());
+        } catch (e) { /* No sessions yet */ }
+
+        sessions.tokens.push({ token: sessionToken, createdAt: now.toISOString(), expiresAt: expiresAt.toISOString() });
+        sessions.tokens = sessions.tokens.slice(-5);
+
+        await s3.send(new PutObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: `users/${guid}/sessions.json`,
+          Body: JSON.stringify(sessions),
+          ContentType: 'application/json'
+        }));
+
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: true, sessionToken, expiresAt: expiresAt.toISOString() })
+        };
+      } catch (error) {
+        return {
+          statusCode: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: error.message })
+        };
+      }
+    }
+
+    // User dashboard data
+    if (action === 'user-dashboard') {
+      const { guid, sessionToken } = body;
+      if (!guid || !sessionToken) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'GUID and session token are required' })
+        };
+      }
+
+      try {
+        const isValid = await validateSession(guid, sessionToken);
+        if (!isValid) {
+          return {
+            statusCode: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ success: false, error: 'Invalid or expired session' })
+          };
+        }
+
+        const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const s3 = new S3Client({ region: S3_REGION });
+
+        // Get profile
+        let profile = {};
+        try {
+          const result = await s3.send(new GetObjectCommand({ Bucket: S3_BUCKET, Key: `users/${guid}/profile.json` }));
+          profile = JSON.parse(await result.Body.transformToString());
+        } catch (e) { /* No profile */ }
+
+        // Get application
+        const applications = await listApplications();
+        const app = applications.find(a => a.guid === guid);
+        if (!app) {
+          return {
+            statusCode: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ success: false, error: 'Application not found' })
+          };
+        }
+
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            success: true,
+            user: {
+              name: profile.name || app.visitorInfo?.name || app.formData?.fullName || '',
+              email: profile.email || app.visitorInfo?.email || app.formData?.email || ''
+            },
+            application: {
+              status: app.status || 'approved',
+              guid: app.guid || guid,
+              formData: app.formData || {},
+              submittedAt: app.submittedAt,
+              sessionLink: app.sessionLink || ''
+            }
+          })
+        };
+      } catch (error) {
+        return {
+          statusCode: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: error.message })
+        };
+      }
+    }
+
+    // User change password
+    if (action === 'user-change-password') {
+      const { guid, sessionToken, oldPassword, newPassword } = body;
+      if (!guid || !sessionToken || !oldPassword || !newPassword) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'All fields are required' })
+        };
+      }
+
+      try {
+        const isValid = await validateSession(guid, sessionToken);
+        if (!isValid) {
+          return {
+            statusCode: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ success: false, error: 'Invalid or expired session' })
+          };
+        }
+
+        const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
+        const bcrypt = (await import('bcryptjs')).default;
+        const s3 = new S3Client({ region: S3_REGION });
+
+        const credResult = await s3.send(new GetObjectCommand({ Bucket: S3_BUCKET, Key: `users/${guid}/credentials.json` }));
+        const credentials = JSON.parse(await credResult.Body.transformToString());
+
+        const isOldValid = await bcrypt.compare(oldPassword, credentials.passwordHash);
+        if (!isOldValid) {
+          return {
+            statusCode: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ success: false, error: 'Current password is incorrect' })
+          };
+        }
+
+        credentials.passwordHash = await bcrypt.hash(newPassword, 10);
+        await s3.send(new PutObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: `users/${guid}/credentials.json`,
+          Body: JSON.stringify(credentials),
+          ContentType: 'application/json'
+        }));
+
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: true })
+        };
+      } catch (error) {
+        return {
+          statusCode: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: error.message })
+        };
+      }
+    }
+
     // Admin Get Single Chat Session Detail
     if (action === 'admin-chat-detail') {
       const { password, sessionId, source } = body;
