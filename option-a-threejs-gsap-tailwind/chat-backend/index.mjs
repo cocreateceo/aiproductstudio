@@ -2455,7 +2455,7 @@ export const handler = async (event) => {
     // User Costs - Current user's projects with costs
     if (action === 'user-costs') {
       try {
-        const { guid } = body;
+        const { guid, period = 'monthly' } = body;
         if (!guid) {
           return {
             statusCode: 400,
@@ -2472,6 +2472,12 @@ export const handler = async (event) => {
         const dynamodb = DynamoDBDocumentClient.from(dynamoClient);
         const s3 = new S3Client({ region: S3_REGION });
 
+        // Calculate period multiplier
+        // Monthly = full month, Weekly = 7/30 of monthly
+        const now = new Date();
+        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const periodMultiplier = period === 'weekly' ? 7 / daysInMonth : 1;
+
         // Find user by guid (projectId) or userId
         const scanResult = await dynamodb.send(new ScanCommand({
           TableName: 'tmux-deployments',
@@ -2484,12 +2490,12 @@ export const handler = async (event) => {
           return {
             statusCode: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ success: true, costs: { costs: { s3: 0, cloudfront: 0, total: 0 }, projects: [] } })
+            body: JSON.stringify({ success: true, costs: { period, costs: { s3: 0, cloudfront: 0, total: 0 }, projects: [] } })
           };
         }
 
         const AWS_PRICING = { s3StoragePerGB: 0.023, cloudfrontPerGB: 0.085 };
-        const result = { costs: { s3: 0, cloudfront: 0, total: 0 }, projects: [] };
+        const result = { period, costs: { s3: 0, cloudfront: 0, total: 0 }, projects: [] };
 
         for (const dep of deployments) {
           const bucket = dep.awsResources?.s3Bucket;
@@ -2504,12 +2510,14 @@ export const handler = async (event) => {
               }
               const sizeGB = totalSize / (1024 * 1024 * 1024);
               projectCost.metrics.s3SizeBytes = totalSize;
-              projectCost.s3.storage = sizeGB * AWS_PRICING.s3StoragePerGB;
+              // Apply period multiplier for S3 storage cost
+              projectCost.s3.storage = sizeGB * AWS_PRICING.s3StoragePerGB * periodMultiplier;
               projectCost.s3.total = projectCost.s3.storage;
             } catch (e) { /* ignore */ }
           }
 
-          projectCost.cloudfront.total = 0.01;
+          // CloudFront base cost with period multiplier
+          projectCost.cloudfront.total = 0.01 * periodMultiplier;
           projectCost.total = projectCost.s3.total + projectCost.cloudfront.total;
 
           result.projects.push({
@@ -2531,6 +2539,73 @@ export const handler = async (event) => {
         };
       } catch (error) {
         console.error('[User Costs] Error:', error);
+        return {
+          statusCode: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: error.message })
+        };
+      }
+    }
+
+    // Get Tmux Projects - Fetch deployed projects from Tmux Builder API
+    if (action === 'get-tmux-projects') {
+      try {
+        const { guid } = body;
+        if (!guid) {
+          return {
+            statusCode: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ success: false, error: 'guid is required' })
+          };
+        }
+
+        // Call Tmux Builder API to get deployments from chat history
+        const tmuxBuilderUrl = `https://d3tfeatcbws1ka.cloudfront.net/api/deployments?guid=${encodeURIComponent(guid)}`;
+        console.log('[Get Tmux Projects] Fetching from:', tmuxBuilderUrl);
+
+        const tmuxResponse = await fetch(tmuxBuilderUrl);
+        const tmuxData = await tmuxResponse.json();
+
+        console.log('[Get Tmux Projects] Tmux Builder response:', JSON.stringify(tmuxData));
+
+        if (!tmuxData.success) {
+          return {
+            statusCode: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              success: true,
+              project: null,
+              projects: [],
+              activities: []
+            })
+          };
+        }
+
+        // Format projects for frontend (from tmux-builder deployments)
+        const projects = (tmuxData.deployments || []).map((dep, index) => ({
+          projectId: `${guid}-${index}`,
+          projectName: dep.project_name || 'Project',
+          deployedUrl: dep.url || '',
+          status: dep.status || 'deployed',
+          createdAt: dep.deployed_at,
+          updatedAt: dep.deployed_at
+        }));
+
+        // Get the main project (first one, which is newest due to reverse sort)
+        const mainProject = projects[0] || null;
+
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            success: true,
+            project: mainProject,
+            projects: projects,
+            activities: []
+          })
+        };
+      } catch (error) {
+        console.error('[Get Tmux Projects] Error:', error);
         return {
           statusCode: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -2830,14 +2905,17 @@ export const handler = async (event) => {
             data: {
               user: {
                 name: profile.name || app.visitorInfo?.name || app.formData?.fullName || '',
-                email: profile.email || app.visitorInfo?.email || app.formData?.email || ''
+                email: profile.email || app.visitorInfo?.email || app.formData?.email || '',
+                avatarUrl: profile.avatarUrl || '',
+                theme: profile.theme || 'ember'
               },
               application: {
                 status: app.status || 'approved',
                 guid: app.guid || guid,
                 email: app.visitorInfo?.email || app.formData?.email || '',
                 formData: app.formData || {},
-                submittedAt: app.submittedAt,
+                submittedAt: app.submittedAt || app.timestamp,
+                reviewedAt: app.reviewedAt || '',
                 sessionLink: app.sessionLink || '',
                 productIdea: app.formData?.productIdea || app.formData?.product_idea || '',
                 targetCustomer: app.formData?.targetCustomer || app.formData?.target_customer || '',
@@ -2851,6 +2929,146 @@ export const handler = async (event) => {
           })
         };
       } catch (error) {
+        return {
+          statusCode: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: error.message })
+        };
+      }
+    }
+
+    // Upload profile avatar
+    if (action === 'upload-avatar') {
+      const { guid, sessionToken, image, contentType } = body;
+      if (!guid || !sessionToken || !image) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'Missing required fields' })
+        };
+      }
+
+      try {
+        const isValid = await validateSession(guid, sessionToken);
+        if (!isValid) {
+          return {
+            statusCode: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ success: false, error: 'Invalid session' })
+          };
+        }
+
+        const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
+        const s3 = new S3Client({ region: S3_REGION });
+
+        // Extract base64 data
+        const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+
+        // Determine file extension
+        const ext = contentType?.split('/')[1] || 'png';
+        const avatarKey = `users/${guid}/avatar.${ext}`;
+
+        // Upload to S3
+        await s3.send(new PutObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: avatarKey,
+          Body: buffer,
+          ContentType: contentType || 'image/png',
+          CacheControl: 'max-age=86400'
+        }));
+
+        // Generate URL (using CloudFront if available, otherwise S3)
+        const avatarUrl = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${avatarKey}?t=${Date.now()}`;
+
+        // Update profile with avatar URL
+        let profile = {};
+        try {
+          const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+          const result = await s3.send(new GetObjectCommand({ Bucket: S3_BUCKET, Key: `users/${guid}/profile.json` }));
+          profile = JSON.parse(await result.Body.transformToString());
+        } catch (e) { /* No profile yet */ }
+
+        profile.avatarUrl = avatarUrl;
+        await s3.send(new PutObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: `users/${guid}/profile.json`,
+          Body: JSON.stringify(profile),
+          ContentType: 'application/json'
+        }));
+
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: true, avatarUrl })
+        };
+      } catch (error) {
+        console.error('[Upload Avatar] Error:', error);
+        return {
+          statusCode: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: error.message })
+        };
+      }
+    }
+
+    // Save user theme preference
+    if (action === 'save-theme') {
+      const { guid, sessionToken, theme } = body;
+      if (!guid || !sessionToken || !theme) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'Missing required fields' })
+        };
+      }
+
+      // Validate theme
+      const validThemes = ['ember', 'coral', 'sunset', 'aurora', 'legacy', 'sandstone', 'champagne', 'zoom'];
+      if (!validThemes.includes(theme)) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'Invalid theme' })
+        };
+      }
+
+      try {
+        const isValid = await validateSession(guid, sessionToken);
+        if (!isValid) {
+          return {
+            statusCode: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ success: false, error: 'Invalid session' })
+          };
+        }
+
+        const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
+        const s3 = new S3Client({ region: S3_REGION });
+
+        // Get existing profile
+        let profile = {};
+        try {
+          const result = await s3.send(new GetObjectCommand({ Bucket: S3_BUCKET, Key: `users/${guid}/profile.json` }));
+          profile = JSON.parse(await result.Body.transformToString());
+        } catch (e) { /* No profile yet */ }
+
+        // Update theme
+        profile.theme = theme;
+        await s3.send(new PutObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: `users/${guid}/profile.json`,
+          Body: JSON.stringify(profile),
+          ContentType: 'application/json'
+        }));
+
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: true, theme })
+        };
+      } catch (error) {
+        console.error('[Save Theme] Error:', error);
         return {
           statusCode: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

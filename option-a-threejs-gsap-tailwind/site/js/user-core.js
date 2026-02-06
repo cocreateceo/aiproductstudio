@@ -676,6 +676,77 @@
         showToast('Logged out successfully', 'info');
     };
 
+    // Upload profile avatar
+    window.uploadAvatar = async function(input) {
+        if (!input.files || !input.files[0]) return;
+
+        const file = input.files[0];
+        if (!file.type.startsWith('image/')) {
+            showToast('Please select an image file', 'error');
+            return;
+        }
+
+        if (file.size > 2 * 1024 * 1024) {
+            showToast('Image must be less than 2MB', 'error');
+            return;
+        }
+
+        try {
+            showToast('Uploading...', 'info');
+
+            // Convert to base64
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const base64 = e.target.result;
+
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'upload-avatar',
+                        guid: currentGuid,
+                        sessionToken: currentSession,
+                        image: base64,
+                        contentType: file.type
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // Update avatar images
+                    updateAvatarImages(data.avatarUrl);
+                    showToast('Profile image updated!', 'success');
+                } else {
+                    showToast(data.error || 'Upload failed', 'error');
+                }
+            };
+            reader.readAsDataURL(file);
+        } catch (error) {
+            console.error('Avatar upload error:', error);
+            showToast('Upload failed', 'error');
+        }
+    };
+
+    function updateAvatarImages(url) {
+        // Update navbar avatar
+        const navLetter = document.getElementById('profile-avatar-letter');
+        const navImg = document.getElementById('profile-avatar-img');
+        if (navLetter && navImg) {
+            navLetter.classList.add('hidden');
+            navImg.src = url;
+            navImg.classList.remove('hidden');
+        }
+
+        // Update dropdown avatar
+        const dropdownLetter = document.getElementById('dropdown-avatar-letter');
+        const dropdownImg = document.getElementById('dropdown-avatar-img');
+        if (dropdownLetter && dropdownImg) {
+            dropdownLetter.classList.add('hidden');
+            dropdownImg.src = url;
+            dropdownImg.classList.remove('hidden');
+        }
+    }
+
     // ========================
     // Dashboard Rendering
     // ========================
@@ -705,6 +776,7 @@
 
             return {
                 project: data.project,
+                projects: data.projects || [],
                 activities: activities
             };
         } catch (error) {
@@ -726,8 +798,10 @@
 
                 // Fetch real-time project data from Tmux Builder
                 const tmuxData = await fetchTmuxBuilderData(currentGuid);
-                if (tmuxData && tmuxData.project) {
-                    renderTmuxProject(tmuxData.project);
+                if (tmuxData && tmuxData.projects && tmuxData.projects.length > 0) {
+                    renderTmuxProjects(tmuxData.projects);
+                } else if (tmuxData && tmuxData.project) {
+                    renderTmuxProjects([tmuxData.project]);
                 }
 
                 // Fetch user AWS costs
@@ -767,14 +841,25 @@
             navUsername.textContent = displayName;
         }
 
-        const profileAvatar = document.getElementById('profile-avatar');
-        if (profileAvatar) {
-            profileAvatar.textContent = avatarLetter;
+        // Check for custom avatar
+        if (data.user?.avatarUrl) {
+            updateAvatarImages(data.user.avatarUrl);
+        } else {
+            // Show letter avatar
+            const profileAvatarLetter = document.getElementById('profile-avatar-letter');
+            if (profileAvatarLetter) {
+                profileAvatarLetter.textContent = avatarLetter;
+            }
+
+            const dropdownAvatarLetter = document.getElementById('dropdown-avatar-letter');
+            if (dropdownAvatarLetter) {
+                dropdownAvatarLetter.textContent = avatarLetter;
+            }
         }
 
-        const dropdownAvatarLetter = document.getElementById('dropdown-avatar-letter');
-        if (dropdownAvatarLetter) {
-            dropdownAvatarLetter.textContent = avatarLetter;
+        // Apply theme from backend if available
+        if (data.user?.theme && window.ThemeManager?.applyFromBackend) {
+            window.ThemeManager.applyFromBackend(data.user.theme);
         }
 
         const dropdownName = document.getElementById('dropdown-name');
@@ -801,16 +886,34 @@
         if (data.application) {
             const app = data.application;
 
-            // Date
+            // Submitted Date
             const dateEl = document.getElementById('project-date');
+            const dateContainer = dateEl?.closest('.field-container');
             if (dateEl && app.submittedAt) {
                 dateEl.textContent = formatDate(app.submittedAt);
+                if (dateContainer) dateContainer.style.display = '';
+            } else if (dateContainer) {
+                dateContainer.style.display = 'none';
             }
 
-            // Timeline
+            // Approved Date
+            const approvedEl = document.getElementById('project-approved');
+            const approvedContainer = approvedEl?.closest('.field-container');
+            if (approvedEl && app.reviewedAt && app.status === 'approved') {
+                approvedEl.textContent = formatDate(app.reviewedAt);
+                if (approvedContainer) approvedContainer.style.display = '';
+            } else if (approvedContainer) {
+                approvedContainer.style.display = 'none';
+            }
+
+            // Timeline - hide if empty
             const timelineEl = document.getElementById('project-timeline');
+            const timelineContainer = timelineEl?.closest('.field-container');
             if (timelineEl && app.timeline) {
                 timelineEl.textContent = app.timeline;
+                if (timelineContainer) timelineContainer.style.display = '';
+            } else if (timelineContainer) {
+                timelineContainer.style.display = 'none';
             }
 
             // Status
@@ -826,16 +929,24 @@
                 ideaEl.textContent = app.productIdea;
             }
 
-            // Target customer
+            // Target customer - hide if empty
             const customerEl = document.getElementById('project-customer');
+            const customerContainer = customerEl?.closest('.field-container');
             if (customerEl && app.targetCustomer) {
                 customerEl.textContent = app.targetCustomer;
+                if (customerContainer) customerContainer.style.display = '';
+            } else if (customerContainer) {
+                customerContainer.style.display = 'none';
             }
 
-            // Industry
+            // Industry - hide if empty
             const industryEl = document.getElementById('project-industry');
+            const industryContainer = industryEl?.closest('.field-container');
             if (industryEl && app.industry) {
                 industryEl.textContent = app.industry;
+                if (industryContainer) industryContainer.style.display = '';
+            } else if (industryContainer) {
+                industryContainer.style.display = 'none';
             }
         }
 
@@ -1038,54 +1149,66 @@
         }).join('');
     }
 
-    // Render project from Tmux Builder
-    function renderTmuxProject(project) {
+    // Render multiple projects from Tmux Builder
+    function renderTmuxProjects(projects) {
         const container = document.getElementById('project-history');
-        if (!container || !project) return;
-
-        const statusClass = project.status === 'completed' ? 'text-green-400' :
-                           project.status === 'ready' ? 'text-green-400' : 'text-yellow-400';
-        const statusIcon = project.status === 'completed' || project.status === 'ready' ? '✅' : '⏳';
-        const statusText = project.status === 'ready' ? 'Completed' : capitalizeFirst(project.status || 'pending');
-
-        const createdAt = project.createdAt ? formatDateTime(project.createdAt) : 'Unknown';
-        const updatedAt = project.updatedAt ? formatDateTime(project.updatedAt) : null;
-
-        // Truncate title for display
-        const title = project.title || 'Website Project';
-        const description = project.description || '';
-        const shortDesc = description.length > 150 ? description.substring(0, 150) + '...' : description;
-
-        let urlHtml = '';
-        if (project.deployedUrl) {
-            urlHtml = `
-                <div class="mt-3 pt-3 border-t border-white/10">
-                    <p class="text-theme-muted text-sm mb-2">Deployed URL:</p>
-                    <a href="${escapeHtml(project.deployedUrl)}" target="_blank"
-                       class="text-primary hover:underline text-sm break-all flex items-center gap-2">
-                        <span>🌐</span>
-                        ${escapeHtml(project.deployedUrl)}
-                    </a>
-                </div>`;
+        if (!container || !projects || projects.length === 0) {
+            if (container) {
+                container.innerHTML = `
+                    <div class="p-4 rounded-xl text-center text-theme-muted" style="background: rgba(26, 10, 0, 0.3); border: 1px solid var(--border-color);">
+                        No deployed projects yet. Start building in your session!
+                    </div>
+                `;
+            }
+            return;
         }
 
-        container.innerHTML = `
-            <div class="p-4 rounded-xl" style="background: rgba(26, 10, 0, 0.3); border: 1px solid var(--border-color);">
-                <div class="flex items-start justify-between gap-4">
-                    <div class="flex-1">
-                        <h3 class="font-semibold text-theme-primary text-lg">${escapeHtml(title)}</h3>
-                        <p class="text-sm text-theme-muted mt-1">${escapeHtml(shortDesc)}</p>
+        const projectsHtml = projects.map(project => {
+            const statusClass = project.status === 'deployed' ? 'text-green-400' :
+                               project.status === 'completed' ? 'text-green-400' :
+                               project.status === 'ready' ? 'text-green-400' : 'text-yellow-400';
+            const statusIcon = project.status === 'deployed' || project.status === 'completed' || project.status === 'ready' ? '✅' : '⏳';
+            const statusText = project.status === 'deployed' ? 'Deployed' : capitalizeFirst(project.status || 'pending');
+
+            const createdAt = project.createdAt ? formatDateTime(project.createdAt) : 'Unknown';
+
+            // Use projectName from API response
+            const title = project.projectName || project.title || 'Website Project';
+
+            let urlHtml = '';
+            if (project.deployedUrl) {
+                urlHtml = `
+                    <div class="mt-3 pt-3 border-t border-white/10">
+                        <a href="${escapeHtml(project.deployedUrl)}" target="_blank"
+                           class="text-primary hover:underline text-sm break-all flex items-center gap-2">
+                            <span>🌐</span>
+                            ${escapeHtml(project.deployedUrl)}
+                        </a>
+                    </div>`;
+            }
+
+            return `
+                <div class="p-4 rounded-xl" style="background: rgba(26, 10, 0, 0.3); border: 1px solid var(--border-color);">
+                    <div class="flex items-start justify-between gap-4">
+                        <div class="flex-1">
+                            <h3 class="font-semibold text-theme-primary text-lg">${escapeHtml(title)}</h3>
+                        </div>
+                        <span class="${statusClass} text-sm whitespace-nowrap">${statusIcon} ${statusText}</span>
                     </div>
-                    <span class="${statusClass} text-sm whitespace-nowrap">${statusIcon} ${statusText}</span>
+                    <div class="flex flex-wrap gap-4 mt-2 text-xs text-theme-muted">
+                        <span>📅 Deployed: ${createdAt}</span>
+                    </div>
+                    ${urlHtml}
                 </div>
-                <div class="flex flex-wrap gap-4 mt-3 text-xs text-theme-muted">
-                    <span>📅 Started: ${createdAt}</span>
-                    ${updatedAt ? `<span>✅ Finished: ${updatedAt}</span>` : ''}
-                    ${project.progress ? `<span>📊 Progress: ${project.progress}%</span>` : ''}
-                </div>
-                ${urlHtml}
-            </div>
-        `;
+            `;
+        }).join('');
+
+        container.innerHTML = projectsHtml;
+    }
+
+    // Render single project from Tmux Builder (legacy, kept for compatibility)
+    function renderTmuxProject(project) {
+        renderTmuxProjects(project ? [project] : []);
     }
 
     function formatDateTime(dateStr) {

@@ -289,6 +289,42 @@
         }
         saveTheme(themeName);
         applyTheme(themeName);
+
+        // Also save to backend if user is logged in
+        saveThemeToBackend(themeName);
+    }
+
+    // Save theme to backend for cross-site sync
+    async function saveThemeToBackend(themeName) {
+        try {
+            const guid = sessionStorage.getItem('userGuid') || localStorage.getItem('userGuid');
+            const sessionToken = sessionStorage.getItem('sessionToken') || localStorage.getItem('sessionToken');
+
+            if (!guid || !sessionToken) return; // Not logged in
+
+            const API_URL = window.API_URL || 'https://qqbulxkmkl.execute-api.us-east-1.amazonaws.com/prod/chat';
+
+            await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'save-theme',
+                    guid: guid,
+                    sessionToken: sessionToken,
+                    theme: themeName
+                })
+            });
+        } catch (e) {
+            console.warn('Could not save theme to backend:', e);
+        }
+    }
+
+    // Apply theme from backend data
+    function applyThemeFromBackend(themeName) {
+        if (themeName && THEMES[themeName]) {
+            saveTheme(themeName); // Save to localStorage
+            applyTheme(themeName);
+        }
     }
 
     // Get available themes
@@ -324,6 +360,8 @@
         set: setTheme,
         get: getStoredTheme,
         apply: applyTheme,
+        applyFromBackend: applyThemeFromBackend,
+        saveToBackend: saveThemeToBackend,
         themes: getThemes,
         current: getCurrentTheme,
         isLight: isLightTheme,
