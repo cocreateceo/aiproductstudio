@@ -18,6 +18,9 @@ build/
 *.swp
 *.swo
 
+# Claude Code local settings
+.claude/settings.local.json
+
 # OS files
 .DS_Store
 Thumbs.db
@@ -38,3 +41,21 @@ npm-debug.log*
 image*.png
 temp-extract/
 nul
+temp-*.html
+temp-*.json
+Projectsai-product-studio*
+
+# PM2 / Build artifacts
+ecosystem.config.js
+outfile.js
+
+# Lambda build temp files
+option-a-threejs-gsap-tailwind/chat-backend/temp-lambda/
+option-a-threejs-gsap-tailwind/chat-backend/*.ps1
+option-a-threejs-gsap-tailwind/chat-backend/build-zip.mjs
+
+# Date directories (temp)
+2026-*/
+
+# Corrupted path files
+C*
