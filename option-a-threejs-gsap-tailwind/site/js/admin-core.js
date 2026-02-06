@@ -382,8 +382,12 @@ loginBtn.addEventListener('click', async () => {
                 loadApplications(),
                 loadChatSessions(),
                 loadClientProfiles(),
-                loadBuildHistory()
+                loadBuildHistory(),
+                loadCostsSummary()  // Pre-load cost data for application cards
             ]);
+
+            // Update cost sections now that both data sets are available
+            await updateAllCostSections();
 
             populateUserDropdown();
             onLoginSuccess();
@@ -538,7 +542,7 @@ function renderSessionStatusBox(app) {
     }
 
     if (app.guid && app.sessionLink) {
-        const dashboardLink = `https://www.cocreateidea.com/user.id=${app.guid}`;
+        const dashboardLink = `https://www.cocreateidea.com/user.html?id=${app.guid}`;
         return `
             <div class="session-status-box bg-green-500/10 border border-green-500/30 rounded-lg p-4 mb-4">
                 <div class="flex items-center gap-2 text-green-400 font-semibold mb-2">
@@ -572,6 +576,117 @@ function renderSessionStatusBox(app) {
     }
 
     return '';
+}
+
+// Render AWS Cost Analysis section for an application (renders placeholder, filled by updateAllCostSections)
+function renderUserCostSection(app) {
+    if (!app.guid) return '';
+    const userEmail = app.visitorInfo?.email || '';
+
+    return `
+        <div class="cost-analysis-section rounded-lg p-3 mb-4" data-cost-email="${userEmail}" data-cost-guid="${app.guid}" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1)); border: 1px solid rgba(99, 102, 241, 0.3);">
+            <div class="flex items-center gap-2 mb-2">
+                <span>💰</span>
+                <span class="font-semibold text-sm" style="color: var(--primary);">AWS Cost Analysis</span>
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+                <div class="text-center p-2 rounded-lg" style="background: rgba(26, 10, 0, 0.3);">
+                    <p class="text-xs text-theme-muted mb-1">Projects</p>
+                    <p class="text-lg font-bold text-theme-primary cost-project-count">0</p>
+                </div>
+                <div class="text-center p-2 rounded-lg" style="background: rgba(26, 10, 0, 0.3);">
+                    <p class="text-xs text-theme-muted mb-1">Weekly</p>
+                    <p class="text-lg font-bold cost-weekly" style="color: var(--accent);">$0.00</p>
+                </div>
+                <div class="text-center p-2 rounded-lg" style="background: rgba(26, 10, 0, 0.3);">
+                    <p class="text-xs text-theme-muted mb-1">Monthly</p>
+                    <p class="text-lg font-bold cost-monthly" style="color: var(--primary);">$0.00</p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Update all rendered cost sections in the DOM using loaded costsData
+// Falls back to individual user-costs API calls (same API the user dashboard uses)
+async function updateAllCostSections() {
+    const sections = document.querySelectorAll('.cost-analysis-section[data-cost-email]');
+    if (sections.length === 0) return;
+
+    console.log('[Admin] Updating', sections.length, 'cost sections, bulk data:', costsData?.users?.length || 0, 'users');
+
+    // Track aggregated totals for the overall stats
+    let aggregatedTotals = { estimated: 0, s3: 0, cloudfront: 0, projectCount: 0 };
+    let anyFallbackUsed = false;
+
+    for (const section of sections) {
+        const email = section.getAttribute('data-cost-email');
+        const guid = section.getAttribute('data-cost-guid');
+
+        // Try matching from bulk costsData first
+        let userData = null;
+        if (costsData && costsData.users && costsData.users.length > 0) {
+            userData = costsData.users.find(u =>
+                (email && (u.email === email || u.userId === email)) ||
+                (guid && u.userId === guid)
+            );
+        }
+
+        if (userData) {
+            const monthly = userData.costs?.total || 0;
+            const weekly = monthly * 7 / 30;
+            section.querySelector('.cost-project-count').textContent = userData.projectCount || 0;
+            section.querySelector('.cost-weekly').textContent = formatCurrency(weekly);
+            section.querySelector('.cost-monthly').textContent = formatCurrency(monthly);
+        } else if (guid) {
+            // Fallback: fetch costs directly using user-costs API (same as user dashboard)
+            anyFallbackUsed = true;
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'user-costs',
+                        guid: guid,
+                        email: email || null,
+                        period: 'monthly'
+                    })
+                });
+                const data = await res.json();
+                if (data.success && data.costs) {
+                    const monthly = data.costs.costs?.total || 0;
+                    const weekly = monthly * 7 / 30;
+                    const projectCount = data.costs.projects?.length || 0;
+                    section.querySelector('.cost-project-count').textContent = projectCount;
+                    section.querySelector('.cost-weekly').textContent = formatCurrency(weekly);
+                    section.querySelector('.cost-monthly').textContent = formatCurrency(monthly);
+
+                    // Aggregate for overall stats
+                    aggregatedTotals.estimated += monthly;
+                    aggregatedTotals.s3 += (data.costs.costs?.s3 || 0);
+                    aggregatedTotals.cloudfront += (data.costs.costs?.cloudfront || 0);
+                    aggregatedTotals.projectCount += projectCount;
+
+                    console.log('[Admin] Fallback cost loaded for guid:', guid, '→ $' + monthly.toFixed(2));
+                }
+            } catch (e) {
+                console.log('[Admin] Fallback cost fetch failed for guid:', guid, e.message);
+            }
+        }
+    }
+
+    // If bulk data was empty and we used fallback, update overall cost stats too
+    if (anyFallbackUsed && aggregatedTotals.projectCount > 0) {
+        const estEl = document.getElementById('cost-stat-estimated');
+        const s3El = document.getElementById('cost-stat-s3');
+        const cfEl = document.getElementById('cost-stat-cloudfront');
+        const projEl = document.getElementById('cost-stat-projects');
+        if (estEl) estEl.textContent = formatCurrency(aggregatedTotals.estimated);
+        if (s3El) s3El.textContent = formatCurrency(aggregatedTotals.s3);
+        if (cfEl) cfEl.textContent = formatCurrency(aggregatedTotals.cloudfront);
+        if (projEl) projEl.textContent = aggregatedTotals.projectCount;
+        console.log('[Admin] Updated overall stats from fallback:', aggregatedTotals);
+    }
 }
 
 function renderApplications() {
@@ -712,6 +827,8 @@ function renderApplications() {
 
                     ${renderSessionStatusBox(app)}
 
+                    ${renderUserCostSection(app)}
+
                     <div class="flex gap-3 pt-4" style="border-top: 1px solid var(--border-color);">
                         ${(() => {
                             const isLoading = app._sessionLoading;
@@ -765,6 +882,9 @@ function renderApplications() {
             </div>
         </div>
     `}).join('');
+
+    // Re-apply cost data to newly rendered cost sections
+    updateAllCostSections();
 }
 
 function renderBuildSection(app) {
@@ -1867,19 +1987,20 @@ let costsLastUpdated = null;
 
 // Load costs summary from API
 async function loadCostsSummary() {
+    // Show loading spinner in costs tab table (if visible)
     const tableBody = document.getElementById('costs-table-body');
-    if (!tableBody) return;
-
-    tableBody.innerHTML = `
-        <tr>
-            <td colspan="6" class="px-4 py-12 text-center text-theme-muted">
-                <svg class="w-8 h-8 mx-auto mb-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                </svg>
-                Loading cost data from AWS...
-            </td>
-        </tr>
-    `;
+    if (tableBody) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="px-4 py-12 text-center text-theme-muted">
+                    <svg class="w-8 h-8 mx-auto mb-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    Loading cost data from AWS...
+                </td>
+            </tr>
+        `;
+    }
 
     try {
         const res = await fetch(API_URL, {
@@ -1892,25 +2013,38 @@ async function loadCostsSummary() {
         if (data.success) {
             costsData = data;
             costsLastUpdated = data.lastUpdated;
-            renderCostsSummary(data);
+            console.log('[Admin] Costs loaded:', data.users?.length, 'users,', data.totals?.projectCount, 'projects');
+            // Update application card cost sections (with fallback to individual user-costs API)
+            await updateAllCostSections();
+            // Then update the Costs tab table (may fail if tab elements missing)
+            try { renderCostsSummary(data); } catch (e) { console.warn('[Admin] renderCostsSummary error:', e); }
         } else {
+            console.warn('[Admin] Bulk costs API returned error, using per-user fallback:', data.error);
+            // Bulk API failed — still try per-user fallback via updateAllCostSections
+            await updateAllCostSections();
+            if (tableBody) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="px-4 py-12 text-center text-theme-muted">
+                            Loading cost data per user...
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+    } catch (e) {
+        console.warn('[Admin] Bulk costs API connection error, using per-user fallback:', e.message);
+        // Network error on bulk API — still try per-user fallback
+        await updateAllCostSections();
+        if (tableBody) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="px-4 py-12 text-center text-red-400">
-                        Error: ${data.error || 'Failed to load costs'}
+                    <td colspan="6" class="px-4 py-12 text-center text-theme-muted">
+                        Loaded cost data per user (bulk API unavailable)
                     </td>
                 </tr>
             `;
         }
-    } catch (e) {
-        console.error('Error loading costs:', e);
-        tableBody.innerHTML = `
-            <tr>
-                <td colspan="6" class="px-4 py-12 text-center text-red-400">
-                    Connection error: ${e.message}
-                </td>
-            </tr>
-        `;
     }
 }
 

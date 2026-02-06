@@ -13,6 +13,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
+import { handleAdminCostsSummary, handleUserCosts } from './costs/index.mjs';
+import { handleScheduledCostReports, handleManualCostReportTrigger, handleSendAdminSummaryReport } from './costs/email-reports.mjs';
 
 // Configuration
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -2157,6 +2159,14 @@ export const handler = async (event) => {
   }
 
   try {
+    // Handle EventBridge scheduled events (no event.body)
+    if (event.source === 'aws.events' || event['detail-type']) {
+      const reportType = event.detail?.reportType || 'weekly';
+      console.log('[EventBridge] Triggered cost report:', reportType);
+      const result = await handleScheduledCostReports({ reportType, S3_REGION, listApplications });
+      return { statusCode: 200, body: JSON.stringify({ success: true, ...result }) };
+    }
+
     const body = JSON.parse(event.body || '{}');
     const { action, messages, visitorInfo = {} } = body;
 
@@ -2333,218 +2343,30 @@ export const handler = async (event) => {
 
     // ==================== AWS COSTS ENDPOINTS ====================
 
-    // Admin Costs Summary - All users with total costs
+    // Admin Costs Summary - All users with total costs (see costs/index.mjs)
     if (action === 'admin-costs-summary') {
-      const { password } = body;
-      if (password !== ADMIN_PASSWORD) {
-        return {
-          statusCode: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'Unauthorized' })
-        };
-      }
-
-      try {
-        const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-        const { DynamoDBDocumentClient, ScanCommand } = await import('@aws-sdk/lib-dynamodb');
-        const { S3Client, ListObjectsV2Command, HeadObjectCommand } = await import('@aws-sdk/client-s3');
-
-        const dynamoClient = new DynamoDBClient({ region: S3_REGION });
-        const dynamodb = DynamoDBDocumentClient.from(dynamoClient);
-        const s3 = new S3Client({ region: S3_REGION });
-
-        // Scan all deployments from DynamoDB
-        const scanResult = await dynamodb.send(new ScanCommand({
-          TableName: 'tmux-deployments'
-        }));
-
-        const deployments = scanResult.Items || [];
-
-        // Group by user
-        const userMap = {};
-        for (const dep of deployments) {
-          const userId = dep.userId || dep.email || 'unknown';
-          if (!userMap[userId]) {
-            userMap[userId] = {
-              userId,
-              email: dep.email || userId,
-              projectCount: 0,
-              projects: [],
-              costs: { s3: 0, cloudfront: 0, total: 0 }
-            };
-          }
-          userMap[userId].projectCount++;
-          userMap[userId].projects.push({
-            projectId: dep.projectId,
-            projectName: dep.projectName || 'Project',
-            awsResources: dep.awsResources || {},
-            deployedUrl: dep.awsResources?.deployed_url || dep.awsResources?.cloudFrontUrl || '',
-            createdAt: dep.createdAt
-          });
-        }
-
-        // Calculate costs for each user's projects
-        const AWS_PRICING = { s3StoragePerGB: 0.023, cloudfrontPerGB: 0.085, cloudfrontPer10kRequests: 0.01 };
-
-        for (const userId in userMap) {
-          const user = userMap[userId];
-          for (const project of user.projects) {
-            const bucket = project.awsResources?.s3Bucket;
-            let projectCost = { s3: { storage: 0, total: 0 }, cloudfront: { dataTransfer: 0, requests: 0, total: 0 }, total: 0, metrics: { s3SizeBytes: 0, cloudfrontRequests: 0 } };
-
-            if (bucket) {
-              try {
-                // Get S3 bucket size
-                let totalSize = 0;
-                let continuationToken = undefined;
-                do {
-                  const listResult = await s3.send(new ListObjectsV2Command({
-                    Bucket: bucket,
-                    ContinuationToken: continuationToken
-                  }));
-                  for (const obj of listResult.Contents || []) {
-                    totalSize += obj.Size || 0;
-                  }
-                  continuationToken = listResult.NextContinuationToken;
-                } while (continuationToken);
-
-                const sizeGB = totalSize / (1024 * 1024 * 1024);
-                projectCost.metrics.s3SizeBytes = totalSize;
-                projectCost.s3.storage = sizeGB * AWS_PRICING.s3StoragePerGB;
-                projectCost.s3.total = projectCost.s3.storage;
-              } catch (e) {
-                // Bucket may not exist or no access
-              }
-            }
-
-            // Estimate CloudFront cost based on typical usage (simplified)
-            projectCost.cloudfront.dataTransfer = 0.01; // Minimal base cost
-            projectCost.cloudfront.total = projectCost.cloudfront.dataTransfer;
-            projectCost.total = projectCost.s3.total + projectCost.cloudfront.total;
-
-            project.costs = projectCost;
-            user.costs.s3 += projectCost.s3.total;
-            user.costs.cloudfront += projectCost.cloudfront.total;
-            user.costs.total += projectCost.total;
-          }
-        }
-
-        const users = Object.values(userMap);
-        const totals = {
-          estimated: users.reduce((sum, u) => sum + u.costs.total, 0),
-          s3: users.reduce((sum, u) => sum + u.costs.s3, 0),
-          cloudfront: users.reduce((sum, u) => sum + u.costs.cloudfront, 0),
-          projectCount: users.reduce((sum, u) => sum + u.projectCount, 0)
-        };
-
-        return {
-          statusCode: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: true, totals, users, lastUpdated: new Date().toISOString() })
-        };
-      } catch (error) {
-        console.error('[Admin Costs] Error:', error);
-        return {
-          statusCode: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: error.message })
-        };
-      }
+      return handleAdminCostsSummary({ body, corsHeaders, S3_REGION, ADMIN_PASSWORD, listApplications });
     }
 
-    // User Costs - Current user's projects with costs
+    // User Costs - Current user's projects with costs (see costs/index.mjs)
     if (action === 'user-costs') {
-      try {
-        const { guid, period = 'monthly' } = body;
-        if (!guid) {
-          return {
-            statusCode: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ success: false, error: 'guid is required' })
-          };
-        }
+      return handleUserCosts({ body, corsHeaders, S3_REGION, listApplications });
+    }
 
-        const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-        const { DynamoDBDocumentClient, QueryCommand, ScanCommand } = await import('@aws-sdk/lib-dynamodb');
-        const { S3Client, ListObjectsV2Command } = await import('@aws-sdk/client-s3');
+    // Send Cost Reports - Manual admin trigger for email cost reports (see costs/email-reports.mjs)
+    if (action === 'send-cost-reports') {
+      return handleManualCostReportTrigger({ body, corsHeaders, S3_REGION, ADMIN_PASSWORD, listApplications });
+    }
 
-        const dynamoClient = new DynamoDBClient({ region: S3_REGION });
-        const dynamodb = DynamoDBDocumentClient.from(dynamoClient);
-        const s3 = new S3Client({ region: S3_REGION });
+    // Send All Reports - sends cost reports to all approved users
+    if (action === 'send-all-reports') {
+      body.reportType = body.period || 'weekly';
+      return handleManualCostReportTrigger({ body, corsHeaders, S3_REGION, ADMIN_PASSWORD, listApplications });
+    }
 
-        // Calculate period multiplier
-        // Monthly = full month, Weekly = 7/30 of monthly
-        const now = new Date();
-        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-        const periodMultiplier = period === 'weekly' ? 7 / daysInMonth : 1;
-
-        // Find user by guid (projectId) or userId
-        const scanResult = await dynamodb.send(new ScanCommand({
-          TableName: 'tmux-deployments',
-          FilterExpression: 'projectId = :guid OR userId = :guid',
-          ExpressionAttributeValues: { ':guid': guid }
-        }));
-
-        const deployments = scanResult.Items || [];
-        if (deployments.length === 0) {
-          return {
-            statusCode: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ success: true, costs: { period, costs: { s3: 0, cloudfront: 0, total: 0 }, projects: [] } })
-          };
-        }
-
-        const AWS_PRICING = { s3StoragePerGB: 0.023, cloudfrontPerGB: 0.085 };
-        const result = { period, costs: { s3: 0, cloudfront: 0, total: 0 }, projects: [] };
-
-        for (const dep of deployments) {
-          const bucket = dep.awsResources?.s3Bucket;
-          let projectCost = { s3: { storage: 0, total: 0 }, cloudfront: { dataTransfer: 0, total: 0 }, total: 0, metrics: { s3SizeBytes: 0 } };
-
-          if (bucket) {
-            try {
-              let totalSize = 0;
-              const listResult = await s3.send(new ListObjectsV2Command({ Bucket: bucket }));
-              for (const obj of listResult.Contents || []) {
-                totalSize += obj.Size || 0;
-              }
-              const sizeGB = totalSize / (1024 * 1024 * 1024);
-              projectCost.metrics.s3SizeBytes = totalSize;
-              // Apply period multiplier for S3 storage cost
-              projectCost.s3.storage = sizeGB * AWS_PRICING.s3StoragePerGB * periodMultiplier;
-              projectCost.s3.total = projectCost.s3.storage;
-            } catch (e) { /* ignore */ }
-          }
-
-          // CloudFront base cost with period multiplier
-          projectCost.cloudfront.total = 0.01 * periodMultiplier;
-          projectCost.total = projectCost.s3.total + projectCost.cloudfront.total;
-
-          result.projects.push({
-            projectId: dep.projectId,
-            projectName: dep.projectName || 'Project',
-            deployedUrl: dep.awsResources?.deployed_url || dep.awsResources?.cloudFrontUrl || '',
-            costs: projectCost
-          });
-
-          result.costs.s3 += projectCost.s3.total;
-          result.costs.cloudfront += projectCost.cloudfront.total;
-          result.costs.total += projectCost.total;
-        }
-
-        return {
-          statusCode: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: true, costs: result })
-        };
-      } catch (error) {
-        console.error('[User Costs] Error:', error);
-        return {
-          statusCode: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: error.message })
-        };
-      }
+    // Send Admin Report - comprehensive admin summary with all users + infrastructure costs
+    if (action === 'send-admin-report') {
+      return handleSendAdminSummaryReport({ body, corsHeaders, S3_REGION, ADMIN_PASSWORD, listApplications });
     }
 
     // Get Tmux Projects - Fetch deployed projects from Tmux Builder API
@@ -2967,28 +2789,32 @@ export const handler = async (event) => {
 
         // Determine file extension
         const ext = contentType?.split('/')[1] || 'png';
-        const avatarKey = `users/${guid}/avatar.${ext}`;
+        const avatarKey = `avatars/${guid}/avatar.${ext}`;
 
-        // Upload to S3
-        await s3.send(new PutObjectCommand({
-          Bucket: S3_BUCKET,
+        // Upload to the PUBLIC site bucket (cocreateidea.com) served via CloudFront
+        const SITE_BUCKET = 'cocreateidea.com';
+        const SITE_REGION = 'ap-south-1';
+        const s3Site = new S3Client({ region: SITE_REGION });
+        await s3Site.send(new PutObjectCommand({
+          Bucket: SITE_BUCKET,
           Key: avatarKey,
           Body: buffer,
           ContentType: contentType || 'image/png',
-          CacheControl: 'max-age=86400'
+          CacheControl: 'no-cache'
         }));
 
-        // Generate URL (using CloudFront if available, otherwise S3)
-        const avatarUrl = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${avatarKey}?t=${Date.now()}`;
+        // URL via CloudFront (public, no pre-signing needed)
+        const avatarUrl = `https://www.cocreateidea.com/${avatarKey}?t=${Date.now()}`;
 
-        // Update profile with avatar URL
+        // Update profile in the private data bucket
+        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
         let profile = {};
         try {
-          const { GetObjectCommand } = await import('@aws-sdk/client-s3');
           const result = await s3.send(new GetObjectCommand({ Bucket: S3_BUCKET, Key: `users/${guid}/profile.json` }));
           profile = JSON.parse(await result.Body.transformToString());
         } catch (e) { /* No profile yet */ }
 
+        profile.avatarKey = avatarKey;
         profile.avatarUrl = avatarUrl;
         await s3.send(new PutObjectCommand({
           Bucket: S3_BUCKET,

@@ -579,9 +579,9 @@
                     <div class="relative">
                         <button id="profile-btn" onclick="toggleProfileMenu()" class="flex items-center gap-3 px-3 py-2 rounded-full hover:bg-white/5 transition focus:outline-none">
                             <!-- Avatar -->
-                            <div id="profile-avatar" class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg border-2 border-primary/50 overflow-hidden" style="background: linear-gradient(135deg, #fc2a0d, #fd6c71);">
+                            <div id="profile-avatar" class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg border-2 border-primary/50 overflow-hidden relative" style="background: linear-gradient(135deg, #fc2a0d, #fd6c71);">
                                 <span id="profile-avatar-letter">U</span>
-                                <img id="profile-avatar-img" class="hidden w-full h-full object-cover" src="" alt="Profile">
+                                <img id="profile-avatar-img" class="hidden absolute inset-0 w-full h-full object-cover rounded-full" src="" alt="Profile">
                             </div>
                             <!-- Username -->
                             <span id="nav-username" class="font-semibold text-lg text-theme-primary">User</span>
@@ -592,9 +592,9 @@
                             <div class="p-4 border-b border-white/10">
                                 <div class="flex items-center gap-3">
                                     <div class="relative group cursor-pointer" onclick="document.getElementById('avatar-upload').click()">
-                                        <div id="dropdown-avatar-container" class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-xl overflow-hidden" style="background: linear-gradient(135deg, #fc2a0d, #fd6c71);">
+                                        <div id="dropdown-avatar-container" class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-xl overflow-hidden relative" style="background: linear-gradient(135deg, #fc2a0d, #fd6c71);">
                                             <span id="dropdown-avatar-letter">U</span>
-                                            <img id="dropdown-avatar-img" class="hidden w-full h-full object-cover" src="" alt="Profile">
+                                            <img id="dropdown-avatar-img" class="hidden absolute inset-0 w-full h-full object-cover rounded-full" src="" alt="Profile">
                                         </div>
                                         <div class="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
                                             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -762,13 +762,24 @@
 
                     <!-- AWS Cost Dashboard -->
                     <div class="dashboard-card" style="background: linear-gradient(135deg, var(--bg-card), rgba(var(--primary-rgb), 0.05));">
-                        <h2 class="text-xl font-display font-semibold flex items-center gap-2 mb-4">
-                            <span>💰</span> <span class="gradient-text">My Cost Dashboard</span>
-                        </h2>
+                        <div class="flex items-center justify-between gap-4 mb-4">
+                            <h2 class="text-xl font-display font-semibold flex items-center gap-2 whitespace-nowrap">
+                                <span>💰</span> <span class="gradient-text">My Cost Dashboard</span>
+                            </h2>
+                            <!-- Period Toggle -->
+                            <div class="flex rounded-lg overflow-hidden" style="background: rgba(26, 10, 0, 0.4); border: 1px solid var(--border-color);">
+                                <button id="period-weekly" onclick="switchCostPeriod('weekly')" class="px-3 py-1.5 text-xs font-medium transition" style="color: var(--text-muted);">
+                                    Weekly
+                                </button>
+                                <button id="period-monthly" onclick="switchCostPeriod('monthly')" class="px-3 py-1.5 text-xs font-medium transition" style="background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white;">
+                                    Monthly
+                                </button>
+                            </div>
+                        </div>
                         <div id="user-costs-section">
-                            <!-- Monthly Total - Featured -->
+                            <!-- Cost Total - Featured -->
                             <div class="text-center p-4 mb-4 rounded-xl" style="background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.15), rgba(var(--secondary-rgb), 0.1)); border: 1px solid var(--border-color);">
-                                <p class="text-xs text-theme-muted mb-1">Estimated Monthly Cost</p>
+                                <p id="cost-period-label" class="text-xs text-theme-muted mb-1">Estimated Monthly Cost</p>
                                 <p id="user-cost-total" class="text-3xl font-bold gradient-text">$0.00</p>
                             </div>
 

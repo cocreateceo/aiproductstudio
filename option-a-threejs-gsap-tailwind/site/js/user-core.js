@@ -18,6 +18,8 @@
     let dashboardData = null;
     let usernameCheckTimeout = null;
     let userProfile = null; // Stores name and email from profile
+    let currentCostPeriod = 'monthly'; // 'weekly' or 'monthly'
+    let currentUserEmail = null; // Email used as billing ID for cost queries
 
     // DOM Elements
     const screens = {
@@ -676,6 +678,9 @@
         showToast('Logged out successfully', 'info');
     };
 
+    // Switch cost period (exposed to window for HTML onclick)
+    window.switchCostPeriod = switchCostPeriod;
+
     // Upload profile avatar
     window.uploadAvatar = async function(input) {
         if (!input.files || !input.files[0]) return;
@@ -804,8 +809,11 @@
                     renderTmuxProjects([tmuxData.project]);
                 }
 
-                // Fetch user AWS costs
-                fetchUserCosts(currentGuid);
+                // Capture email as billing identifier for cost queries
+                currentUserEmail = dashboardData?.user?.email || dashboardData?.application?.email || null;
+
+                // Fetch user AWS costs using email to match DynamoDB records
+                fetchUserCosts(currentGuid, null, currentUserEmail);
             } else {
                 // Session invalid, show login
                 deleteCookie(SESSION_COOKIE);
@@ -1286,7 +1294,10 @@
     }
 
     // Fetch user costs from API
-    async function fetchUserCosts(guid) {
+    async function fetchUserCosts(guid, period = null, email = null) {
+        const usePeriod = period || currentCostPeriod;
+        const useEmail = email || currentUserEmail;
+
         try {
             const response = await fetch(API_URL, {
                 method: 'POST',
@@ -1294,13 +1305,15 @@
                 body: JSON.stringify({
                     action: 'user-costs',
                     guid: guid,
+                    email: useEmail,
+                    period: usePeriod,
                     sessionToken: currentSession
                 })
             });
             const data = await response.json();
 
             if (data.success) {
-                renderUserCosts(data.costs);
+                renderUserCosts(data.costs, usePeriod);
             } else {
                 console.log('[Costs] Could not fetch:', data.error);
                 renderUserCostsError('Could not load cost data');
@@ -1311,16 +1324,57 @@
         }
     }
 
+    // Switch cost period (weekly/monthly)
+    function switchCostPeriod(period) {
+        currentCostPeriod = period;
+
+        // Update toggle UI
+        const weeklyBtn = document.getElementById('period-weekly');
+        const monthlyBtn = document.getElementById('period-monthly');
+
+        if (period === 'weekly') {
+            weeklyBtn.style.background = 'linear-gradient(135deg, var(--primary), var(--secondary))';
+            weeklyBtn.style.color = 'white';
+            monthlyBtn.style.background = 'transparent';
+            monthlyBtn.style.color = 'var(--text-muted)';
+        } else {
+            monthlyBtn.style.background = 'linear-gradient(135deg, var(--primary), var(--secondary))';
+            monthlyBtn.style.color = 'white';
+            weeklyBtn.style.background = 'transparent';
+            weeklyBtn.style.color = 'var(--text-muted)';
+        }
+
+        // Update label
+        const labelEl = document.getElementById('cost-period-label');
+        if (labelEl) {
+            labelEl.textContent = period === 'weekly' ? 'Estimated Weekly Cost' : 'Estimated Monthly Cost';
+        }
+
+        // Refresh cost data
+        if (currentGuid) {
+            fetchUserCosts(currentGuid, period);
+        }
+    }
+
     // Render user costs section
-    function renderUserCosts(costs) {
+    function renderUserCosts(costs, period = 'monthly') {
         // Update totals
         const totalEl = document.getElementById('user-cost-total');
         const s3El = document.getElementById('user-cost-s3');
         const cloudfrontEl = document.getElementById('user-cost-cloudfront');
+        const labelEl = document.getElementById('cost-period-label');
 
         if (totalEl) totalEl.textContent = formatCurrency(costs.costs?.total);
         if (s3El) s3El.textContent = formatCurrency(costs.costs?.s3);
         if (cloudfrontEl) cloudfrontEl.textContent = formatCurrency(costs.costs?.cloudfront);
+
+        // Show period label with date range
+        if (labelEl) {
+            const periodLabel = costs.periodLabel || (period === 'weekly' ? 'This Week' : 'This Month');
+            labelEl.textContent = period === 'weekly'
+                ? `Weekly Cost (${periodLabel})`
+                : `Monthly Cost (${periodLabel})`;
+        }
 
         // Render project costs
         const projectCostsEl = document.getElementById('user-project-costs');
@@ -1445,12 +1499,17 @@
 
                     // Fetch real-time project data from Tmux Builder
                     const tmuxData = await fetchTmuxBuilderData(currentGuid);
-                    if (tmuxData && tmuxData.project) {
-                        renderTmuxProject(tmuxData.project);
+                    if (tmuxData && tmuxData.projects && tmuxData.projects.length > 0) {
+                        renderTmuxProjects(tmuxData.projects);
+                    } else if (tmuxData && tmuxData.project) {
+                        renderTmuxProjects([tmuxData.project]);
                     }
 
-                    // Fetch user AWS costs
-                    fetchUserCosts(currentGuid);
+                    // Capture email as billing identifier for cost queries
+                    currentUserEmail = dashboardData?.user?.email || dashboardData?.application?.email || null;
+
+                    // Fetch user AWS costs using email to match DynamoDB records
+                    fetchUserCosts(currentGuid, null, currentUserEmail);
                     return;
                 }
 
