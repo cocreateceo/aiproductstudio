@@ -649,29 +649,55 @@ function renderApplications() {
 
             <div class="card-details" style="border-top: 1px solid var(--border-color);">
                 <div class="p-5 space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <p class="text-theme-muted text-xs uppercase mb-1">Industry</p>
-                            <p class="text-theme-secondary">${app.formData?.industry || 'Not specified'}</p>
-                        </div>
-                        <div>
-                            <p class="text-theme-muted text-xs uppercase mb-1">Business Stage</p>
-                            <p class="text-theme-secondary">${app.formData?.business_stage || app.formData?.businessStage || 'Not specified'}</p>
-                        </div>
-                        <div>
-                            <p class="text-theme-muted text-xs uppercase mb-1">Time Commitment</p>
-                            <p class="text-theme-secondary">${app.formData?.time_commitment || app.formData?.timeCommitment || 'Not specified'}</p>
-                        </div>
-                        <div>
-                            <p class="text-theme-muted text-xs uppercase mb-1">Phone</p>
-                            <p class="text-theme-secondary">${app.visitorInfo?.phone || 'Not provided'}</p>
-                        </div>
-                    </div>
-
+                    <!-- Mandatory: Product Idea -->
                     <div>
                         <p class="text-theme-muted text-xs uppercase mb-1">Product Idea</p>
                         <p class="text-theme-secondary whitespace-pre-wrap">${app.formData?.product_idea || app.formData?.productIdea || 'Not provided'}</p>
                     </div>
+
+                    <!-- Dates: Submitted and Approved -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-theme-muted text-xs uppercase mb-1">Submitted</p>
+                            <p class="text-theme-secondary">${(app.submittedAt || app.timestamp) ? new Date(app.submittedAt || app.timestamp).toLocaleString() : 'Unknown'}</p>
+                        </div>
+                        ${app.status === 'approved' && app.reviewedAt ? `
+                        <div>
+                            <p class="text-theme-muted text-xs uppercase mb-1">Approved</p>
+                            <p class="text-theme-secondary">${new Date(app.reviewedAt).toLocaleString()}</p>
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- Optional fields: Only show if data exists -->
+                    ${(app.formData?.industry || app.formData?.business_stage || app.formData?.businessStage || app.formData?.time_commitment || app.formData?.timeCommitment || app.visitorInfo?.phone) ? `
+                    <div class="grid grid-cols-2 gap-4">
+                        ${app.formData?.industry ? `
+                        <div>
+                            <p class="text-theme-muted text-xs uppercase mb-1">Industry</p>
+                            <p class="text-theme-secondary">${app.formData.industry}</p>
+                        </div>
+                        ` : ''}
+                        ${app.formData?.business_stage || app.formData?.businessStage ? `
+                        <div>
+                            <p class="text-theme-muted text-xs uppercase mb-1">Business Stage</p>
+                            <p class="text-theme-secondary">${app.formData.business_stage || app.formData.businessStage}</p>
+                        </div>
+                        ` : ''}
+                        ${app.formData?.time_commitment || app.formData?.timeCommitment ? `
+                        <div>
+                            <p class="text-theme-muted text-xs uppercase mb-1">Time Commitment</p>
+                            <p class="text-theme-secondary">${app.formData.time_commitment || app.formData.timeCommitment}</p>
+                        </div>
+                        ` : ''}
+                        ${app.visitorInfo?.phone ? `
+                        <div>
+                            <p class="text-theme-muted text-xs uppercase mb-1">Phone</p>
+                            <p class="text-theme-secondary">${app.visitorInfo.phone}</p>
+                        </div>
+                        ` : ''}
+                    </div>
+                    ` : ''}
 
                     ${app.formData?.target_market || app.formData?.targetMarket ? `
                     <div>
@@ -695,24 +721,39 @@ function renderApplications() {
                             if (isLoading) {
                                 return `
                                     <button disabled class="btn-approve px-4 py-2 rounded-lg font-semibold transition flex-1 opacity-50 cursor-not-allowed">Approve & Build</button>
+                                    <button disabled class="px-4 py-2 rounded-lg font-semibold transition flex-1 opacity-50 cursor-not-allowed" style="background: rgba(59, 130, 246, 0.2); color: rgb(59, 130, 246); border: 1px solid rgba(59, 130, 246, 0.3);">Hold</button>
                                     <button disabled class="btn-reject px-4 py-2 rounded-lg font-semibold transition flex-1 opacity-50 cursor-not-allowed">Reject</button>
                                 `;
                             }
 
                             if (status === 'approved' && hasSession) {
-                                return `<button onclick="event.stopPropagation(); quickReject('${app.s3Key}')" class="btn-reject px-4 py-2 rounded-lg font-semibold transition flex-1">Reject</button>`;
+                                return `
+                                    <button disabled class="btn-approve px-4 py-2 rounded-lg font-semibold transition flex-1 opacity-50 cursor-not-allowed">Approve & Build</button>
+                                    <button onclick="event.stopPropagation(); /* TODO: Add function */" class="btn-hold px-4 py-2 rounded-lg font-semibold transition flex-1" style="background: linear-gradient(135deg, rgb(59, 130, 246), rgb(37, 99, 235)); color: white; border: 1px solid rgb(59, 130, 246);">Hold</button>
+                                    <button onclick="event.stopPropagation(); quickReject('${app.s3Key}')" class="btn-reject px-4 py-2 rounded-lg font-semibold transition flex-1">Reject</button>
+                                `;
                             }
 
                             if (status === 'approved' && hasError) {
                                 return `
-                                    <button onclick="event.stopPropagation(); retrySession('${app.s3Key}')" class="px-4 py-2 rounded-lg font-semibold transition flex-1" style="background: rgba(var(--primary-rgb), 0.2); color: var(--primary); border: 1px solid rgba(var(--primary-rgb), 0.3);">Retry</button>
+                                    <button disabled class="btn-approve px-4 py-2 rounded-lg font-semibold transition flex-1 opacity-50 cursor-not-allowed">Approve & Build</button>
+                                    <button onclick="event.stopPropagation(); /* TODO: Add function */" class="btn-hold px-4 py-2 rounded-lg font-semibold transition flex-1" style="background: linear-gradient(135deg, rgb(59, 130, 246), rgb(37, 99, 235)); color: white; border: 1px solid rgb(59, 130, 246);">Hold</button>
                                     <button onclick="event.stopPropagation(); quickReject('${app.s3Key}')" class="btn-reject px-4 py-2 rounded-lg font-semibold transition flex-1">Reject</button>
+                                `;
+                            }
+
+                            if (status === 'rejected') {
+                                return `
+                                    <button onclick="event.stopPropagation(); quickApprove('${app.s3Key}')" class="btn-approve px-4 py-2 rounded-lg font-semibold transition flex-1">Approve & Build</button>
+                                    <button onclick="event.stopPropagation(); /* TODO: Add function */" class="btn-hold px-4 py-2 rounded-lg font-semibold transition flex-1" style="background: linear-gradient(135deg, rgb(59, 130, 246), rgb(37, 99, 235)); color: white; border: 1px solid rgb(59, 130, 246);">Hold</button>
+                                    <button disabled class="btn-reject px-4 py-2 rounded-lg font-semibold transition flex-1 opacity-50 cursor-not-allowed">Reject</button>
                                 `;
                             }
 
                             if (status === 'pending' || !status) {
                                 return `
                                     <button onclick="event.stopPropagation(); quickApprove('${app.s3Key}')" class="btn-approve px-4 py-2 rounded-lg font-semibold transition flex-1">Approve & Build</button>
+                                    <button disabled class="btn-hold px-4 py-2 rounded-lg font-semibold transition flex-1 opacity-50 cursor-not-allowed" style="background: linear-gradient(135deg, rgb(59, 130, 246), rgb(37, 99, 235)); color: white; border: 1px solid rgb(59, 130, 246);">Hold</button>
                                     <button onclick="event.stopPropagation(); quickReject('${app.s3Key}')" class="btn-reject px-4 py-2 rounded-lg font-semibold transition flex-1">Reject</button>
                                 `;
                             }
@@ -817,6 +858,15 @@ async function quickApprove(s3Key) {
 async function quickReject(s3Key) {
     const app = applications.find(a => a.s3Key === s3Key);
     if (!app) return;
+
+    // Confirmation dialog before rejecting
+    const userName = app.visitorInfo?.name || app.formData?.fullName || 'this user';
+    const userEmail = app.visitorInfo?.email || app.formData?.email || '';
+    const confirmed = confirm(`⚠️ Are you sure you want to REJECT this application?\n\nUser: ${userName}\nEmail: ${userEmail}\n\nThis action will:\n• Mark the application as rejected\n• Prevent the user from accessing their build session\n\nClick OK to reject, Cancel to keep the application.`);
+
+    if (!confirmed) {
+        return; // User cancelled
+    }
 
     currentApp = app;
     await updateStatus('rejected');

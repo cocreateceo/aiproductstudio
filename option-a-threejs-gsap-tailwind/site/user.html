@@ -579,8 +579,9 @@
                     <div class="relative">
                         <button id="profile-btn" onclick="toggleProfileMenu()" class="flex items-center gap-3 px-3 py-2 rounded-full hover:bg-white/5 transition focus:outline-none">
                             <!-- Avatar -->
-                            <div id="profile-avatar" class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg border-2 border-primary/50" style="background: linear-gradient(135deg, #fc2a0d, #fd6c71);">
-                                U
+                            <div id="profile-avatar" class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg border-2 border-primary/50 overflow-hidden" style="background: linear-gradient(135deg, #fc2a0d, #fd6c71);">
+                                <span id="profile-avatar-letter">U</span>
+                                <img id="profile-avatar-img" class="hidden w-full h-full object-cover" src="" alt="Profile">
                             </div>
                             <!-- Username -->
                             <span id="nav-username" class="font-semibold text-lg text-theme-primary">User</span>
@@ -590,8 +591,18 @@
                         <div id="profile-dropdown" class="hidden absolute right-0 top-14 w-72 glass-card rounded-xl shadow-2xl overflow-hidden z-50">
                             <div class="p-4 border-b border-white/10">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-xl" style="background: linear-gradient(135deg, #fc2a0d, #fd6c71);">
-                                        <span id="dropdown-avatar-letter">U</span>
+                                    <div class="relative group cursor-pointer" onclick="document.getElementById('avatar-upload').click()">
+                                        <div id="dropdown-avatar-container" class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-xl overflow-hidden" style="background: linear-gradient(135deg, #fc2a0d, #fd6c71);">
+                                            <span id="dropdown-avatar-letter">U</span>
+                                            <img id="dropdown-avatar-img" class="hidden w-full h-full object-cover" src="" alt="Profile">
+                                        </div>
+                                        <div class="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            </svg>
+                                        </div>
+                                        <input type="file" id="avatar-upload" class="hidden" accept="image/*" onchange="uploadAvatar(this)">
                                     </div>
                                     <div>
                                         <p id="dropdown-name" class="font-semibold text-theme-primary">User</p>
@@ -645,11 +656,15 @@
                             <span id="project-status" class="status-badge status-approved">Approved</span>
                         </div>
                         <div class="grid sm:grid-cols-2 gap-4">
-                            <div>
+                            <div class="field-container">
                                 <p class="text-theme-muted text-sm mb-1">Submitted</p>
                                 <p id="project-date" class="text-theme-primary font-medium">-</p>
                             </div>
-                            <div>
+                            <div class="field-container">
+                                <p class="text-theme-muted text-sm mb-1">Approved</p>
+                                <p id="project-approved" class="text-theme-primary font-medium">-</p>
+                            </div>
+                            <div class="field-container">
                                 <p class="text-theme-muted text-sm mb-1">Timeline</p>
                                 <p id="project-timeline" class="text-theme-primary font-medium">-</p>
                             </div>
@@ -680,15 +695,13 @@
                                 <p class="text-theme-muted text-sm mb-1">Product Idea</p>
                                 <p id="project-idea" class="text-theme-primary">-</p>
                             </div>
-                            <div>
+                            <div class="field-container">
                                 <p class="text-theme-muted text-sm mb-1">Target Customer</p>
                                 <p id="project-customer" class="text-theme-primary">-</p>
                             </div>
-                            <div class="grid sm:grid-cols-2 gap-4">
-                                <div>
-                                    <p class="text-theme-muted text-sm mb-1">Industry</p>
-                                    <p id="project-industry" class="text-theme-primary capitalize">-</p>
-                                </div>
+                            <div class="field-container">
+                                <p class="text-theme-muted text-sm mb-1">Industry</p>
+                                <p id="project-industry" class="text-theme-primary capitalize">-</p>
                             </div>
                         </div>
                     </div>
@@ -717,6 +730,36 @@
 
                 <!-- Right Column -->
                 <div class="space-y-6">
+                    <!-- Build Progress -->
+                    <div class="dashboard-card">
+                        <h2 class="text-xl font-display font-semibold flex items-center gap-2 mb-4">
+                            <span>📊</span> Build Progress
+                        </h2>
+                        <div id="build-progress">
+                            <div class="progress-step pending">
+                                <div class="step-icon pending">1</div>
+                                <div>
+                                    <p class="font-medium text-theme-primary">Architect</p>
+                                    <p class="text-sm text-theme-muted">Planning & Design</p>
+                                </div>
+                            </div>
+                            <div class="progress-step pending">
+                                <div class="step-icon pending">2</div>
+                                <div>
+                                    <p class="font-medium text-theme-primary">Developer</p>
+                                    <p class="text-sm text-theme-muted">Building Features</p>
+                                </div>
+                            </div>
+                            <div class="progress-step pending">
+                                <div class="step-icon pending">3</div>
+                                <div>
+                                    <p class="font-medium text-theme-primary">Deployer</p>
+                                    <p class="text-sm text-theme-muted">Launch & Deploy</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- AWS Cost Dashboard -->
                     <div class="dashboard-card" style="background: linear-gradient(135deg, var(--bg-card), rgba(var(--primary-rgb), 0.05));">
                         <h2 class="text-xl font-display font-semibold flex items-center gap-2 mb-4">
@@ -757,55 +800,6 @@
                         </div>
                     </div>
 
-                    <!-- Build Progress -->
-                    <div class="dashboard-card">
-                        <h2 class="text-xl font-display font-semibold flex items-center gap-2 mb-4">
-                            <span>📊</span> Build Progress
-                        </h2>
-                        <div id="build-progress">
-                            <div class="progress-step pending">
-                                <div class="step-icon pending">1</div>
-                                <div>
-                                    <p class="font-medium text-theme-primary">Architect</p>
-                                    <p class="text-sm text-theme-muted">Planning & Design</p>
-                                </div>
-                            </div>
-                            <div class="progress-step pending">
-                                <div class="step-icon pending">2</div>
-                                <div>
-                                    <p class="font-medium text-theme-primary">Developer</p>
-                                    <p class="text-sm text-theme-muted">Building Features</p>
-                                </div>
-                            </div>
-                            <div class="progress-step pending">
-                                <div class="step-icon pending">3</div>
-                                <div>
-                                    <p class="font-medium text-theme-primary">Deployer</p>
-                                    <p class="text-sm text-theme-muted">Launch & Deploy</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Account Settings -->
-                    <div class="dashboard-card">
-                        <h2 class="text-xl font-display font-semibold flex items-center gap-2 mb-4">
-                            <span>⚙️</span> Account
-                        </h2>
-                        <div class="space-y-3">
-                            <div>
-                                <p class="text-theme-muted text-sm">Name</p>
-                                <p id="account-name" class="text-theme-primary font-medium">-</p>
-                            </div>
-                            <div>
-                                <p class="text-theme-muted text-sm">Email</p>
-                                <p id="account-email" class="text-theme-primary font-medium">-</p>
-                            </div>
-                            <button onclick="showChangePassword()" class="w-full mt-4 px-4 py-2 rounded-lg text-theme-secondary hover:text-theme-primary transition text-sm" style="background: rgba(26, 10, 0, 0.5); border: 1px solid var(--border-color);">
-                                Change Password
-                            </button>
-                        </div>
-                    </div>
                 </div>
             </div>
         </main>
