@@ -231,12 +231,17 @@ export async function handleAdminCostsSummary({ body, corsHeaders, S3_REGION, AD
     console.log('[Admin Costs] Total DynamoDB records after sync:', deployments.length);
 
     // Group by user — only include records that have actual S3 buckets
+    // Filter out test/example domains permanently
+    const TEST_EMAIL_PATTERNS = ['@example.com', '@testflow.com', '@test.com', '@localhost'];
+    const isTestUser = (email) => !email || TEST_EMAIL_PATTERNS.some(p => email.toLowerCase().includes(p));
+
     const userMap = {};
     for (const dep of deployments) {
       const bucket = getBucket(dep.awsResources);
       if (!bucket) continue; // Skip records without S3 buckets
 
       const userId = dep.userId || dep.email || 'unknown';
+      if (isTestUser(userId)) continue; // Skip test users permanently
       if (!userMap[userId]) {
         userMap[userId] = {
           userId,
@@ -255,6 +260,53 @@ export async function handleAdminCostsSummary({ body, corsHeaders, S3_REGION, AD
         createdAt: dep.createdAt
       });
     }
+
+    // Step 3b: Ensure ALL approved users appear (even with zero projects)
+    for (const app of approvedApps) {
+      const email = app.visitorInfo?.email;
+      if (!email || isTestUser(email)) continue;
+      if (!userMap[email]) {
+        userMap[email] = {
+          userId: email,
+          email,
+          name: app.visitorInfo?.name || email,
+          guid: app.guid,
+          projectCount: 0,
+          projects: [],
+          costs: { s3: 0, cloudfront: 0, total: 0 },
+          status: app.status || 'approved',
+          approvedAt: app.reviewedAt || null,
+          sessionLink: app.sessionLink || null,
+          productIdea: app.formData?.productIdea || app.formData?.product_idea || ''
+        };
+      } else {
+        // Enrich existing entry with application data
+        userMap[email].name = app.visitorInfo?.name || userMap[email].name || email;
+        userMap[email].guid = app.guid;
+        userMap[email].status = app.status || 'approved';
+        userMap[email].approvedAt = app.reviewedAt || null;
+        userMap[email].sessionLink = app.sessionLink || null;
+        userMap[email].productIdea = app.formData?.productIdea || app.formData?.product_idea || '';
+      }
+    }
+
+    // Step 3c: Fetch avatar URLs from user profiles in S3
+    const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+    const DATA_BUCKET = 'cocreate-applications-data';
+    await Promise.all(Object.values(userMap).map(async (user) => {
+      if (!user.guid) return;
+      try {
+        const profileResult = await s3.send(new GetObjectCommand({
+          Bucket: DATA_BUCKET,
+          Key: `users/${user.guid}/profile.json`
+        }));
+        const profile = JSON.parse(await profileResult.Body.transformToString());
+        if (profile.avatarUrl) user.avatarUrl = profile.avatarUrl;
+        if (profile.name && !user.name) user.name = profile.name;
+      } catch (e) {
+        // No profile yet — keep default
+      }
+    }));
 
     // Step 4: Calculate costs for each user's projects
     const AWS_PRICING = { s3StoragePerGBPerMonth: 0.023, cloudfrontBasePerMonth: 0.01 };
@@ -305,7 +357,9 @@ export async function handleAdminCostsSummary({ body, corsHeaders, S3_REGION, AD
       estimated: users.reduce((sum, u) => sum + u.costs.total, 0),
       s3: users.reduce((sum, u) => sum + u.costs.s3, 0),
       cloudfront: users.reduce((sum, u) => sum + u.costs.cloudfront, 0),
-      projectCount: users.reduce((sum, u) => sum + u.projectCount, 0)
+      projectCount: users.reduce((sum, u) => sum + u.projectCount, 0),
+      userCount: users.length,
+      activeUsers: users.filter(u => u.projectCount > 0).length
     };
 
     return {

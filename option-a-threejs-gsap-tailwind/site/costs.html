@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="ember">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <title>AWS Cost Analysis | CoCreate</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: 'var(--primary)',
+                        secondary: 'var(--secondary)',
+                        accent: 'var(--accent)',
+                    },
+                    fontFamily: {
+                        sans: ['DM Sans', 'system-ui', 'sans-serif'],
+                        display: ['Outfit', 'DM Sans', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- CoCreate Theme CSS -->
+    <link rel="stylesheet" href="css/themes/ember.css">
+    <link rel="stylesheet" href="css/themes/coral.css">
+    <link rel="stylesheet" href="css/themes/sunset.css">
+    <link rel="stylesheet" href="css/themes/aurora.css">
+    <link rel="stylesheet" href="css/themes/legacy.css">
+    <link rel="stylesheet" href="css/themes/sandstone.css">
+    <link rel="stylesheet" href="css/themes/champagne.css">
+    <link rel="stylesheet" href="css/themes/zoom.css">
+
+    <!-- Unified Theme System -->
+    <script src="js/theme.js"></script>
+
+    <!-- Centralized Configuration -->
+    <script src="js/config.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+    <!-- GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+    <!-- Cost Analysis Styles -->
+    <link rel="stylesheet" href="css/costs.css">
+
+    <style>
+        /* Hide browser's native password reveal button */
+        input[type="password"]::-ms-reveal,
+        input[type="password"]::-webkit-reveal {
+            display: none;
+        }
+
+        /* Fixed Page Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('assets/cocreate_bg.png') center bottom / cover no-repeat;
+            z-index: -2;
+            pointer-events: none;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(ellipse 120% 100% at 50% 100%, transparent 30%, rgba(26, 10, 0, 0.6) 100%),
+                linear-gradient(90deg, rgba(26, 10, 0, 0.65) 0%, rgba(26, 10, 0, 0.3) 40%, transparent 60%),
+                linear-gradient(180deg, rgba(26, 10, 0, 0.5) 0%, transparent 40%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        :root {
+            --transition-speed: 0.4s;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', system-ui, sans-serif;
+            background: transparent;
+            color: var(--text-primary);
+            min-height: 100vh;
+            transition: background var(--transition-speed) ease, color var(--transition-speed) ease;
+        }
+
+        .bg-theme-primary { background: transparent; }
+        .bg-theme-secondary { background: rgba(26, 10, 0, 0.3); }
+
+        h1, h2, h3, h4, h5, h6, .font-display {
+            font-family: 'Outfit', 'DM Sans', system-ui, sans-serif;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .glass-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            transition: background var(--transition-speed) ease, border-color var(--transition-speed) ease;
+        }
+
+        .text-theme-primary { color: var(--text-primary); }
+        .text-theme-secondary { color: var(--text-secondary); }
+        .text-theme-muted { color: var(--text-muted); }
+
+        /* Theme Selector */
+        .theme-selector { position: relative; }
+
+        .theme-toggle-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: rgba(26, 10, 0, 0.3);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .theme-toggle-btn:hover {
+            border-color: var(--primary);
+            background: var(--bg-card);
+        }
+
+        .theme-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 8px;
+            min-width: 160px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            display: none;
+        }
+
+        .theme-dropdown.open { display: block; }
+
+        .theme-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .theme-option:hover { background: rgba(26, 10, 0, 0.3); }
+        .theme-option.active { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; }
+        .theme-option-icon { font-size: 18px; }
+
+        /* Toast Notifications */
+        #toast-container {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            pointer-events: none;
+        }
+
+        .toast {
+            min-width: 300px;
+            max-width: 400px;
+            padding: 16px 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            pointer-events: auto;
+            animation: slideIn 0.3s ease-out;
+            border: 1px solid;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .toast.success { background: rgba(34, 197, 94, 0.15); border-color: rgba(34, 197, 94, 0.4); color: #22c55e; }
+        .toast.error { background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.4); color: #ef4444; }
+        .toast.info { background: rgba(99, 102, 241, 0.15); border-color: rgba(99, 102, 241, 0.4); color: #6366f1; }
+        .toast-icon { font-size: 20px; flex-shrink: 0; }
+        .toast-message { flex: 1; }
+        .toast.removing { animation: slideOut 0.3s ease-in forwards; }
+
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(400px); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- Login Screen -->
+    <div id="login-screen" class="min-h-screen flex items-center justify-center p-6">
+        <div class="glass-card rounded-2xl p-8 w-full max-w-md">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style="background: linear-gradient(135deg, var(--primary), var(--secondary));">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                </div>
+                <h1 class="text-2xl font-display font-bold gradient-text">AWS Cost Analysis</h1>
+                <p class="mt-2 text-theme-secondary">CoCreate Infrastructure</p>
+            </div>
+            <div id="login-error" class="hidden bg-red-500/20 border border-red-500/50 rounded-lg p-3 mb-4 text-red-400 text-sm"></div>
+            <div class="space-y-4">
+                <div class="relative">
+                    <input type="password" id="password-input" placeholder="Enter admin password"
+                        class="w-full px-4 py-3 pr-12 rounded-xl focus:outline-none" style="background: rgba(26, 10, 0, 0.5); border: 1px solid var(--border-color); color: var(--text-primary);" onfocus="this.style.borderColor='var(--primary)'">
+                    <button type="button" id="toggle-password" class="absolute right-3 top-1/2 -translate-y-1/2 text-theme-muted hover:text-theme-primary transition" onclick="togglePasswordVisibility()">
+                        <svg id="eye-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        <svg id="eye-off-icon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                        </svg>
+                    </button>
+                </div>
+                <button id="login-btn" class="w-full py-3 rounded-xl font-semibold hover:opacity-90 transition" style="background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white;">
+                    Login
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard" class="hidden">
+        <!-- Sticky Header -->
+        <header class="glass-card sticky top-0 z-50" style="border-bottom: 1px solid var(--border-color);">
+            <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <img src="assets/logo.png" alt="CoCreate Logo" class="w-10 h-10 object-contain">
+                    <div>
+                        <h1 class="font-display font-bold text-lg text-theme-primary">CoCreate <span class="text-xs text-theme-muted">Cost Analysis</span></h1>
+                        <p class="text-xs text-theme-secondary">AWS Infrastructure</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <!-- Theme Selector -->
+                    <div class="theme-selector">
+                        <button class="theme-toggle-btn" id="theme-toggle">
+                            <span id="current-theme-icon">&#128293;</span>
+                            <span id="current-theme-name">Ember</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div class="theme-dropdown" id="theme-dropdown">
+                            <div class="theme-option" data-theme="ember"><span class="theme-option-icon">&#128293;</span><span>Ember</span></div>
+                            <div class="theme-option" data-theme="coral"><span class="theme-option-icon">&#129704;</span><span>Coral</span></div>
+                            <div class="theme-option" data-theme="sunset"><span class="theme-option-icon">&#127749;</span><span>Sunset</span></div>
+                            <div class="theme-option" data-theme="aurora"><span class="theme-option-icon">&#10024;</span><span>Aurora</span></div>
+                            <div class="theme-option" data-theme="legacy"><span class="theme-option-icon">&#128142;</span><span>Legacy</span></div>
+                            <div class="theme-option" data-theme="sandstone"><span class="theme-option-icon">&#127964;&#65039;</span><span>Sandstone</span></div>
+                            <div class="theme-option" data-theme="champagne"><span class="theme-option-icon">&#129346;</span><span>Champagne</span></div>
+                            <div class="theme-option" data-theme="zoom"><span class="theme-option-icon">&#128188;</span><span>Zoom</span></div>
+                        </div>
+                    </div>
+
+                    <button id="refresh-btn" class="flex items-center gap-2 px-4 py-2 rounded-lg transition" style="background: rgba(26, 10, 0, 0.3); border: 1px solid var(--border-color);">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        Refresh
+                    </button>
+                    <button id="logout-btn" class="flex items-center gap-2 px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                        </svg>
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="max-w-7xl mx-auto px-6 py-8">
+            <!-- Hero Section -->
+            <div class="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+                <div>
+                    <h2 class="hero-title">AWS Cost Analysis</h2>
+                    <p class="text-theme-secondary mt-2 text-sm">Real-time infrastructure cost breakdown and per-user analytics</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="period-toggle" id="period-toggle">
+                        <button data-period="weekly">Weekly</button>
+                        <button class="active" data-period="monthly">Monthly</button>
+                    </div>
+                    <div class="last-updated" id="last-updated">
+                        <span class="dot"></span>
+                        <span id="updated-time">Loading...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KPI Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8" id="kpi-section">
+                <!-- Grand Total -->
+                <div class="glass-card rounded-xl p-4 kpi-card" data-kpi="grand-total">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="kpi-icon" style="background: linear-gradient(135deg, var(--primary), var(--secondary));">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </div>
+                    </div>
+                    <div class="kpi-label text-theme-muted">Grand Total</div>
+                    <div class="kpi-value text-theme-primary" id="kpi-grand-total">
+                        <div class="skeleton skeleton-lg"></div>
+                    </div>
+                    <div class="mt-1" id="kpi-grand-delta"></div>
+                </div>
+
+                <!-- S3 Total -->
+                <div class="glass-card rounded-xl p-4 kpi-card" data-kpi="s3-total">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="kpi-icon" style="background: rgba(34, 197, 94, 0.2);">
+                            <svg class="w-5 h-5" style="color: #4ade80;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>
+                        </div>
+                    </div>
+                    <div class="kpi-label text-theme-muted">S3 Storage</div>
+                    <div class="kpi-value text-theme-primary" id="kpi-s3-total">
+                        <div class="skeleton skeleton-lg"></div>
+                    </div>
+                    <div class="mt-1" id="kpi-s3-delta"></div>
+                </div>
+
+                <!-- CloudFront Total -->
+                <div class="glass-card rounded-xl p-4 kpi-card" data-kpi="cf-total">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="kpi-icon" style="background: rgba(99, 102, 241, 0.2);">
+                            <svg class="w-5 h-5" style="color: #818cf8;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </div>
+                    </div>
+                    <div class="kpi-label text-theme-muted">CloudFront</div>
+                    <div class="kpi-value text-theme-primary" id="kpi-cf-total">
+                        <div class="skeleton skeleton-lg"></div>
+                    </div>
+                    <div class="mt-1" id="kpi-cf-delta"></div>
+                </div>
+
+                <!-- Projects -->
+                <div class="glass-card rounded-xl p-4 kpi-card" data-kpi="projects">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="kpi-icon" style="background: rgba(251, 191, 36, 0.2);">
+                            <svg class="w-5 h-5" style="color: #fbbf24;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                        </div>
+                    </div>
+                    <div class="kpi-label text-theme-muted">Projects</div>
+                    <div class="kpi-value text-theme-primary" id="kpi-projects">
+                        <div class="skeleton skeleton-lg"></div>
+                    </div>
+                    <div class="mt-1 text-xs text-theme-muted" id="kpi-projects-sub"></div>
+                </div>
+
+                <!-- WoW Change -->
+                <div class="glass-card rounded-xl p-4 kpi-card" data-kpi="wow">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="kpi-icon" style="background: rgba(14, 165, 233, 0.2);">
+                            <svg class="w-5 h-5" style="color: #38bdf8;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                        </div>
+                    </div>
+                    <div class="kpi-label text-theme-muted">WoW Change</div>
+                    <div class="kpi-value text-theme-primary" id="kpi-wow">
+                        <div class="skeleton skeleton-lg"></div>
+                    </div>
+                    <div class="mt-1" id="kpi-wow-delta"></div>
+                </div>
+
+                <!-- MoM Change -->
+                <div class="glass-card rounded-xl p-4 kpi-card" data-kpi="mom">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="kpi-icon" style="background: rgba(168, 85, 247, 0.2);">
+                            <svg class="w-5 h-5" style="color: #c084fc;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                        </div>
+                    </div>
+                    <div class="kpi-label text-theme-muted">MoM Change</div>
+                    <div class="kpi-value text-theme-primary" id="kpi-mom">
+                        <div class="skeleton skeleton-lg"></div>
+                    </div>
+                    <div class="mt-1" id="kpi-mom-delta"></div>
+                </div>
+
+                <!-- Infrastructure -->
+                <div class="glass-card rounded-xl p-4 kpi-card" data-kpi="infra">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="kpi-icon" style="background: rgba(249, 115, 22, 0.2);">
+                            <svg class="w-5 h-5" style="color: #fb923c;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/></svg>
+                        </div>
+                    </div>
+                    <div class="kpi-label text-theme-muted">Infrastructure</div>
+                    <div class="kpi-value text-theme-primary" id="kpi-infra">
+                        <div class="skeleton skeleton-lg"></div>
+                    </div>
+                    <div class="mt-1 text-xs text-theme-muted" id="kpi-infra-sub"></div>
+                </div>
+            </div>
+
+            <!-- Cost Insights -->
+            <div class="mb-8" id="insights-section">
+                <div class="section-header">
+                    <div class="section-title">
+                        <div class="icon" style="background: rgba(251, 191, 36, 0.15);">
+                            <svg class="w-5 h-5" style="color: #fbbf24;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                        </div>
+                        Cost Insights
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="insights-content">
+                    <div class="skeleton skeleton-chart" style="height: 100px;"></div>
+                    <div class="skeleton skeleton-chart" style="height: 100px;"></div>
+                    <div class="skeleton skeleton-chart" style="height: 100px;"></div>
+                    <div class="skeleton skeleton-chart" style="height: 100px;"></div>
+                </div>
+            </div>
+
+            <!-- Charts Row 1: Comparison + Donut -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8" id="charts-row-1">
+                <!-- Cost Comparison Bar Chart -->
+                <div class="glass-card rounded-xl p-6 lg:col-span-2">
+                    <div class="section-header">
+                        <div class="section-title">
+                            <div class="icon" style="background: rgba(var(--primary-rgb, 252,42,13), 0.15);">
+                                <svg class="w-5 h-5" style="color: var(--primary);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                            </div>
+                            Cost Comparison
+                        </div>
+                        <span class="text-xs text-theme-muted" id="chart-period-label">This Month vs Last Month</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="comparison-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Service Split Donut -->
+                <div class="glass-card rounded-xl p-6">
+                    <div class="section-header">
+                        <div class="section-title">
+                            <div class="icon" style="background: rgba(168, 85, 247, 0.15);">
+                                <svg class="w-5 h-5" style="color: #c084fc;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg>
+                            </div>
+                            Service Split
+                        </div>
+                    </div>
+                    <div class="chart-container" style="position: relative;">
+                        <canvas id="donut-chart"></canvas>
+                        <div class="donut-center" id="donut-center">
+                            <div class="donut-total" id="donut-total">--</div>
+                            <div class="donut-label">Total</div>
+                        </div>
+                    </div>
+                    <div class="chart-legend" id="donut-legend"></div>
+                </div>
+            </div>
+
+            <!-- Charts Row 2: Stacked Bar + Polar + Projects vs Cost -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8" id="charts-row-2">
+                <!-- S3 vs CloudFront Stacked Bar -->
+                <div class="glass-card rounded-xl p-6">
+                    <div class="section-header">
+                        <div class="section-title">
+                            <div class="icon" style="background: rgba(34, 197, 94, 0.15);">
+                                <svg class="w-5 h-5" style="color: #4ade80;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+                            </div>
+                            S3 vs CloudFront
+                        </div>
+                    </div>
+                    <div class="chart-container-sm">
+                        <canvas id="stacked-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Infrastructure Polar Area -->
+                <div class="glass-card rounded-xl p-6">
+                    <div class="section-header">
+                        <div class="section-title">
+                            <div class="icon" style="background: rgba(249, 115, 22, 0.15);">
+                                <svg class="w-5 h-5" style="color: #fb923c;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                            </div>
+                            Infra Services
+                        </div>
+                    </div>
+                    <div class="chart-container-sm">
+                        <canvas id="polar-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Projects vs Cost Combo -->
+                <div class="glass-card rounded-xl p-6">
+                    <div class="section-header">
+                        <div class="section-title">
+                            <div class="icon" style="background: rgba(14, 165, 233, 0.15);">
+                                <svg class="w-5 h-5" style="color: #38bdf8;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+                            </div>
+                            Projects vs Cost
+                        </div>
+                    </div>
+                    <div class="chart-container-sm">
+                        <canvas id="user-projects-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Infrastructure Costs Section -->
+            <div class="mb-8" id="infra-section">
+                <div class="section-header">
+                    <div class="section-title">
+                        <div class="icon" style="background: rgba(249, 115, 22, 0.15);">
+                            <svg class="w-5 h-5" style="color: #fb923c;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/></svg>
+                        </div>
+                        Infrastructure Costs
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
+                    <!-- AI Product Studio -->
+                    <div class="glass-card rounded-xl p-6 infra-card" id="infra-ai">
+                        <h4 class="font-display font-semibold text-theme-primary mb-1">AI Product Studio</h4>
+                        <p class="text-xs text-theme-muted mb-4">S3, CloudFront, Lambda, API Gateway, DynamoDB</p>
+                        <div id="infra-ai-rows">
+                            <div class="skeleton skeleton-chart" style="height: 150px;"></div>
+                        </div>
+                        <div id="infra-ai-bars" class="mt-3"></div>
+                        <div class="gradient-divider"></div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-semibold text-theme-secondary">Subtotal</span>
+                            <div class="flex items-center gap-3">
+                                <span class="font-display font-bold text-theme-primary" id="infra-ai-subtotal">--</span>
+                                <span id="infra-ai-delta"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tmux Builder -->
+                    <div class="glass-card rounded-xl p-6 infra-card" id="infra-tmux">
+                        <h4 class="font-display font-semibold text-theme-primary mb-1">Tmux Builder</h4>
+                        <p class="text-xs text-theme-muted mb-4">EC2, S3, CloudFront</p>
+                        <div id="infra-tmux-rows">
+                            <div class="skeleton skeleton-chart" style="height: 150px;"></div>
+                        </div>
+                        <div id="infra-tmux-bars" class="mt-3"></div>
+                        <div class="gradient-divider"></div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-semibold text-theme-secondary">Subtotal</span>
+                            <div class="flex items-center gap-3">
+                                <span class="font-display font-bold text-theme-primary" id="infra-tmux-subtotal">--</span>
+                                <span id="infra-tmux-delta"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Infrastructure Total Bar -->
+                <div class="infra-total-bar" id="infra-total-bar">
+                    <div>
+                        <span class="text-sm text-theme-muted">Total Infrastructure</span>
+                        <span class="font-display font-bold text-lg text-theme-primary ml-3" id="infra-total">--</span>
+                    </div>
+                    <span id="infra-total-delta"></span>
+                </div>
+            </div>
+
+            <!-- Per-User Cost Table -->
+            <div class="glass-card rounded-xl p-6 mb-8" id="users-section">
+                <div class="section-header">
+                    <div class="section-title">
+                        <div class="icon" style="background: rgba(14, 165, 233, 0.15);">
+                            <svg class="w-5 h-5" style="color: #38bdf8;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                        </div>
+                        Per-User Costs
+                    </div>
+                    <span class="text-xs text-theme-muted" id="user-count-label">0 users</span>
+                </div>
+                <div class="table-wrapper">
+                    <table class="cost-table" id="cost-table">
+                        <thead>
+                            <tr>
+                                <th data-sort="name">User <span class="sort-arrow">&#9650;</span></th>
+                                <th data-sort="projects">Projects <span class="sort-arrow">&#9650;</span></th>
+                                <th data-sort="s3">S3 <span class="sort-arrow">&#9650;</span></th>
+                                <th data-sort="cf">CloudFront <span class="sort-arrow">&#9650;</span></th>
+                                <th data-sort="total" class="sorted">Total <span class="sort-arrow">&#9660;</span></th>
+                                <th data-sort="delta">Delta <span class="sort-arrow">&#9650;</span></th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="cost-table-body">
+                            <tr>
+                                <td colspan="7">
+                                    <div class="skeleton skeleton-text" style="width: 100%; height: 40px;"></div>
+                                    <div class="skeleton skeleton-text" style="width: 100%; height: 40px;"></div>
+                                    <div class="skeleton skeleton-text" style="width: 100%; height: 40px;"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Email Reports Section -->
+            <div class="glass-card rounded-xl p-6 mb-8" id="reports-section">
+                <div class="section-header">
+                    <div class="section-title">
+                        <div class="icon" style="background: rgba(236, 72, 153, 0.15);">
+                            <svg class="w-5 h-5" style="color: #f472b6;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        </div>
+                        Email Reports
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-3">
+                    <button class="report-btn" data-report="send-all-weekly" onclick="sendReport('send-all-weekly')">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                        Send All Weekly
+                    </button>
+                    <button class="report-btn" data-report="send-all-monthly" onclick="sendReport('send-all-monthly')">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                        Send All Monthly
+                    </button>
+                    <button class="report-btn" data-report="send-admin-weekly" onclick="sendReport('send-admin-weekly')">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                        Admin Weekly
+                    </button>
+                    <button class="report-btn" data-report="send-admin-monthly" onclick="sendReport('send-admin-monthly')">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                        Admin Monthly
+                    </button>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="text-center py-8">
+                <a href="admin.html" class="text-sm text-theme-muted hover:text-theme-primary transition">&larr; Back to Admin Portal</a>
+                <p class="text-xs text-theme-muted mt-2">CoCreate &copy; 2026</p>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Core Logic -->
+    <script src="js/costs-core.js"></script>
+</body>
+</html>

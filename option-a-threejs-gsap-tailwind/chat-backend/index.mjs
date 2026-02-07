@@ -13,8 +13,9 @@
 import Anthropic from '@anthropic-ai/sdk';
 import pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
+import crypto from 'crypto';
 import { handleAdminCostsSummary, handleUserCosts } from './costs/index.mjs';
-import { handleScheduledCostReports, handleManualCostReportTrigger, handleSendAdminSummaryReport } from './costs/email-reports.mjs';
+import { handleScheduledCostReports, handleManualCostReportTrigger, handleSendAdminSummaryReport, computeAdminSummaryData } from './costs/email-reports.mjs';
 
 // Configuration
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -1523,9 +1524,14 @@ async function listApplications() {
         })
     );
 
-    // Filter out nulls and sort by date (newest first)
+    // Filter out nulls, test users, and sort by date (newest first)
+    const TEST_EMAIL_PATTERNS = ['@example.com', '@testflow.com', '@test.com', '@localhost'];
     return applications
       .filter(app => app !== null)
+      .filter(app => {
+        const email = app.visitorInfo?.email || app.formData?.email || '';
+        return !TEST_EMAIL_PATTERNS.some(p => email.toLowerCase().includes(p));
+      })
       .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
   } catch (error) {
     console.error('List applications error:', error.message);
@@ -1555,31 +1561,56 @@ async function updateApplicationStatus(s3Key, newStatus, reviewNotes = '') {
       applicationData.reviewNotes = reviewNotes;
     }
 
-    // Save back to S3
+    // If approved, generate GUID and register with Tmux Builder
+    if (newStatus === 'approved') {
+      const email = applicationData.visitorInfo?.email || applicationData.formData?.email;
+      const phone = applicationData.visitorInfo?.phone || applicationData.formData?.phone || '';
+      const productIdea = applicationData.formData?.productIdea || applicationData.formData?.product_idea || '';
+      const tmuxBuilderUrl = process.env.TMUX_BUILDER_URL || 'https://d3tfeatcbws1ka.cloudfront.net';
+
+      if (email && !applicationData.guid) {
+        // Try to register with Tmux Builder first
+        try {
+          const tmuxResp = await fetch(`${tmuxBuilderUrl}/api/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, phone, initial_request: productIdea || 'New project' })
+          });
+          const tmuxData = await tmuxResp.json();
+          if (tmuxData.success && tmuxData.guid) {
+            applicationData.guid = tmuxData.guid;
+            applicationData.sessionLink = `${tmuxBuilderUrl}/client?guid=${tmuxData.guid}`;
+            console.log('Session created via Tmux Builder:', applicationData.guid);
+          } else {
+            throw new Error(tmuxData.error || 'Tmux Builder registration failed');
+          }
+        } catch (tmuxErr) {
+          // Fallback: Generate GUID locally using same algorithm as Tmux Builder
+          const guidInput = `${email}:${phone}`;
+          applicationData.guid = crypto.createHash('sha256').update(guidInput).digest('hex');
+          applicationData.sessionLink = `${tmuxBuilderUrl}/client?guid=${applicationData.guid}`;
+          applicationData.sessionError = tmuxErr.message;
+          console.log('Using local GUID (Tmux Builder failed):', applicationData.guid, tmuxErr.message);
+        }
+      } else if (!email) {
+        applicationData.sessionError = 'No email provided - cannot create session';
+        console.log('No email for session creation');
+      }
+
+      // Trigger MVP build workflow
+      const jobId = await createBuildJob(applicationData, s3Key);
+      applicationData.jobId = jobId;
+      console.log('MVP build job created:', jobId);
+    }
+
+    // Save final state back to S3 (status + guid + jobId)
     await s3.send(new PutObjectCommand({
       Bucket: S3_BUCKET,
       Key: s3Key,
       Body: JSON.stringify(applicationData, null, 2),
       ContentType: 'application/json'
     }));
-
-    console.log('Updated application status:', s3Key, newStatus);
-
-    // If approved, trigger MVP build workflow
-    if (newStatus === 'approved') {
-      const jobId = await createBuildJob(applicationData, s3Key);
-      applicationData.jobId = jobId;
-      console.log('MVP build job created:', jobId);
-
-      // Save jobId back to application record
-      await s3.send(new PutObjectCommand({
-        Bucket: S3_BUCKET,
-        Key: s3Key,
-        Body: JSON.stringify(applicationData, null, 2),
-        ContentType: 'application/json'
-      }));
-      console.log('Updated application with jobId:', jobId);
-    }
+    console.log('Updated application:', s3Key, newStatus, applicationData.guid ? `guid=${applicationData.guid}` : 'no-guid');
 
     return applicationData;
   } catch (error) {
@@ -2346,6 +2377,15 @@ export const handler = async (event) => {
     // Admin Costs Summary - All users with total costs (see costs/index.mjs)
     if (action === 'admin-costs-summary') {
       return handleAdminCostsSummary({ body, corsHeaders, S3_REGION, ADMIN_PASSWORD, listApplications });
+    }
+
+    // Admin Summary - Infrastructure costs, grand total, deltas (see costs/email-reports.mjs)
+    if (action === 'get-admin-summary') {
+      if (body.password !== ADMIN_PASSWORD) {
+        return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ success: false, error: 'Unauthorized' }) };
+      }
+      const data = await computeAdminSummaryData({ S3_REGION, ADMIN_PASSWORD, listApplications });
+      return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ success: true, ...data }) };
     }
 
     // User Costs - Current user's projects with costs (see costs/index.mjs)

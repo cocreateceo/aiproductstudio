@@ -331,7 +331,8 @@ export async function handleScheduledCostReports({ reportType = 'weekly', S3_REG
   let approvedApps = [];
   try {
     const allApps = await listApplications();
-    approvedApps = allApps.filter(app => app.guid && app.visitorInfo?.email);
+    const TEST_EMAIL_PATTERNS = ['@example.com', '@testflow.com', '@test.com', '@localhost'];
+    approvedApps = allApps.filter(app => app.guid && app.visitorInfo?.email && !TEST_EMAIL_PATTERNS.some(p => app.visitorInfo.email.toLowerCase().includes(p)));
     console.log('[Email Reports] Found', approvedApps.length, 'approved users with GUIDs');
   } catch (e) {
     console.error('[Email Reports] Could not list applications:', e.message);
