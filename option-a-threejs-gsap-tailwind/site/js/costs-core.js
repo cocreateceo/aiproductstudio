@@ -685,7 +685,7 @@
         const btn = $(`.report-btn[data-report="${type}"]`); if (!btn || btn.disabled) return;
         btn.disabled = true; btn.classList.add('sending'); const orig = btn.innerHTML; btn.innerHTML = '<span class="spinner"></span> Sending...';
         try {
-            const map = { 'send-all-weekly': 'send-weekly-cost-emails', 'send-all-monthly': 'send-monthly-cost-emails', 'send-admin-weekly': 'send-admin-summary-email', 'send-admin-monthly': 'send-admin-summary-email' };
+            const map = { 'send-all-weekly': 'send-all-reports', 'send-all-monthly': 'send-all-reports', 'send-admin-weekly': 'send-admin-report', 'send-admin-monthly': 'send-admin-report' };
             const body = { action: map[type] || type, password: adminPassword };
             if (type.includes('weekly')) body.period = 'weekly';
             if (type.includes('monthly')) body.period = 'monthly';
