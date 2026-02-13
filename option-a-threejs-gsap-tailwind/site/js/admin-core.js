@@ -458,6 +458,7 @@ function updateStats() {
     document.getElementById('stat-total').textContent = applications.length;
     document.getElementById('stat-pending').textContent = applications.filter(a => !a.status || a.status === 'pending').length;
     document.getElementById('stat-approved').textContent = applications.filter(a => a.status === 'approved').length;
+    document.getElementById('stat-hold').textContent = applications.filter(a => a.status === 'hold').length;
     document.getElementById('stat-rejected').textContent = applications.filter(a => a.status === 'rejected').length;
 }
 
@@ -735,7 +736,7 @@ function renderApplications() {
                         <div class="flex items-center gap-3">
                             <h3 class="font-semibold text-lg text-theme-primary">${app.visitorInfo?.name || 'Unknown'}</h3>
                             <span class="status-${status} px-3 py-1 rounded-full text-xs font-semibold">
-                                ${status.toUpperCase()}
+                                ${status === 'hold' ? 'ON HOLD' : status.toUpperCase()}
                             </span>
                         </div>
                         <p class="text-theme-muted text-sm mt-1">${app.visitorInfo?.email || 'No email'}</p>
@@ -832,50 +833,32 @@ function renderApplications() {
                     <div class="flex gap-3 pt-4" style="border-top: 1px solid var(--border-color);">
                         ${(() => {
                             const isLoading = app._sessionLoading;
-                            const hasSession = app.guid && app.sessionLink;
-                            const hasError = app.sessionError;
 
                             if (isLoading) {
                                 return `
-                                    <button disabled class="btn-approve px-4 py-2 rounded-lg font-semibold transition flex-1 opacity-50 cursor-not-allowed">Approve & Build</button>
-                                    <button disabled class="px-4 py-2 rounded-lg font-semibold transition flex-1 opacity-50 cursor-not-allowed" style="background: rgba(59, 130, 246, 0.2); color: rgb(59, 130, 246); border: 1px solid rgba(59, 130, 246, 0.3);">Hold</button>
+                                    <button disabled class="btn-approve px-4 py-2 rounded-lg font-semibold transition flex-1 opacity-50 cursor-not-allowed">Approve</button>
+                                    <button disabled class="btn-hold px-4 py-2 rounded-lg font-semibold transition flex-1 opacity-50 cursor-not-allowed">Hold</button>
                                     <button disabled class="btn-reject px-4 py-2 rounded-lg font-semibold transition flex-1 opacity-50 cursor-not-allowed">Reject</button>
                                 `;
                             }
 
-                            if (status === 'approved' && hasSession) {
-                                return `
-                                    <button disabled class="btn-approve px-4 py-2 rounded-lg font-semibold transition flex-1 opacity-50 cursor-not-allowed">Approve & Build</button>
-                                    <button onclick="event.stopPropagation(); /* TODO: Add function */" class="btn-hold px-4 py-2 rounded-lg font-semibold transition flex-1" style="background: linear-gradient(135deg, rgb(59, 130, 246), rgb(37, 99, 235)); color: white; border: 1px solid rgb(59, 130, 246);">Hold</button>
-                                    <button onclick="event.stopPropagation(); quickReject('${app.s3Key}')" class="btn-reject px-4 py-2 rounded-lg font-semibold transition flex-1">Reject</button>
-                                `;
-                            }
+                            const approveDisabled = status === 'approved';
+                            const holdDisabled = status === 'hold';
+                            const rejectDisabled = status === 'rejected';
 
-                            if (status === 'approved' && hasError) {
-                                return `
-                                    <button disabled class="btn-approve px-4 py-2 rounded-lg font-semibold transition flex-1 opacity-50 cursor-not-allowed">Approve & Build</button>
-                                    <button onclick="event.stopPropagation(); /* TODO: Add function */" class="btn-hold px-4 py-2 rounded-lg font-semibold transition flex-1" style="background: linear-gradient(135deg, rgb(59, 130, 246), rgb(37, 99, 235)); color: white; border: 1px solid rgb(59, 130, 246);">Hold</button>
-                                    <button onclick="event.stopPropagation(); quickReject('${app.s3Key}')" class="btn-reject px-4 py-2 rounded-lg font-semibold transition flex-1">Reject</button>
-                                `;
-                            }
+                            const approveBtn = approveDisabled
+                                ? `<button disabled class="btn-approve px-4 py-2 rounded-lg font-semibold transition flex-1 opacity-50 cursor-not-allowed">Approve</button>`
+                                : `<button onclick="event.stopPropagation(); quickApprove('${app.s3Key}')" class="btn-approve px-4 py-2 rounded-lg font-semibold transition flex-1">Approve</button>`;
 
-                            if (status === 'rejected') {
-                                return `
-                                    <button onclick="event.stopPropagation(); quickApprove('${app.s3Key}')" class="btn-approve px-4 py-2 rounded-lg font-semibold transition flex-1">Approve & Build</button>
-                                    <button onclick="event.stopPropagation(); /* TODO: Add function */" class="btn-hold px-4 py-2 rounded-lg font-semibold transition flex-1" style="background: linear-gradient(135deg, rgb(59, 130, 246), rgb(37, 99, 235)); color: white; border: 1px solid rgb(59, 130, 246);">Hold</button>
-                                    <button disabled class="btn-reject px-4 py-2 rounded-lg font-semibold transition flex-1 opacity-50 cursor-not-allowed">Reject</button>
-                                `;
-                            }
+                            const holdBtn = holdDisabled
+                                ? `<button disabled class="btn-hold px-4 py-2 rounded-lg font-semibold transition flex-1 opacity-50 cursor-not-allowed">Hold</button>`
+                                : `<button onclick="event.stopPropagation(); quickHold('${app.s3Key}')" class="btn-hold px-4 py-2 rounded-lg font-semibold transition flex-1">Hold</button>`;
 
-                            if (status === 'pending' || !status) {
-                                return `
-                                    <button onclick="event.stopPropagation(); quickApprove('${app.s3Key}')" class="btn-approve px-4 py-2 rounded-lg font-semibold transition flex-1">Approve & Build</button>
-                                    <button disabled class="btn-hold px-4 py-2 rounded-lg font-semibold transition flex-1 opacity-50 cursor-not-allowed" style="background: linear-gradient(135deg, rgb(59, 130, 246), rgb(37, 99, 235)); color: white; border: 1px solid rgb(59, 130, 246);">Hold</button>
-                                    <button onclick="event.stopPropagation(); quickReject('${app.s3Key}')" class="btn-reject px-4 py-2 rounded-lg font-semibold transition flex-1">Reject</button>
-                                `;
-                            }
+                            const rejectBtn = rejectDisabled
+                                ? `<button disabled class="btn-reject px-4 py-2 rounded-lg font-semibold transition flex-1 opacity-50 cursor-not-allowed">Reject</button>`
+                                : `<button onclick="event.stopPropagation(); quickReject('${app.s3Key}')" class="btn-reject px-4 py-2 rounded-lg font-semibold transition flex-1">Reject</button>`;
 
-                            return '';
+                            return approveBtn + holdBtn + rejectBtn;
                         })()}
                     </div>
                 </div>
@@ -990,6 +973,13 @@ async function quickReject(s3Key) {
 
     currentApp = app;
     await updateStatus('rejected');
+}
+
+async function quickHold(s3Key) {
+    const app = applications.find(a => a.s3Key === s3Key);
+    if (!app) return;
+    currentApp = app;
+    await updateStatus('hold');
 }
 
 async function retrySession(s3Key) {
@@ -1166,7 +1156,7 @@ async function updateStatus(status) {
     const appS3Key = currentApp.s3Key;
 
     try {
-        showToast(`${status === 'approved' ? 'Approving' : 'Rejecting'}...`, 'info');
+        showToast(`${status === 'approved' ? 'Approving' : status === 'hold' ? 'Putting on hold' : 'Rejecting'}...`, 'info');
 
         const res = await fetch(API_URL, {
             method: 'POST',
@@ -1197,6 +1187,8 @@ async function updateStatus(status) {
                 } else {
                     showToast('Approved!', 'success');
                 }
+            } else if (status === 'hold') {
+                showToast('Application placed on hold', 'info');
             } else {
                 showToast('Rejected', 'info');
             }
@@ -1275,7 +1267,16 @@ if (savedPassword) {
     adminPassword = savedPassword;
     loginScreen.classList.add('hidden');
     dashboard.classList.remove('hidden');
-    loadApplications();
+    Promise.all([
+        loadApplications(),
+        loadChatSessions(),
+        loadClientProfiles(),
+        loadBuildHistory(),
+        loadCostsSummary()
+    ]).then(() => {
+        updateAllCostSections();
+        populateUserDropdown();
+    });
     onLoginSuccess();
 }
 
@@ -1561,8 +1562,22 @@ async function loadClientProfiles() {
     }
 }
 
+let clientSortField = 'submittedAt';
+let clientSortDir = 'desc';
+
+function sortClients(field) {
+    if (clientSortField === field) {
+        clientSortDir = clientSortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+        clientSortField = field;
+        clientSortDir = 'asc';
+    }
+    renderClientProfiles();
+}
+
 function renderClientProfiles() {
     const clientsList = document.getElementById('clients-list');
+    clientsList.className = '';
 
     let filtered = clientProfiles;
     if (currentUserFilter === 'anonymous') {
@@ -1572,39 +1587,91 @@ function renderClientProfiles() {
     }
 
     if (filtered.length === 0) {
-        clientsList.innerHTML = '<div class="text-center py-12 text-theme-muted col-span-full">No client profiles found</div>';
+        clientsList.innerHTML = '<div class="text-center py-12 text-theme-muted">No client profiles found</div>';
         return;
     }
+
+    // Sort
+    filtered = [...filtered].sort((a, b) => {
+        let valA, valB;
+        switch (clientSortField) {
+            case 'name': valA = (a.name || '').toLowerCase(); valB = (b.name || '').toLowerCase(); break;
+            case 'email': valA = (a.email || '').toLowerCase(); valB = (b.email || '').toLowerCase(); break;
+            case 'phone': valA = a.phone || ''; valB = b.phone || ''; break;
+            case 'status': valA = a.status || ''; valB = b.status || ''; break;
+            case 'chats': valA = a.chatSessions?.length || 0; valB = b.chatSessions?.length || 0; break;
+            case 'apps': valA = a.applications?.length || 0; valB = b.applications?.length || 0; break;
+            case 'builds': valA = a.builds?.length || 0; valB = b.builds?.length || 0; break;
+            case 'submittedAt': valA = new Date(a.submittedAt || a.createdAt || 0); valB = new Date(b.submittedAt || b.createdAt || 0); break;
+            default: valA = ''; valB = '';
+        }
+        if (valA < valB) return clientSortDir === 'asc' ? -1 : 1;
+        if (valA > valB) return clientSortDir === 'asc' ? 1 : -1;
+        return 0;
+    });
 
     const statusColors = {
         prospect: 'bg-slate-500',
         applied: 'bg-yellow-500',
-        approved: 'bg-blue-500',
+        approved: 'bg-green-500',
+        pending: 'bg-yellow-500',
         building: 'bg-purple-500',
-        delivered: 'bg-green-500'
+        delivered: 'bg-green-500',
+        rejected: 'bg-red-500',
+        hold: 'bg-orange-500'
     };
 
-    clientsList.innerHTML = filtered.map(client => `
-        <div class="glass-card rounded-xl p-4 cursor-pointer transition" onclick="showClientDetail('${client.clientId}')" style="border: 1px solid var(--border-color);" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border-color)'">
-            <div class="flex items-center gap-3 mb-3">
-                <div class="w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold text-white" style="background: linear-gradient(135deg, var(--primary), var(--secondary));">
-                    ${(client.name?.[0] || '?').toUpperCase()}
-                </div>
-                <div>
-                    <p class="font-semibold text-theme-primary">${client.name || 'Unknown'}</p>
-                    <p class="text-xs text-theme-muted">${client.email || 'No email'}</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-2 mb-2">
-                <span class="text-xs px-2 py-1 rounded-full text-white ${statusColors[client.status] || 'bg-slate-500'}">${client.status}</span>
-            </div>
-            <div class="text-xs text-theme-muted flex gap-4">
-                <span>${client.chatSessions?.length || 0} chats</span>
-                <span>${client.applications?.length || 0} apps</span>
-                <span>${client.builds?.length || 0} builds</span>
-            </div>
-        </div>
-    `).join('');
+    const avatarColors = ['#FC2A0D', '#6366f1', '#22c55e', '#f59e0b', '#8b5cf6', '#06b6d4', '#ec4899', '#fb923c'];
+    const arrow = (field) => clientSortField === field ? (clientSortDir === 'asc' ? ' &#9650;' : ' &#9660;') : '';
+    const thClass = 'px-4 py-3 text-theme-muted font-medium cursor-pointer select-none';
+    const thHover = `onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color=''"`;
+
+    clientsList.innerHTML = `
+        <div class="overflow-x-auto rounded-xl" style="border: 1px solid var(--border-color);">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr style="background: var(--bg-secondary); border-bottom: 1px solid var(--border-color);">
+                        <th class="text-left px-4 py-3 text-theme-muted font-medium">#</th>
+                        <th class="text-left ${thClass}" onclick="sortClients('name')" ${thHover}>Name${arrow('name')}</th>
+                        <th class="text-left ${thClass}" onclick="sortClients('email')" ${thHover}>Email${arrow('email')}</th>
+                        <th class="text-left ${thClass}" onclick="sortClients('phone')" ${thHover}>Phone${arrow('phone')}</th>
+                        <th class="text-left ${thClass}" onclick="sortClients('status')" ${thHover}>Status${arrow('status')}</th>
+                        <th class="text-center ${thClass}" onclick="sortClients('chats')" ${thHover}>Chats${arrow('chats')}</th>
+                        <th class="text-center ${thClass}" onclick="sortClients('apps')" ${thHover}>Apps${arrow('apps')}</th>
+                        <th class="text-center ${thClass}" onclick="sortClients('builds')" ${thHover}>Builds${arrow('builds')}</th>
+                        <th class="text-left ${thClass}" onclick="sortClients('submittedAt')" ${thHover}>Submitted${arrow('submittedAt')}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${filtered.map((client, i) => {
+                        const bgColor = avatarColors[i % avatarColors.length];
+                        const initial = (client.name?.[0] || '?').toUpperCase();
+                        const avatarHtml = client.avatarUrl
+                            ? `<div class="user-avatar-placeholder" style="background:${bgColor};overflow:hidden;padding:0;"><img src="${client.avatarUrl}" alt="${initial}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center;">${initial}</span></div>`
+                            : `<div class="user-avatar-placeholder" style="background:${bgColor};">${initial}</div>`;
+                        return `
+                        <tr class="cursor-pointer transition-colors" onclick="showClientDetail('${client.clientId}')" style="border-bottom: 1px solid var(--border-color);" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">
+                            <td class="px-4 py-3 text-theme-muted">${i + 1}</td>
+                            <td class="px-4 py-3">
+                                <div class="flex items-center gap-2">
+                                    ${avatarHtml}
+                                    <span class="font-medium text-theme-primary">${client.name || 'Unknown'}</span>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 text-theme-muted">${client.email || '-'}</td>
+                            <td class="px-4 py-3 text-theme-muted">${client.phone || '-'}</td>
+                            <td class="px-4 py-3">
+                                <span class="text-xs px-2 py-0.5 rounded-full text-white ${statusColors[client.status] || 'bg-slate-500'}">${client.status}</span>
+                            </td>
+                            <td class="px-4 py-3 text-center text-theme-muted">${client.chatSessions?.length || 0}</td>
+                            <td class="px-4 py-3 text-center text-theme-muted">${client.applications?.length || 0}</td>
+                            <td class="px-4 py-3 text-center text-theme-muted">${client.builds?.length || 0}</td>
+                            <td class="px-4 py-3 text-theme-muted text-xs">${(client.submittedAt || client.createdAt) ? new Date(client.submittedAt || client.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}</td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>`;
 }
 
 async function showClientDetail(clientId) {

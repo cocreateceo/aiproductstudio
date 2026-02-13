@@ -928,7 +928,7 @@
             const statusEl = document.getElementById('project-status');
             if (statusEl && app.status) {
                 statusEl.className = `status-badge status-${app.status}`;
-                statusEl.textContent = capitalizeFirst(app.status);
+                statusEl.textContent = app.status === 'hold' ? 'On Hold' : capitalizeFirst(app.status);
             }
 
             // Product idea
@@ -960,12 +960,24 @@
 
         // Build session link
         const sessionLink = document.getElementById('session-link');
-        if (sessionLink && data.buildSession?.link) {
+        const isOnHold = data.application?.status === 'hold';
+
+        if (isOnHold && sessionLink) {
+            sessionLink.style.opacity = '0.5';
+            sessionLink.style.pointerEvents = 'none';
+            sessionLink.innerHTML = '<span>Account on hold - Build session disabled</span>';
+        } else if (sessionLink && data.buildSession?.link) {
             sessionLink.href = data.buildSession.link;
         } else if (sessionLink) {
             sessionLink.style.opacity = '0.5';
             sessionLink.style.pointerEvents = 'none';
             sessionLink.innerHTML = '<span>Build session pending...</span>';
+        }
+
+        // Hold banner
+        const holdBanner = document.getElementById('hold-banner');
+        if (holdBanner) {
+            holdBanner.classList.toggle('hidden', !isOnHold);
         }
 
         // Build progress

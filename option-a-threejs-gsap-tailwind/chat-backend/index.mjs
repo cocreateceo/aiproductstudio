@@ -1126,33 +1126,106 @@ async function listClientProfiles(limit = 50) {
   const s3 = new S3Client({ region: S3_REGION });
 
   try {
-    const listResult = await s3.send(new ListObjectsV2Command({
+    const allClients = [];
+    const seenEmails = new Set();
+
+    // 1. Get dedicated client profiles from clients/
+    const clientsResult = await s3.send(new ListObjectsV2Command({
       Bucket: S3_BUCKET,
       Prefix: 'clients/',
       MaxKeys: limit
     }));
+    if (clientsResult.Contents) {
+      const profiles = await Promise.all(
+        clientsResult.Contents
+          .filter(obj => obj.Key.endsWith('.json'))
+          .map(async (obj) => {
+            try {
+              const getResult = await s3.send(new GetObjectCommand({ Bucket: S3_BUCKET, Key: obj.Key }));
+              return JSON.parse(await getResult.Body.transformToString());
+            } catch (e) { return null; }
+          })
+      );
+      for (const p of profiles.filter(p => p !== null)) {
+        allClients.push(p);
+        if (p.email) seenEmails.add(p.email.toLowerCase());
+      }
+    }
 
-    if (!listResult.Contents) return [];
+    // 2. Also pull from applications/ for clients not yet in clients/
+    const appsResult = await s3.send(new ListObjectsV2Command({
+      Bucket: S3_BUCKET,
+      Prefix: 'applications/',
+      MaxKeys: limit * 3
+    }));
+    if (appsResult.Contents) {
+      // Fetch all application data
+      const allApps = (await Promise.all(
+        appsResult.Contents
+          .filter(obj => obj.Key.endsWith('.json'))
+          .map(async (obj) => {
+            try {
+              const getResult = await s3.send(new GetObjectCommand({ Bucket: S3_BUCKET, Key: obj.Key }));
+              const app = JSON.parse(await getResult.Body.transformToString());
+              return { key: obj.Key, app };
+            } catch (e) { return null; }
+          })
+      )).filter(a => a !== null);
 
-    const profiles = await Promise.all(
-      listResult.Contents
-        .filter(obj => obj.Key.endsWith('.json'))
-        .map(async (obj) => {
-          try {
-            const getResult = await s3.send(new GetObjectCommand({
-              Bucket: S3_BUCKET,
-              Key: obj.Key
-            }));
-            return JSON.parse(await getResult.Body.transformToString());
-          } catch (e) {
-            return null;
-          }
-        })
-    );
+      // Group applications by client email
+      const clientApps = {};
+      for (const { key, app } of allApps) {
+        const email = (app.visitorInfo?.email || app.formData?.email || '').toLowerCase();
+        if (!email || seenEmails.has(email)) continue;
+        if (!clientApps[email]) clientApps[email] = { apps: [], builds: [] };
+        clientApps[email].apps.push({ key, app });
+        if (app.jobId) clientApps[email].builds.push(app.jobId);
+      }
 
-    return profiles
+      // Build one profile per client with correct counts
+      for (const [email, data] of Object.entries(clientApps)) {
+        seenEmails.add(email);
+        // Use the latest application for name/status
+        const latest = data.apps.sort((a, b) => new Date(b.app.timestamp || 0) - new Date(a.app.timestamp || 0))[0];
+        const app = latest.app;
+        allClients.push({
+          clientId: email.replace(/[^a-z0-9]/g, '_'),
+          name: app.visitorInfo?.name || app.formData?.fullName || app.formData?.full_name || null,
+          email: app.visitorInfo?.email || app.formData?.email || null,
+          phone: app.visitorInfo?.phone || app.formData?.phone || null,
+          company: null,
+          createdAt: app.timestamp || new Date().toISOString(),
+          submittedAt: app.timestamp || null,
+          reviewedAt: app.reviewedAt || null,
+          status: app.status || 'applied',
+          chatSessions: [],
+          applications: data.apps.map(a => a.key),
+          builds: data.builds,
+          timeline: data.apps.map(a => ({ event: 'application_submitted', timestamp: a.app.timestamp })),
+          productIdea: app.formData?.productIdea || app.formData?.product_idea || null,
+          guid: app.guid || null,
+          source: 'applications'
+        });
+      }
+    }
+
+    // 3. Fetch avatar URLs from user profiles (same pattern as costs/index.mjs)
+    await Promise.all(allClients.map(async (client) => {
+      if (!client.guid) return;
+      try {
+        const profileResult = await s3.send(new GetObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: `users/${client.guid}/profile.json`
+        }));
+        const profile = JSON.parse(await profileResult.Body.transformToString());
+        if (profile.avatarUrl) client.avatarUrl = profile.avatarUrl;
+      } catch (e) { /* No profile yet */ }
+    }));
+
+    return allClients
       .filter(p => p !== null)
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, limit);
   } catch (error) {
     console.error('List client profiles error:', error.message);
     return [];
@@ -1165,34 +1238,114 @@ async function listBuildHistory(limit = 50) {
   const s3 = new S3Client({ region: S3_REGION });
 
   try {
-    const listResult = await s3.send(new ListObjectsV2Command({
+    const allBuilds = [];
+
+    // 1. Get completed/failed builds from builds/ folder
+    const buildsResult = await s3.send(new ListObjectsV2Command({
       Bucket: S3_BUCKET,
       Prefix: 'builds/',
-      MaxKeys: limit * 2 // Account for subdirectories
+      MaxKeys: limit * 2
     }));
+    if (buildsResult.Contents) {
+      const completedBuilds = await Promise.all(
+        buildsResult.Contents
+          .filter(obj => obj.Key.endsWith('metadata.json'))
+          .map(async (obj) => {
+            try {
+              const getResult = await s3.send(new GetObjectCommand({ Bucket: S3_BUCKET, Key: obj.Key }));
+              return JSON.parse(await getResult.Body.transformToString());
+            } catch (e) { return null; }
+          })
+      );
+      allBuilds.push(...completedBuilds.filter(b => b !== null));
+    }
 
-    if (!listResult.Contents) return [];
+    // 2. Get pending jobs from jobs/ folder
+    const jobsResult = await s3.send(new ListObjectsV2Command({
+      Bucket: S3_BUCKET,
+      Prefix: 'jobs/',
+      MaxKeys: limit
+    }));
+    if (jobsResult.Contents) {
+      const pendingJobs = await Promise.all(
+        jobsResult.Contents
+          .filter(obj => obj.Key.endsWith('.json'))
+          .map(async (obj) => {
+            try {
+              const getResult = await s3.send(new GetObjectCommand({ Bucket: S3_BUCKET, Key: obj.Key }));
+              const job = JSON.parse(await getResult.Body.transformToString());
+              return {
+                buildId: job.jobId,
+                status: 'pending',
+                client: job.client,
+                business: job.business,
+                timestamps: { created: job.createdAt },
+                createdAt: job.createdAt,
+                filesCreated: [],
+                mode: 'local'
+              };
+            } catch (e) { return null; }
+          })
+      );
+      allBuilds.push(...pendingJobs.filter(b => b !== null));
+    }
 
-    // Get metadata.json files from each build folder
-    const builds = await Promise.all(
-      listResult.Contents
-        .filter(obj => obj.Key.endsWith('metadata.json'))
-        .map(async (obj) => {
-          try {
-            const getResult = await s3.send(new GetObjectCommand({
-              Bucket: S3_BUCKET,
-              Key: obj.Key
-            }));
-            return JSON.parse(await getResult.Body.transformToString());
-          } catch (e) {
-            return null;
-          }
-        })
-    );
+    // 3. Get in-progress builds from progress/ folder
+    const progressResult = await s3.send(new ListObjectsV2Command({
+      Bucket: S3_BUCKET,
+      Prefix: 'progress/',
+      MaxKeys: limit
+    }));
+    if (progressResult.Contents) {
+      const inProgressBuilds = await Promise.all(
+        progressResult.Contents
+          .filter(obj => obj.Key.endsWith('.json'))
+          .map(async (obj) => {
+            try {
+              const getResult = await s3.send(new GetObjectCommand({ Bucket: S3_BUCKET, Key: obj.Key }));
+              const progress = JSON.parse(await getResult.Body.transformToString());
+              if (progress.status === 'in_progress') {
+                const existingBuild = allBuilds.find(b => b.buildId === progress.jobId);
+                if (!existingBuild) {
+                  return {
+                    buildId: progress.jobId,
+                    status: 'building',
+                    client: progress.client || { name: 'Unknown' },
+                    business: progress.business || {},
+                    timestamps: { created: progress.createdAt || progress.updatedAt },
+                    createdAt: progress.createdAt || progress.updatedAt,
+                    currentPhase: progress.currentPhase,
+                    phases: progress.phases,
+                    filesCreated: [],
+                    mode: 'local'
+                  };
+                }
+              }
+              return null;
+            } catch (e) { return null; }
+          })
+      );
+      allBuilds.push(...inProgressBuilds.filter(b => b !== null));
+    }
 
-    return builds
-      .filter(b => b !== null)
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    // Remove duplicates (prefer completed builds over pending/in-progress)
+    const uniqueBuilds = [];
+    const seenIds = new Set();
+    allBuilds.sort((a, b) => {
+      const statusOrder = { completed: 0, failed: 1, building: 2, pending: 3 };
+      const orderA = statusOrder[a.status] ?? 4;
+      const orderB = statusOrder[b.status] ?? 4;
+      if (orderA !== orderB) return orderA - orderB;
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+    for (const build of allBuilds) {
+      if (!seenIds.has(build.buildId)) {
+        seenIds.add(build.buildId);
+        uniqueBuilds.push(build);
+      }
+    }
+
+    return uniqueBuilds.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, limit);
   } catch (error) {
     console.error('List build history error:', error.message);
     return [];
@@ -1707,6 +1860,20 @@ async function createBuildJob(applicationData, originalS3Key) {
     }));
 
     console.log('Progress file created:', `progress/${jobId}.json`);
+
+    // Also create builds metadata for admin Builds tab
+    await s3.send(new PutObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: `builds/${jobId}/metadata.json`,
+      Body: JSON.stringify({
+        buildId: jobId,
+        ...jobData,
+        timestamps: { created: jobData.createdAt }
+      }, null, 2),
+      ContentType: 'application/json'
+    }));
+
+    console.log('Build metadata created:', `builds/${jobId}/metadata.json`);
 
     return jobId;
   } catch (error) {
@@ -2835,12 +3002,25 @@ export const handler = async (event) => {
         const SITE_BUCKET = 'cocreateidea.com';
         const SITE_REGION = 'ap-south-1';
         const s3Site = new S3Client({ region: SITE_REGION });
-        await s3Site.send(new PutObjectCommand({
-          Bucket: SITE_BUCKET,
-          Key: avatarKey,
+        try {
+          await s3Site.send(new PutObjectCommand({
+            Bucket: SITE_BUCKET,
+            Key: avatarKey,
+            Body: buffer,
+            ContentType: contentType || 'image/png',
+            CacheControl: 'no-cache'
+          }));
+          console.log('[Upload Avatar] Saved to site bucket:', avatarKey);
+        } catch (siteErr) {
+          console.error('[Upload Avatar] Site bucket upload failed:', siteErr.message);
+        }
+
+        // Also save to data bucket as backup (survives site bucket redeploys)
+        await s3.send(new PutObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: `users/${guid}/avatar.${ext}`,
           Body: buffer,
-          ContentType: contentType || 'image/png',
-          CacheControl: 'no-cache'
+          ContentType: contentType || 'image/png'
         }));
 
         // URL via CloudFront (public, no pre-signing needed)
@@ -3124,12 +3304,48 @@ export const handler = async (event) => {
         const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
         const s3 = new S3Client({ region: S3_REGION });
 
-        // Get metadata
-        const metadataResult = await s3.send(new GetObjectCommand({
-          Bucket: S3_BUCKET,
-          Key: `builds/${buildId}/metadata.json`
-        }));
-        const metadata = JSON.parse(await metadataResult.Body.transformToString());
+        let metadata = null;
+
+        // Try builds/ metadata first
+        try {
+          const metadataResult = await s3.send(new GetObjectCommand({
+            Bucket: S3_BUCKET,
+            Key: `builds/${buildId}/metadata.json`
+          }));
+          metadata = JSON.parse(await metadataResult.Body.transformToString());
+        } catch (e) {
+          // Not in builds/, try jobs/
+        }
+
+        // Fallback to jobs/ prefix
+        if (!metadata) {
+          try {
+            const jobResult = await s3.send(new GetObjectCommand({
+              Bucket: S3_BUCKET,
+              Key: `jobs/${buildId}.json`
+            }));
+            const job = JSON.parse(await jobResult.Body.transformToString());
+            metadata = {
+              buildId: job.jobId,
+              status: 'pending',
+              client: job.client,
+              business: job.business,
+              preferences: job.preferences,
+              timestamps: { created: job.createdAt },
+              createdAt: job.createdAt
+            };
+          } catch (e) {
+            // Not in jobs/ either
+          }
+        }
+
+        if (!metadata) {
+          return {
+            statusCode: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ success: false, error: 'Build not found' })
+          };
+        }
 
         // Try to get agent log
         let agentLog = null;
@@ -3143,10 +3359,22 @@ export const handler = async (event) => {
           // Agent log may not exist yet
         }
 
+        // Try to get progress data
+        let progress = null;
+        try {
+          const progressResult = await s3.send(new GetObjectCommand({
+            Bucket: S3_BUCKET,
+            Key: `progress/${buildId}.json`
+          }));
+          progress = JSON.parse(await progressResult.Body.transformToString());
+        } catch (e) {
+          // Progress may not exist
+        }
+
         return {
           statusCode: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: true, build: { ...metadata, agentLog } })
+          body: JSON.stringify({ success: true, build: { ...metadata, agentLog, progress } })
         };
       } catch (error) {
         return {
@@ -3472,6 +3700,7 @@ export const handler = async (event) => {
 
       // Create/update client profile
       if (sessionResult.clientId) {
+        await getOrCreateClientProfile(sessionResult.clientId, updatedVisitorInfo);
         await updateClientProfile(sessionResult.clientId, {
           ...updatedVisitorInfo,
           status: 'applied',
@@ -3542,6 +3771,7 @@ export const handler = async (event) => {
 
     // Create/update client profile if we have contact info
     if (sessionResult.clientId && hasCompleteContactInfo) {
+      await getOrCreateClientProfile(sessionResult.clientId, updatedVisitorInfo);
       await updateClientProfile(sessionResult.clientId, {
         ...updatedVisitorInfo,
         addChatSession: sessionId,

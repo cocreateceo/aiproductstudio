@@ -51,6 +51,13 @@
     <link rel="stylesheet" href="css/chat-widget.css">
 
     <style>
+        /* Reusable avatar placeholder (matches costs.css) */
+        .user-avatar-placeholder {
+            width: 32px; height: 32px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 700; color: white; flex-shrink: 0;
+        }
+
         /* Hide browser's native password reveal button */
         input[type="password"]::-ms-reveal,
         input[type="password"]::-webkit-reveal {
@@ -130,10 +137,13 @@
         .status-pending { background: #fbbf24; color: #1e1b4b; }
         .status-approved { background: #22c55e; color: white; }
         .status-rejected { background: #ef4444; color: white; }
+        .status-hold { background: #f59e0b; color: #1e1b4b; }
 
         /* Action buttons */
         .btn-approve { background: linear-gradient(135deg, #22c55e, #16a34a); color: white; }
         .btn-reject { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
+        .btn-hold { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #1e1b4b; }
+        .btn-hold:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
         .btn-approve:hover, .btn-reject:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
         .btn-cancel { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
         .btn-rebuild { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; }
@@ -439,7 +449,7 @@
 
         <!-- Stats -->
         <div class="max-w-7xl mx-auto px-6 py-6">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
                 <div class="glass-card rounded-xl p-4">
                     <p class="text-sm text-theme-secondary">Total Applications</p>
                     <p id="stat-total" class="text-3xl font-bold mt-1 text-theme-primary">0</p>
@@ -451,6 +461,10 @@
                 <div class="glass-card rounded-xl p-4">
                     <p class="text-green-400 text-sm">Approved</p>
                     <p id="stat-approved" class="text-3xl font-bold mt-1 text-green-400">0</p>
+                </div>
+                <div class="glass-card rounded-xl p-4">
+                    <p class="text-amber-400 text-sm">On Hold</p>
+                    <p id="stat-hold" class="text-3xl font-bold mt-1 text-amber-400">0</p>
                 </div>
                 <div class="glass-card rounded-xl p-4">
                     <p class="text-red-400 text-sm">Rejected</p>
@@ -506,6 +520,7 @@
                     <button class="filter-btn active px-4 py-2 rounded-lg" data-filter="all" style="background: rgba(var(--primary-rgb), 0.2); color: var(--primary); border: 1px solid rgba(var(--primary-rgb), 0.3);">All</button>
                     <button class="filter-btn px-4 py-2 rounded-lg" data-filter="pending" style="background: rgba(26, 10, 0, 0.3); color: var(--text-secondary);">Pending</button>
                     <button class="filter-btn px-4 py-2 rounded-lg" data-filter="approved" style="background: rgba(26, 10, 0, 0.3); color: var(--text-secondary);">Approved</button>
+                    <button class="filter-btn px-4 py-2 rounded-lg" data-filter="hold" style="background: rgba(26, 10, 0, 0.3); color: var(--text-secondary);">On Hold</button>
                     <button class="filter-btn px-4 py-2 rounded-lg" data-filter="rejected" style="background: rgba(26, 10, 0, 0.3); color: var(--text-secondary);">Rejected</button>
                 </div>
 
@@ -726,7 +741,7 @@
     <div id="chat-widget-container"></div>
 
     <!-- Main Admin Script -->
-    <script src="js/admin-core.js?v=20260206b"></script>
+    <script src="js/admin-core.js?v=20260210c"></script>
 
     <!-- Password Toggle Script -->
     <script>

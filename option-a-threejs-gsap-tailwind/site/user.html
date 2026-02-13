@@ -272,6 +272,7 @@
         .status-building { background: rgba(168, 85, 247, 0.2); color: #a855f7; }
         .status-completed { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
         .status-approved { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+        .status-hold { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
 
         /* Progress steps */
         .progress-step {
@@ -638,6 +639,22 @@
                     Welcome back, <span id="welcome-username" class="gradient-text">User</span>! 👋
                 </h1>
                 <p class="text-theme-muted mt-2">Here's an overview of your project progress.</p>
+            </div>
+
+            <!-- Hold Status Banner (hidden by default) -->
+            <div id="hold-banner" class="hidden mb-8 p-5 rounded-2xl" style="background: rgba(245, 158, 11, 0.15); border: 2px solid rgba(245, 158, 11, 0.4);">
+                <div class="flex items-start gap-4">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style="background: rgba(245, 158, 11, 0.3);">
+                        <svg class="w-5 h-5" style="color: #f59e0b;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="font-display font-semibold text-lg" style="color: #f59e0b;">Account On Hold</h3>
+                        <p class="text-theme-secondary mt-1">Your account has been temporarily placed on hold. You can still view your dashboard and existing projects, but creating new projects and accessing the build session is currently disabled.</p>
+                        <p class="text-theme-muted text-sm mt-2">If you have questions, please contact us at support@cocreateidea.com</p>
+                    </div>
+                </div>
             </div>
 
             <h2 class="text-2xl font-display font-bold mb-6">
