@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="ember">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <title>AWS Cost Dashboard | CoCreate</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: 'var(--primary)',
+                        secondary: 'var(--secondary)',
+                        accent: 'var(--accent)',
+                    },
+                    fontFamily: {
+                        sans: ['DM Sans', 'system-ui', 'sans-serif'],
+                        display: ['Outfit', 'DM Sans', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- CoCreate Theme CSS (all 8 themes) -->
+    <link rel="stylesheet" href="css/themes/ember.css">
+    <link rel="stylesheet" href="css/themes/coral.css">
+    <link rel="stylesheet" href="css/themes/sunset.css">
+    <link rel="stylesheet" href="css/themes/aurora.css">
+    <link rel="stylesheet" href="css/themes/legacy.css">
+    <link rel="stylesheet" href="css/themes/sandstone.css">
+    <link rel="stylesheet" href="css/themes/champagne.css">
+    <link rel="stylesheet" href="css/themes/zoom.css">
+
+    <!-- Unified Theme System -->
+    <script src="js/theme.js"></script>
+    <!-- Centralized Configuration -->
+    <script src="js/config.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <!-- GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+    <!-- AWS Cost Dashboard Styles -->
+    <link rel="stylesheet" href="css/awscost.css">
+
+    <style>
+        input[type="password"]::-ms-reveal,
+        input[type="password"]::-webkit-reveal { display: none; }
+        body::before {
+            content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: url('assets/cocreate_bg.png') center bottom / cover no-repeat;
+            z-index: -2; pointer-events: none;
+        }
+        body::after {
+            content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.7) 100%);
+            z-index: -1; pointer-events: none;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen font-sans text-[var(--text-primary)]">
+
+<!-- ─── LOGIN SCREEN ─── -->
+<div id="login-screen" class="login-overlay">
+    <div class="login-card glass-card text-center">
+        <div class="text-4xl mb-3">☁️</div>
+        <h1 class="text-2xl font-display font-bold mb-2" style="color: var(--primary)">AWS Cost Dashboard</h1>
+        <p class="text-sm mb-6" style="color: var(--text-muted)">Enter admin password to view account costs</p>
+        <div style="position:relative;margin-bottom:12px">
+            <input type="password" id="password-input" placeholder="Admin password" class="w-full px-4 py-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--primary)]" style="padding-right:44px">
+            <button type="button" id="pwd-toggle" onclick="__togglePwd()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1.15rem;padding:4px;line-height:1" title="Show password">
+                <svg id="pwd-eye-off" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><path d="M1 1l22 22"/><path d="M14.12 14.12a3 3 0 11-4.24-4.24"/></svg>
+                <svg id="pwd-eye-on" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+        </div>
+        <button id="login-btn" class="w-full py-3 rounded-xl font-semibold text-white" style="background: linear-gradient(135deg, var(--primary), var(--secondary))">Sign In</button>
+        <p id="login-error" class="hidden text-red-400 text-sm mt-3"></p>
+    </div>
+</div>
+
+<!-- ─── DASHBOARD ─── -->
+<div id="dashboard" class="hidden max-w-7xl mx-auto px-4 py-8">
+
+    <!-- Header -->
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-8 animate-item">
+        <div>
+            <h1 class="text-3xl font-display font-bold" style="color: var(--primary)">☁️ AWS Cost Dashboard</h1>
+            <p class="text-sm mt-1" style="color: var(--text-muted)">Account-wide spending across all AWS services</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <button id="refresh-btn" class="px-4 py-2 rounded-lg border border-[var(--border-color)] text-sm hover:border-[var(--primary)] transition-colors" style="color: var(--text-secondary)">↻ Refresh</button>
+            <!-- Theme selector -->
+            <select id="theme-select" class="px-3 py-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" style="color: var(--text-secondary)">
+                <option value="ember">🔥 Ember</option>
+                <option value="coral">🪸 Coral</option>
+                <option value="sunset">🌅 Sunset</option>
+                <option value="aurora">✨ Aurora</option>
+                <option value="legacy">💎 Legacy</option>
+                <option value="sandstone">🏜️ Sandstone</option>
+                <option value="champagne">🥂 Champagne</option>
+                <option value="zoom">💼 Zoom</option>
+            </select>
+            <button id="logout-btn" class="px-4 py-2 rounded-lg text-sm text-red-400 border border-red-400/30 hover:bg-red-400/10 transition-colors">Logout</button>
+        </div>
+    </div>
+
+    <!-- Date Range Bar -->
+    <div class="date-range-bar glass-card mb-8 animate-item">
+        <div class="flex flex-wrap items-center gap-3">
+            <span class="text-sm font-semibold" style="color: var(--text-secondary)">Period:</span>
+            <button class="date-btn active" data-range="this-month">This Month</button>
+            <button class="date-btn" data-range="last-month">Last Month</button>
+            <button class="date-btn" data-range="last-3">Last 3 Months</button>
+            <button class="date-btn" data-range="last-6">Last 6 Months</button>
+            <div class="flex items-center gap-2 ml-auto">
+                <input type="date" id="date-start" class="date-input">
+                <span style="color: var(--text-muted)">to</span>
+                <input type="date" id="date-end" class="date-input">
+                <button id="custom-range-btn" class="date-btn">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── TABBED MANAGEMENT PANEL ─── -->
+    <div class="glass-card animate-item mb-8" id="mgmt-panel">
+
+        <!-- KPI Highlights -->
+        <div class="kpi-grid kpi-grid-inline">
+            <div class="kpi-card kpi-card-inline" id="kpi-total" title="Total AWS spend for the selected period. Shows estimated full-month cost below.">
+                <div class="kpi-icon" style="background: rgba(245,158,11,0.15); color: #f59e0b">💰</div>
+                <div class="kpi-label" style="color: var(--text-muted)">Total Spend</div>
+                <div class="kpi-value" id="kpi-total-value"><div class="skeleton skeleton-lg"></div></div>
+            </div>
+            <div class="kpi-card kpi-card-inline" id="kpi-previous" title="Total spend from the previous equivalent period for comparison.">
+                <div class="kpi-icon" style="background: rgba(139,92,246,0.15); color: #8b5cf6">📊</div>
+                <div class="kpi-label" style="color: var(--text-muted)">Previous Period</div>
+                <div class="kpi-value" id="kpi-previous-value"><div class="skeleton skeleton-lg"></div></div>
+            </div>
+            <div class="kpi-card kpi-card-inline" id="kpi-mom" title="Month-over-month percentage change. Green = costs went down. Red = costs went up.">
+                <div class="kpi-icon" style="background: rgba(6,182,212,0.15); color: #06b6d4">📈</div>
+                <div class="kpi-label" style="color: var(--text-muted)">MoM Change</div>
+                <div class="kpi-value" id="kpi-mom-value"><div class="skeleton skeleton-lg"></div></div>
+            </div>
+            <div class="kpi-card kpi-card-inline" id="kpi-top-service" title="The single most expensive AWS service in the current period and its cost.">
+                <div class="kpi-icon" style="background: rgba(236,72,153,0.15); color: #ec4899">🏆</div>
+                <div class="kpi-label" style="color: var(--text-muted)">Top Service</div>
+                <div class="kpi-value" id="kpi-top-service-value" style="font-size: 0.9rem"><div class="skeleton skeleton-lg"></div></div>
+            </div>
+            <div class="kpi-card kpi-card-inline" id="kpi-active" title="Number of AWS services that have non-zero spend in the current period.">
+                <div class="kpi-icon" style="background: rgba(16,185,129,0.15); color: #10b981">⚡</div>
+                <div class="kpi-label" style="color: var(--text-muted)">Active Services</div>
+                <div class="kpi-value" id="kpi-active-value"><div class="skeleton skeleton-lg"></div></div>
+            </div>
+            <div class="kpi-card kpi-card-inline" id="kpi-forecast" title="AWS Cost Explorer's predicted total spend by end of current month based on usage trends.">
+                <div class="kpi-icon" style="background: rgba(249,115,22,0.15); color: #f97316">🔮</div>
+                <div class="kpi-label" style="color: var(--text-muted)">Forecast (EOM)</div>
+                <div class="kpi-value" id="kpi-forecast-value"><div class="skeleton skeleton-lg"></div></div>
+            </div>
+            <div class="kpi-card kpi-card-inline" id="kpi-savings" title="Monthly savings achieved by deleting unused resources (e.g. stopped EC2s, old snapshots). Shows current monthly cost below.">
+                <div class="kpi-icon" style="background: rgba(74,222,128,0.15); color: #4ade80">🗑️</div>
+                <div class="kpi-label" style="color: var(--text-muted)">Monthly Savings</div>
+                <div class="kpi-value" id="kpi-savings-value"><div class="skeleton skeleton-lg"></div></div>
+            </div>
+            <div class="kpi-card kpi-card-inline" id="kpi-projected" title="Estimated next month cost after applying recommended savings. Shows reduction amount if savings are available.">
+                <div class="kpi-icon" style="background: rgba(56,189,248,0.15); color: #38bdf8">📉</div>
+                <div class="kpi-label" style="color: var(--text-muted)">Projected Next Month</div>
+                <div class="kpi-value" id="kpi-projected-value"><div class="skeleton skeleton-lg"></div></div>
+            </div>
+        </div>
+
+        <!-- Tab Bar -->
+        <div class="mgmt-tab-bar">
+            <button class="mgmt-tab active" data-tab="overview" onclick="__switchTab('overview')">
+                <span class="mgmt-tab-icon">🏠</span>
+                <span class="mgmt-tab-label">Overview</span>
+            </button>
+            <button class="mgmt-tab" data-tab="projects" onclick="__switchTab('projects')">
+                <span class="mgmt-tab-icon">📂</span>
+                <span class="mgmt-tab-label">Projects</span>
+            </button>
+            <button class="mgmt-tab" data-tab="services" onclick="__switchTab('services')">
+                <span class="mgmt-tab-icon">📊</span>
+                <span class="mgmt-tab-label">Services</span>
+            </button>
+            <button class="mgmt-tab" data-tab="recommendations" onclick="__switchTab('recommendations')">
+                <span class="mgmt-tab-icon">💡</span>
+                <span class="mgmt-tab-label">Tips</span>
+            </button>
+            <button class="mgmt-tab" data-tab="cleanup" onclick="__switchTab('cleanup')">
+                <span class="mgmt-tab-icon">🧹</span>
+                <span class="mgmt-tab-label">Cleanup</span>
+                <span class="mgmt-tab-badge" id="cleanup-badge" style="display:none">0</span>
+            </button>
+            <button class="mgmt-tab" data-tab="storage" onclick="__switchTab('storage')">
+                <span class="mgmt-tab-icon">💾</span>
+                <span class="mgmt-tab-label">Storage</span>
+            </button>
+            <button class="mgmt-tab" data-tab="s3" onclick="__switchTab('s3')">
+                <span class="mgmt-tab-icon">🪣</span>
+                <span class="mgmt-tab-label">S3 Files</span>
+            </button>
+            <button class="mgmt-tab" data-tab="activity" onclick="__switchTab('activity')">
+                <span class="mgmt-tab-icon">👁️</span>
+                <span class="mgmt-tab-label">Activity</span>
+            </button>
+            <button class="mgmt-tab" data-tab="charts" onclick="__switchTab('charts')">
+                <span class="mgmt-tab-icon">📈</span>
+                <span class="mgmt-tab-label">Charts</span>
+            </button>
+        </div>
+
+        <!-- Tab Content Panels -->
+        <div class="mgmt-tab-content">
+
+            <!-- ── Overview Tab ── -->
+            <div class="mgmt-panel active" id="panel-overview">
+                <div id="overview-container">
+                    <div class="skeleton skeleton-chart" style="height:300px"></div>
+                </div>
+            </div>
+
+            <!-- ── Projects Tab ── -->
+            <div class="mgmt-panel" id="panel-projects">
+                <!-- Overall Project Cost Comparison Chart -->
+                <div style="margin-bottom:24px">
+                    <div class="chart-wrapper" style="background:rgba(255,255,255,0.02);border-radius:12px;padding:16px">
+                        <h3 class="chart-title" style="margin-bottom:8px">Project Cost Overview</h3>
+                        <div class="chart-container" style="max-height:280px">
+                            <canvas id="chart-project-costs"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <!-- Individual Project Cards -->
+                <div id="project-costs-container">
+                    <div class="skeleton skeleton-chart" style="height:200px"></div>
+                </div>
+                <!-- Deleted Resources & Savings -->
+                <div id="deleted-resources-section" style="margin-top:24px;display:none"></div>
+
+                <!-- EC2 Instances below -->
+                <div style="margin-top:24px">
+                    <div class="flex flex-wrap items-center justify-between gap-4 mb-3">
+                        <h4 class="text-base font-display font-semibold" style="color: var(--text-primary)">
+                            <span style="margin-right:6px">🖥️</span>EC2 Instances
+                        </h4>
+                        <span class="text-xs" style="color: var(--text-muted)">Live inventory</span>
+                    </div>
+                    <div id="ec2-instances-container">
+                        <div class="skeleton skeleton-chart" style="height:120px"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Services Tab ── -->
+            <div class="mgmt-panel" id="panel-services">
+                <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+                    <h4 class="text-base font-display font-semibold" style="color: var(--text-primary)">Service Breakdown</h4>
+                    <div class="search-wrapper" style="max-width: 300px; width: 100%">
+                        <input type="text" id="service-search" class="search-input" placeholder="Search services...">
+                    </div>
+                </div>
+                <div style="overflow-x: auto">
+                    <table class="service-table" id="service-table">
+                        <thead>
+                            <tr>
+                                <th data-sort="service">Service ↕</th>
+                                <th data-sort="cost">Current Period ↕</th>
+                                <th data-sort="previousCost">Previous Period ↕</th>
+                                <th data-sort="delta">Delta ↕</th>
+                                <th data-sort="percentOfTotal">% of Total ↕</th>
+                                <th style="width:40px"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="service-table-body">
+                            <tr><td colspan="6" class="text-center py-8" style="color: var(--text-muted)"><div class="skeleton skeleton-chart" style="height:120px"></div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ── Recommendations Tab ── -->
+            <div class="mgmt-panel" id="panel-recommendations">
+                <div id="suggestions-container">
+                    <div class="skeleton skeleton-chart" style="height:200px"></div>
+                </div>
+            </div>
+
+            <!-- ── Unused Resources / Cleanup Tab ── -->
+            <div class="mgmt-panel" id="panel-cleanup">
+                <div id="unused-resources-container">
+                    <div class="skeleton skeleton-chart" style="height:200px"></div>
+                </div>
+            </div>
+
+            <!-- ── Storage Analysis Tab ── -->
+            <div class="mgmt-panel" id="panel-storage">
+                <div id="storage-analysis-container">
+                    <div class="skeleton skeleton-chart" style="height:200px"></div>
+                </div>
+            </div>
+
+            <!-- ── S3 Browser Tab ── -->
+            <div class="mgmt-panel" id="panel-s3">
+                <div id="s3-browser-container">
+                    <div class="skeleton skeleton-chart" style="height:200px"></div>
+                </div>
+            </div>
+
+            <!-- ── Activity Tab ── -->
+            <div class="mgmt-panel" id="panel-activity">
+                <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+                    <div class="flex items-center gap-3">
+                        <h4 class="text-base font-display font-semibold" style="color: var(--text-primary)">
+                            <span style="margin-right:6px">👁️</span>AWS Activity Log
+                        </h4>
+                        <select id="activity-days" onchange="__loadActivity()" style="background:var(--bg-secondary);color:var(--text-primary);border:1px solid var(--border-color);border-radius:8px;padding:4px 10px;font-size:0.8rem">
+                            <option value="1">Last 24 hours</option>
+                            <option value="7">Last 7 days</option>
+                            <option value="30">Last 30 days</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="__sendActivityReport('daily')" class="px-3 py-1.5 rounded-lg text-xs font-semibold" style="background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.3)">Send Daily Report</button>
+                        <button onclick="__sendActivityReport('weekly')" class="px-3 py-1.5 rounded-lg text-xs font-semibold" style="background:rgba(139,92,246,0.15);color:#8b5cf6;border:1px solid rgba(139,92,246,0.3)">Send Weekly Report</button>
+                        <button onclick="__sendActivityReport('monthly')" class="px-3 py-1.5 rounded-lg text-xs font-semibold" style="background:rgba(249,115,22,0.15);color:#f97316;border:1px solid rgba(249,115,22,0.3)">Send Monthly Report</button>
+                    </div>
+                </div>
+                <div id="activity-container">
+                    <div class="skeleton skeleton-chart" style="height:200px"></div>
+                </div>
+            </div>
+
+            <!-- ── Charts Tab ── -->
+            <div class="mgmt-panel" id="panel-charts">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <div class="chart-wrapper">
+                        <h3 class="chart-title">Daily Cost Trend</h3>
+                        <div class="chart-container"><canvas id="chart-daily-trend"></canvas></div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <h3 class="chart-title">Cost by Service</h3>
+                        <div class="chart-container"><canvas id="chart-service-donut"></canvas></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="chart-wrapper">
+                        <h3 class="chart-title">Monthly Cost Trend</h3>
+                        <div class="chart-container"><canvas id="chart-monthly-bar"></canvas></div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <h3 class="chart-title">Top 5 Services Trend</h3>
+                        <div class="chart-container"><canvas id="chart-top5-trend"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="delete-modal-overlay hidden">
+        <div class="delete-modal glass-card">
+            <div class="text-2xl mb-3 text-center">⚠️</div>
+            <h3 class="text-lg font-display font-bold text-center mb-2" style="color: var(--text-primary)">Confirm Delete</h3>
+            <p id="delete-modal-msg" class="text-sm text-center mb-6" style="color: var(--text-secondary)"></p>
+            <div class="flex gap-3 justify-center">
+                <button id="delete-modal-cancel" class="px-5 py-2 rounded-lg border border-[var(--border-color)] text-sm" style="color: var(--text-secondary)">Cancel</button>
+                <button id="delete-modal-confirm" class="px-5 py-2 rounded-lg text-sm font-semibold text-white" style="background: #ef4444">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="text-center text-sm py-6 animate-item" style="color: var(--text-muted)">
+        <p id="last-updated">Last updated: --</p>
+        <div class="flex justify-center gap-4 mt-2">
+            <a href="admin.html" class="hover:underline" style="color: var(--primary)">← Admin Portal</a>
+            <a href="costs.html" class="hover:underline" style="color: var(--primary)">Project Costs →</a>
+        </div>
+    </div>
+
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div>
+
+<!-- Dashboard JS -->
+<script src="js/awscost-core.js"></script>
+
+</body>
+</html>
