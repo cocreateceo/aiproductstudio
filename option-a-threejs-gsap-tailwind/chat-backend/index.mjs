@@ -16,6 +16,7 @@ import mammoth from 'mammoth';
 import crypto from 'crypto';
 import { handleAdminCostsSummary, handleUserCosts } from './costs/index.mjs';
 import { handleScheduledCostReports, handleManualCostReportTrigger, handleSendAdminSummaryReport, computeAdminSummaryData } from './costs/email-reports.mjs';
+import { handleAwsCostSummary, handleAwsCostDaily, handleAwsCostDailyByService, handleAwsCostForecast, handleAwsCostServiceDetail, handleAwsProjectCosts, handleAwsProjectCostsDynamic, handleAwsCostDailyByProject, handleAwsUnusedResources, handleAwsDeleteResource, handleAwsS3Browse, handleAwsS3Delete, handleAwsS3Analysis, handleAwsActivityLog, handleAwsActivityEmailReport, handleAwsCostDashboardBatch, handleAwsCostStorageBatch } from './aws-costs/index.mjs';
 
 // Configuration
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -2574,6 +2575,61 @@ export const handler = async (event) => {
     // Send Admin Report - comprehensive admin summary with all users + infrastructure costs
     if (action === 'send-admin-report') {
       return handleSendAdminSummaryReport({ body, corsHeaders, S3_REGION, ADMIN_PASSWORD, listApplications });
+    }
+
+    // ── AWS Batch Endpoints (merged calls for dashboard performance) ──
+    if (action === 'aws-cost-dashboard-batch') {
+      return handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PASSWORD });
+    }
+    if (action === 'aws-cost-storage-batch') {
+      return handleAwsCostStorageBatch({ body, corsHeaders, ADMIN_PASSWORD });
+    }
+
+    // ── AWS Account-Wide Cost Endpoints (see aws-costs/index.mjs) ──
+    if (action === 'aws-cost-summary') {
+      return handleAwsCostSummary({ body, corsHeaders, ADMIN_PASSWORD });
+    }
+    if (action === 'aws-cost-daily') {
+      return handleAwsCostDaily({ body, corsHeaders, ADMIN_PASSWORD });
+    }
+    if (action === 'aws-cost-daily-by-service') {
+      return handleAwsCostDailyByService({ body, corsHeaders, ADMIN_PASSWORD });
+    }
+    if (action === 'aws-cost-forecast') {
+      return handleAwsCostForecast({ body, corsHeaders, ADMIN_PASSWORD });
+    }
+    if (action === 'aws-cost-service-detail') {
+      return handleAwsCostServiceDetail({ body, corsHeaders, ADMIN_PASSWORD });
+    }
+    if (action === 'aws-project-costs') {
+      return handleAwsProjectCosts({ body, corsHeaders, ADMIN_PASSWORD });
+    }
+    if (action === 'aws-project-costs-dynamic') {
+      return handleAwsProjectCostsDynamic({ body, corsHeaders, ADMIN_PASSWORD });
+    }
+    if (action === 'aws-cost-daily-by-project') {
+      return handleAwsCostDailyByProject({ body, corsHeaders, ADMIN_PASSWORD });
+    }
+    if (action === 'aws-unused-resources') {
+      return handleAwsUnusedResources({ body, corsHeaders, ADMIN_PASSWORD });
+    }
+    if (action === 'aws-delete-resource') {
+      return handleAwsDeleteResource({ body, corsHeaders, ADMIN_PASSWORD });
+    }
+    if (action === 'aws-s3-browse') {
+      return handleAwsS3Browse({ body, corsHeaders, ADMIN_PASSWORD });
+    }
+    if (action === 'aws-s3-delete') {
+      return handleAwsS3Delete({ body, corsHeaders, ADMIN_PASSWORD });
+    }
+    if (action === 'aws-s3-analysis') {
+      return handleAwsS3Analysis({ body, corsHeaders, ADMIN_PASSWORD });
+    }
+    if (action === 'aws-activity-log') {
+      return handleAwsActivityLog({ body, corsHeaders, ADMIN_PASSWORD });
+    }
+    if (action === 'aws-activity-email-report') {
+      return handleAwsActivityEmailReport({ body, corsHeaders, ADMIN_PASSWORD });
     }
 
     // Get Tmux Projects - Fetch deployed projects from Tmux Builder API

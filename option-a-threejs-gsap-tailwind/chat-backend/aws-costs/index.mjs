@@ -1519,7 +1519,213 @@ export async function handleAwsProjectCostsDynamic({ body, corsHeaders, ADMIN_PA
 }
 
 // ---------------------------------------------------------------------------
-// 12. handleAwsActivityLog
+// 12. handleAwsCostDailyByProject
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns daily cost broken down by project.
+ * Queries Cost Explorer DAILY grouped by SERVICE, then maps each service
+ * to a project using the same patterns as handleAwsProjectCostsDynamic.
+ */
+export async function handleAwsCostDailyByProject({ body, corsHeaders, ADMIN_PASSWORD }) {
+  if (body.password !== ADMIN_PASSWORD) {
+    return jsonResponse(401, corsHeaders, { success: false, error: 'Unauthorized' });
+  }
+
+  try {
+    const startDate = body.startDate || monthStart(0);
+    const endDate = body.endDate || today();
+
+    // Fetch daily costs grouped by service + resource inventory in parallel
+    const [costResult, ec2Instances, lambdaFunctions, buckets, distributions] = await Promise.all([
+      ceClient.send(new GetCostAndUsageCommand({
+        TimePeriod: { Start: startDate, End: endDate },
+        Granularity: 'DAILY',
+        Metrics: ['UnblendedCost'],
+        GroupBy: [{ Type: 'DIMENSION', Key: 'SERVICE' }]
+      })),
+      fetchEC2Instances(),
+      lambdaClient.send(new ListFunctionsCommand({ MaxItems: 200 })).catch(() => ({ Functions: [] })),
+      s3Client.send(new ListBucketsCommand({})).catch(() => ({ Buckets: [] })),
+      cfClient.send(new ListDistributionsCommand({ MaxItems: '100' })).catch(() => ({ DistributionList: { Items: [] } }))
+    ]);
+
+    // Project patterns (same as dynamic handler)
+    const PROJECT_PATTERNS = {
+      'Career Builder': [/^careers?[-_]/i, /careers-production/i],
+      'CoCreate AI':    [/^cocreate[-_]ai/i],
+      'Tmux Builder':   [/^tmux[-_]/i, /tmux-builder/i],
+      'Vedic Astro':    [/^vedic[-_]?astro/i, /^vedic[-_]/i],
+      'AI Product Studio': [/^cocreateidea/i, /^cocreate[-_]app/i, /ai[-_]product[-_]studio/i, /^cocreate[-_]applications/i]
+    };
+
+    function inferProjectFromName(resourceName) {
+      const name = (resourceName || '').toLowerCase();
+      for (const [proj, patterns] of Object.entries(PROJECT_PATTERNS)) {
+        for (const pat of patterns) {
+          if (pat.test(name)) return proj;
+        }
+      }
+      return 'AI Product Studio';
+    }
+
+    // Build service → project mapping with cost proportions
+    // EC2: map by instance tags/names
+    const ec2ByProject = {};
+    let ec2TotalCost = 0;
+    for (const inst of ec2Instances) {
+      const proj = inst.allTags?.project || inst.allTags?.Project || inferProjectFromName(inst.name);
+      const cost = inst.estimatedMonthlyCost || 0;
+      ec2ByProject[proj] = (ec2ByProject[proj] || 0) + cost;
+      ec2TotalCost += cost;
+    }
+
+    // Lambda: map by function name
+    const lambdaByProject = {};
+    let lambdaTotalCount = 0;
+    for (const fn of (lambdaFunctions.Functions || [])) {
+      const proj = inferProjectFromName(fn.FunctionName);
+      lambdaByProject[proj] = (lambdaByProject[proj] || 0) + 1;
+      lambdaTotalCount++;
+    }
+
+    // S3: map by bucket name
+    const s3ByProject = {};
+    let s3TotalCount = 0;
+    for (const b of (buckets.Buckets || [])) {
+      const proj = inferProjectFromName(b.Name);
+      s3ByProject[proj] = (s3ByProject[proj] || 0) + 1;
+      s3TotalCount++;
+    }
+
+    // CloudFront: map by origin/alias
+    const cfByProject = {};
+    let cfTotalCount = 0;
+    for (const dist of (distributions.DistributionList?.Items || [])) {
+      const originDomain = dist.Origins?.Items?.[0]?.DomainName || '';
+      const alias = dist.Aliases?.Items?.[0] || '';
+      const proj = inferProjectFromName(originDomain) !== 'AI Product Studio'
+        ? inferProjectFromName(originDomain) : inferProjectFromName(alias || dist.DomainName);
+      cfByProject[proj] = (cfByProject[proj] || 0) + 1;
+      cfTotalCount++;
+    }
+
+    // Fixed service-to-project mappings
+    const fixedServiceMap = {
+      'Amazon Relational Database Service': 'Career Builder',
+      'Amazon ElastiCache': 'Career Builder',
+      'Amazon EC2 Container Registry (ECR)': 'Career Builder',
+      'CodeBuild': 'Career Builder',
+      'AWS Secrets Manager': 'Career Builder',
+      'Amazon Simple Email Service': 'Vedic Astro',
+      'Amazon Virtual Private Cloud': 'Shared Infrastructure',
+      'AmazonCloudWatch': 'Shared Infrastructure',
+      'Tax': 'Tax & Fees'
+    };
+
+    // Function to split a service's daily cost across projects
+    function splitServiceCost(serviceName, cost) {
+      // Check fixed mapping first
+      if (fixedServiceMap[serviceName]) {
+        return { [fixedServiceMap[serviceName]]: cost };
+      }
+
+      // EC2
+      if (serviceName === 'Amazon Elastic Compute Cloud - Compute' || serviceName === 'EC2 - Other') {
+        if (ec2TotalCost <= 0) return { 'AI Product Studio': cost };
+        const result = {};
+        for (const [proj, projCost] of Object.entries(ec2ByProject)) {
+          result[proj] = r2(cost * (projCost / ec2TotalCost));
+        }
+        return result;
+      }
+
+      // Lambda
+      if (serviceName === 'AWS Lambda') {
+        if (lambdaTotalCount <= 0) return { 'AI Product Studio': cost };
+        const result = {};
+        for (const [proj, count] of Object.entries(lambdaByProject)) {
+          result[proj] = r2(cost * (count / lambdaTotalCount));
+        }
+        return result;
+      }
+
+      // S3
+      if (serviceName === 'Amazon Simple Storage Service') {
+        if (s3TotalCount <= 0) return { 'AI Product Studio': cost };
+        const result = {};
+        for (const [proj, count] of Object.entries(s3ByProject)) {
+          result[proj] = r2(cost * (count / s3TotalCount));
+        }
+        return result;
+      }
+
+      // CloudFront
+      if (serviceName === 'Amazon CloudFront') {
+        if (cfTotalCount <= 0) return { 'AI Product Studio': cost };
+        const result = {};
+        for (const [proj, count] of Object.entries(cfByProject)) {
+          result[proj] = r2(cost * (count / cfTotalCount));
+        }
+        return result;
+      }
+
+      // ELB
+      if (serviceName === 'Amazon Elastic Load Balancing') {
+        return { 'Career Builder': cost }; // Only Career Builder uses ELB
+      }
+
+      // Default: attribute to AI Product Studio
+      return { 'AI Product Studio': cost };
+    }
+
+    // Process daily data
+    const dates = [];
+    const dailyByProject = {}; // { "Career Builder": [cost_day1, cost_day2, ...], ... }
+
+    for (const tp of costResult.ResultsByTime || []) {
+      const date = tp.TimePeriod.Start;
+      dates.push(date);
+      const dayIdx = dates.length - 1;
+
+      for (const group of tp.Groups || []) {
+        const service = group.Keys[0];
+        const cost = parseFloat(group.Metrics.UnblendedCost.Amount) || 0;
+        if (cost < 0.001) continue;
+
+        const projectSplit = splitServiceCost(service, cost);
+        for (const [proj, projCost] of Object.entries(projectSplit)) {
+          if (!dailyByProject[proj]) dailyByProject[proj] = new Array(dates.length).fill(0);
+          // Extend array if needed
+          while (dailyByProject[proj].length < dates.length) dailyByProject[proj].push(0);
+          dailyByProject[proj][dayIdx] += projCost;
+        }
+      }
+
+      // Ensure all projects have entries for this day
+      for (const proj of Object.keys(dailyByProject)) {
+        while (dailyByProject[proj].length < dates.length) dailyByProject[proj].push(0);
+      }
+    }
+
+    // Round all values
+    for (const proj of Object.keys(dailyByProject)) {
+      dailyByProject[proj] = dailyByProject[proj].map(v => r2(v));
+    }
+
+    return jsonResponse(200, corsHeaders, {
+      success: true,
+      dates,
+      dailyByProject
+    });
+  } catch (error) {
+    console.error('[AWS Cost Daily By Project] Error:', error);
+    return jsonResponse(500, corsHeaders, { success: false, error: error.message });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 13. handleAwsActivityLog
 // ---------------------------------------------------------------------------
 
 /**
@@ -1953,6 +2159,784 @@ export async function handleAwsActivityEmailReport({ body, corsHeaders, ADMIN_PA
     return jsonResponse(200, corsHeaders, { success: true, message: title + ' sent to ' + sent.join(', ') + (failed.length > 0 ? ' (failed: ' + failed.map(f => f.email).join(', ') + ')' : ''), sent, failed, summary: { totalEvents: events.length, writeActions: writeActions.length, users: Object.keys(byUser).length, yesterdayCost: yesterday.total, mtdCost: mtd.total, unusedResources: totalUnused, potentialSavings: totalWaste } });
   } catch (error) {
     console.error('[AWS Activity Email] Error:', error);
+    return jsonResponse(500, corsHeaders, { success: false, error: error.message });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Batch 1: handleAwsCostDashboardBatch
+// ---------------------------------------------------------------------------
+
+/**
+ * Merges 7 dashboard endpoints into 1 batch call:
+ *   summary, daily, dailyByService, forecast, serviceDetail, projectCosts, dailyByProject
+ * Fetches shared AWS data once, computes all views from the same data.
+ */
+export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PASSWORD }) {
+  if (body.password !== ADMIN_PASSWORD) {
+    return jsonResponse(401, corsHeaders, { success: false, error: 'Unauthorized' });
+  }
+
+  try {
+    const startDate = body.startDate || monthStart(0);
+    const endDate = body.endDate || today();
+    const todayStr = today();
+    const daysInPeriod = daysBetween(startDate, endDate) || 1;
+
+    // Previous period for summary MoM comparison
+    const periodDays = daysBetween(startDate, endDate);
+    const prevEnd = startDate;
+    const prevStartD = new Date(prevEnd);
+    prevStartD.setUTCDate(prevStartD.getUTCDate() - periodDays);
+    const prevStart = prevStartD.toISOString().slice(0, 10);
+
+    // Forecast end date
+    const todayD = new Date(todayStr + 'T00:00:00Z');
+    const forecastEnd = new Date(Date.UTC(todayD.getUTCFullYear(), todayD.getUTCMonth() + 1, 1));
+    const forecastEndStr = forecastEnd.toISOString().slice(0, 10);
+
+    const safeImport = (mod, factory) => import(mod).then(factory).catch(() => null);
+
+    // ── Fetch all shared data in one parallel batch ──
+    const [
+      ceSummaryCurrent, ceSummaryPrevious, ceDailyByService6mo,
+      ceServiceUsage, ceDailyByService, ceForecast,
+      ec2Instances, distributions, lambdaFunctions, buckets,
+      ecsClusters, loadBalancers, natGateways, eipAddresses,
+      rdsInstances, elasticacheClusters, codebuildProjects, ecrRepos
+    ] = await Promise.all([
+      ceClient.send(new GetCostAndUsageCommand({
+        TimePeriod: { Start: startDate, End: endDate }, Granularity: 'MONTHLY',
+        Metrics: ['UnblendedCost'], GroupBy: [{ Type: 'DIMENSION', Key: 'SERVICE' }]
+      })),
+      ceClient.send(new GetCostAndUsageCommand({
+        TimePeriod: { Start: prevStart, End: prevEnd }, Granularity: 'MONTHLY',
+        Metrics: ['UnblendedCost'], GroupBy: [{ Type: 'DIMENSION', Key: 'SERVICE' }]
+      })),
+      ceClient.send(new GetCostAndUsageCommand({
+        TimePeriod: { Start: monthStart(6), End: todayStr }, Granularity: 'MONTHLY',
+        Metrics: ['UnblendedCost'], GroupBy: [{ Type: 'DIMENSION', Key: 'SERVICE' }]
+      })),
+      ceClient.send(new GetCostAndUsageCommand({
+        TimePeriod: { Start: startDate, End: endDate }, Granularity: 'MONTHLY',
+        Metrics: ['UnblendedCost', 'UsageQuantity'],
+        GroupBy: [{ Type: 'DIMENSION', Key: 'SERVICE' }, { Type: 'DIMENSION', Key: 'USAGE_TYPE' }]
+      })),
+      ceClient.send(new GetCostAndUsageCommand({
+        TimePeriod: { Start: startDate, End: endDate }, Granularity: 'DAILY',
+        Metrics: ['UnblendedCost'], GroupBy: [{ Type: 'DIMENSION', Key: 'SERVICE' }]
+      })),
+      (todayStr < forecastEndStr
+        ? ceClient.send(new GetCostForecastCommand({
+            TimePeriod: { Start: todayStr, End: forecastEndStr },
+            Granularity: 'MONTHLY', Metric: 'UNBLENDED_COST'
+          })).catch(err => ({ _error: err.message }))
+        : Promise.resolve(null)),
+      fetchEC2Instances(),
+      cfClient.send(new ListDistributionsCommand({ MaxItems: '100' })).catch(() => ({ DistributionList: { Items: [] } })),
+      lambdaClient.send(new ListFunctionsCommand({ MaxItems: 200 })).catch(() => ({ Functions: [] })),
+      s3Client.send(new ListBucketsCommand({})).catch(() => ({ Buckets: [] })),
+      ecsClient.send(new ListClustersCommand({})).catch(() => ({ clusterArns: [] })),
+      elbClient.send(new DescribeLoadBalancersCommand({})).catch(() => ({ LoadBalancers: [] })),
+      ec2Client.send(new DescribeNatGatewaysCommand({ Filter: [{ Name: 'state', Values: ['available', 'pending'] }] })).catch(() => ({ NatGateways: [] })),
+      ec2Client.send(new DescribeAddressesCommand({})).catch(() => ({ Addresses: [] })),
+      safeImport('@aws-sdk/client-rds', m => new m.RDSClient({ region: 'us-east-1' }).send(new m.DescribeDBInstancesCommand({}))),
+      safeImport('@aws-sdk/client-elasticache', m => new m.ElastiCacheClient({ region: 'us-east-1' }).send(new m.DescribeCacheClustersCommand({}))),
+      safeImport('@aws-sdk/client-codebuild', m => new m.CodeBuildClient({ region: 'us-east-1' }).send(new m.ListProjectsCommand({}))),
+      safeImport('@aws-sdk/client-ecr', m => new m.ECRClient({ region: 'us-east-1' }).send(new m.DescribeRepositoriesCommand({})))
+    ]);
+
+    const response = { success: true };
+
+    // ── Section 1: Summary ──
+    try {
+      const currentByService = {};
+      for (const tp of ceSummaryCurrent.ResultsByTime || []) {
+        for (const group of tp.Groups || []) {
+          const service = group.Keys[0];
+          const cost = parseFloat(group.Metrics.UnblendedCost.Amount) || 0;
+          currentByService[service] = (currentByService[service] || 0) + cost;
+        }
+      }
+      const previousByService = {};
+      for (const tp of ceSummaryPrevious.ResultsByTime || []) {
+        for (const group of tp.Groups || []) {
+          const service = group.Keys[0];
+          const cost = parseFloat(group.Metrics.UnblendedCost.Amount) || 0;
+          previousByService[service] = (previousByService[service] || 0) + cost;
+        }
+      }
+      const allServiceNames = new Set([...Object.keys(currentByService), ...Object.keys(previousByService)]);
+      let services = [];
+      for (const service of allServiceNames) {
+        const cost = currentByService[service] || 0;
+        const previousCost = previousByService[service] || 0;
+        if (cost < 0.001 && previousCost < 0.001) continue;
+        services.push({ service, cost, previousCost });
+      }
+      services.sort((a, b) => b.cost - a.cost);
+      const totalCost = r2(services.reduce((sum, s) => sum + s.cost, 0));
+      const previousPeriodCost = r2(services.reduce((sum, s) => sum + s.previousCost, 0));
+      const momChange = previousPeriodCost === 0
+        ? (totalCost > 0 ? 100 : 0)
+        : r2(((totalCost - previousPeriodCost) / previousPeriodCost) * 100);
+      const topService = services.length > 0
+        ? { name: services[0].service, cost: r2(services[0].cost) }
+        : { name: 'N/A', cost: 0 };
+      const activeServices = services.filter(s => s.cost >= 0.001).length;
+      const formattedServices = services.map(s => ({
+        service: s.service, cost: r2(s.cost), previousCost: r2(s.previousCost),
+        delta: r2(s.cost - s.previousCost),
+        percentOfTotal: totalCost > 0 ? r2((s.cost / totalCost) * 100) : 0
+      }));
+      response.summary = {
+        totalCost, previousPeriodCost, momChange, topService, activeServices,
+        services: formattedServices, period: { start: startDate, end: endDate }
+      };
+    } catch (e) {
+      console.error('[Batch] Summary error:', e);
+      response.summary = null;
+    }
+
+    // ── Section 2: Daily (derived from daily-by-service) ──
+    try {
+      const dailyCosts = (ceDailyByService.ResultsByTime || []).map(tp => {
+        let dayCost = 0;
+        for (const group of tp.Groups || []) {
+          dayCost += parseFloat(group.Metrics.UnblendedCost.Amount) || 0;
+        }
+        return { date: tp.TimePeriod.Start, cost: r2(dayCost) };
+      });
+      response.daily = { dailyCosts };
+    } catch (e) {
+      console.error('[Batch] Daily error:', e);
+      response.daily = null;
+    }
+
+    // ── Section 3: Daily By Service (6 months monthly) ──
+    try {
+      const months = (ceDailyByService6mo.ResultsByTime || []).map(tp => tp.TimePeriod.Start);
+      const serviceTotals = {};
+      const serviceMonthly = {};
+      for (const tp of ceDailyByService6mo.ResultsByTime || []) {
+        const month = tp.TimePeriod.Start;
+        for (const group of tp.Groups || []) {
+          const service = group.Keys[0];
+          const cost = parseFloat(group.Metrics.UnblendedCost.Amount) || 0;
+          serviceTotals[service] = (serviceTotals[service] || 0) + cost;
+          if (!serviceMonthly[service]) serviceMonthly[service] = {};
+          serviceMonthly[service][month] = (serviceMonthly[service][month] || 0) + cost;
+        }
+      }
+      const rankedServices = Object.entries(serviceTotals)
+        .filter(([, total]) => total >= 0.001)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([service]) => service);
+      const dbsServices = rankedServices.map(service => ({
+        service,
+        monthly: months.map(month => ({ month, cost: r2(serviceMonthly[service]?.[month] || 0) }))
+      }));
+      response.dailyByService = { months, services: dbsServices };
+    } catch (e) {
+      console.error('[Batch] DailyByService error:', e);
+      response.dailyByService = null;
+    }
+
+    // ── Section 4: Forecast ──
+    try {
+      if (ceForecast === null) {
+        response.forecast = { forecastedTotal: null, forecastPeriod: null, message: 'Month has ended; no forecast available.' };
+      } else if (ceForecast._error) {
+        response.forecast = { forecastedTotal: null, forecastPeriod: { start: todayStr, end: forecastEndStr }, message: 'Forecast unavailable: ' + ceForecast._error };
+      } else {
+        response.forecast = {
+          forecastedTotal: r2(parseFloat(ceForecast.Total?.Amount) || 0),
+          forecastPeriod: { start: todayStr, end: forecastEndStr }
+        };
+      }
+    } catch (e) {
+      console.error('[Batch] Forecast error:', e);
+      response.forecast = null;
+    }
+
+    // ── Section 5: Service Detail ──
+    try {
+      const serviceDetails = {};
+      for (const tp of ceServiceUsage.ResultsByTime || []) {
+        for (const group of tp.Groups || []) {
+          const service = group.Keys[0];
+          const usageType = group.Keys[1];
+          const cost = parseFloat(group.Metrics.UnblendedCost.Amount) || 0;
+          const usage = parseFloat(group.Metrics.UsageQuantity.Amount) || 0;
+          if (cost < 0.001 && usage < 0.001) continue;
+          if (!serviceDetails[service]) serviceDetails[service] = { usageTypes: [], totalCost: 0 };
+          serviceDetails[service].totalCost += cost;
+          serviceDetails[service].usageTypes.push({ usageType, cost: r2(cost), usage: r2(usage) });
+        }
+      }
+      for (const svc of Object.values(serviceDetails)) {
+        svc.totalCost = r2(svc.totalCost);
+        svc.usageTypes.sort((a, b) => b.cost - a.cost);
+      }
+      const suggestions = generateSuggestions(serviceDetails, ec2Instances);
+      response.serviceDetail = { serviceDetails, ec2Instances, suggestions, period: { start: startDate, end: endDate } };
+    } catch (e) {
+      console.error('[Batch] ServiceDetail error:', e);
+      response.serviceDetail = null;
+    }
+
+    // ── Shared helpers for sections 6 & 7 ──
+    const PROJECT_PATTERNS = {
+      'Career Builder': [/^careers?[-_]/i, /careers-production/i],
+      'CoCreate AI':    [/^cocreate[-_]ai/i],
+      'Tmux Builder':   [/^tmux[-_]/i, /tmux-builder/i],
+      'Vedic Astro':    [/^vedic[-_]?astro/i, /^vedic[-_]/i],
+      'AI Product Studio': [/^cocreateidea/i, /^cocreate[-_]app/i, /ai[-_]product[-_]studio/i, /^cocreate[-_]applications/i]
+    };
+
+    function batchGetProjectFromTags(tags) {
+      if (!tags) return null;
+      if (Array.isArray(tags)) {
+        for (const key of ['project', 'Project', 'application', 'Application', 'app']) {
+          const tag = tags.find(t => t.Key === key);
+          if (tag && tag.Value) return tag.Value;
+        }
+        return null;
+      }
+      return tags.project || tags.Project || tags.application || tags.Application || tags.app || null;
+    }
+
+    function batchInferProject(resourceName) {
+      const name = (resourceName || '').toLowerCase();
+      for (const [proj, patterns] of Object.entries(PROJECT_PATTERNS)) {
+        for (const pat of patterns) {
+          if (pat.test(name)) return proj;
+        }
+      }
+      return 'AI Product Studio';
+    }
+
+    function batchResolveProject(tags, resourceName) {
+      return batchGetProjectFromTags(tags) || batchInferProject(resourceName);
+    }
+
+    // ── Section 6: Project Costs (dynamic) ──
+    try {
+      const serviceCostsMtd = {};
+      for (const tp of ceSummaryCurrent.ResultsByTime || []) {
+        for (const g of tp.Groups || []) {
+          const svc = g.Keys[0];
+          const cost = parseFloat(g.Metrics.UnblendedCost.Amount) || 0;
+          serviceCostsMtd[svc] = (serviceCostsMtd[svc] || 0) + cost;
+        }
+      }
+
+      const nowDate = new Date();
+      const daysInMonth = new Date(nowDate.getUTCFullYear(), nowDate.getUTCMonth() + 1, 0).getUTCDate();
+      const monthlyMultiplier = daysInPeriod > 0 ? daysInMonth / daysInPeriod : 1;
+      const serviceCosts = {};
+      for (const [svc, mtd] of Object.entries(serviceCostsMtd)) {
+        serviceCosts[svc] = svc === 'Tax' ? mtd : r2(mtd * monthlyMultiplier);
+      }
+
+      // ELB tags
+      const elbs = loadBalancers.LoadBalancers || [];
+      const elbTagMap = {};
+      if (elbs.length > 0) {
+        try {
+          const elbArns = elbs.map(e => e.LoadBalancerArn);
+          const tagResult = await elbClient.send(new ELBDescribeTagsCommand({ ResourceArns: elbArns }));
+          for (const desc of tagResult.TagDescriptions || []) {
+            const tags = {};
+            for (const t of desc.Tags || []) tags[t.Key] = t.Value;
+            elbTagMap[desc.ResourceArn] = tags;
+          }
+        } catch (e) { console.warn('[Batch/ELB Tags] Error:', e.message); }
+      }
+
+      const projects = {};
+      function getProject(name) {
+        if (!projects[name]) projects[name] = { name, resources: [], total: 0, serviceSet: {} };
+        return projects[name];
+      }
+      function addResource(projName, service, resource, details, cost) {
+        const proj = getProject(projName);
+        proj.resources.push({ service, resource, details, monthlyCost: r2(cost), prevMonthlyCost: null });
+        proj.total += cost;
+        proj.serviceSet[service] = true;
+      }
+
+      // EC2
+      for (const inst of ec2Instances) {
+        const projName = batchResolveProject(inst.allTags, inst.name);
+        addResource(projName, 'EC2', inst.name + ' (' + (inst.type || '--') + ')',
+          inst.state + (inst.publicIp ? ', ' + inst.publicIp : ''), inst.estimatedMonthlyCost || 0);
+      }
+
+      // CloudFront with CW metrics
+      const cfDistributions = distributions.DistributionList?.Items || [];
+      const cfMetricPromises = cfDistributions.map(async (dist) => {
+        try {
+          const [reqResult, bytesResult] = await Promise.all([
+            cwClient.send(new GetMetricStatisticsCommand({
+              Namespace: 'AWS/CloudFront', MetricName: 'Requests',
+              Dimensions: [{ Name: 'DistributionId', Value: dist.Id }, { Name: 'Region', Value: 'Global' }],
+              StartTime: new Date(startDate), EndTime: new Date(endDate),
+              Period: 86400 * 31, Statistics: ['Sum']
+            })),
+            cwClient.send(new GetMetricStatisticsCommand({
+              Namespace: 'AWS/CloudFront', MetricName: 'BytesDownloaded',
+              Dimensions: [{ Name: 'DistributionId', Value: dist.Id }, { Name: 'Region', Value: 'Global' }],
+              StartTime: new Date(startDate), EndTime: new Date(endDate),
+              Period: 86400 * 31, Statistics: ['Sum']
+            }))
+          ]);
+          const requests = reqResult.Datapoints?.[0]?.Sum || 0;
+          const bytes = bytesResult.Datapoints?.[0]?.Sum || 0;
+          const gbTransfer = bytes / (1024 * 1024 * 1024);
+          return { dist, requests, bytes, estimatedCost: (gbTransfer * 0.085) + (requests / 10000 * 0.01) };
+        } catch { return { dist, requests: 0, bytes: 0, estimatedCost: 0 }; }
+      });
+      const cfMetrics = await Promise.all(cfMetricPromises);
+      for (const { dist, requests, bytes, estimatedCost } of cfMetrics) {
+        const originDomain = dist.Origins?.Items?.[0]?.DomainName || '';
+        const alias = dist.Aliases?.Items?.[0] || '';
+        const displayName = alias || dist.DomainName;
+        const projName = batchInferProject(originDomain) !== 'AI Product Studio'
+          ? batchInferProject(originDomain) : batchInferProject(alias || dist.DomainName);
+        const gbStr = (bytes / (1024 * 1024 * 1024)).toFixed(2);
+        const reqStr = requests > 1000 ? (requests / 1000).toFixed(1) + 'K' : requests.toString();
+        addResource(projName, 'CloudFront', displayName, reqStr + ' requests, ' + gbStr + ' GB', estimatedCost);
+      }
+
+      // Lambda
+      const lambdaFns = lambdaFunctions.Functions || [];
+      const lambdaByProj = {};
+      for (const fn of lambdaFns) {
+        const projName = batchInferProject(fn.FunctionName);
+        if (!lambdaByProj[projName]) lambdaByProj[projName] = [];
+        lambdaByProj[projName].push(fn.FunctionName);
+      }
+      const lambdaCostMtd = serviceCosts['AWS Lambda'] || 0;
+      const totalLambdaFns = lambdaFns.length || 1;
+      for (const [projName, fns] of Object.entries(lambdaByProj)) {
+        addResource(projName, 'Lambda', fns.length + ' functions',
+          fns.slice(0, 3).map(f => f.substring(0, 40)).join(', ') + (fns.length > 3 ? '...' : ''),
+          lambdaCostMtd * (fns.length / totalLambdaFns));
+      }
+
+      // S3
+      const s3BucketList = buckets.Buckets || [];
+      const s3CostMtd = serviceCosts['Amazon Simple Storage Service'] || 0;
+      const s3ByProj = {};
+      for (const b of s3BucketList) {
+        const projName = batchInferProject(b.Name);
+        if (!s3ByProj[projName]) s3ByProj[projName] = [];
+        s3ByProj[projName].push(b.Name);
+      }
+      const totalBuckets = s3BucketList.length || 1;
+      for (const [projName, bkts] of Object.entries(s3ByProj)) {
+        addResource(projName, 'S3', bkts.length + ' buckets',
+          bkts.slice(0, 3).map(b => b.substring(0, 35)).join(', ') + (bkts.length > 3 ? '...' : ''),
+          s3CostMtd * (bkts.length / totalBuckets));
+      }
+
+      // ECS
+      const ecsArns = ecsClusters.clusterArns || [];
+      for (const arn of ecsArns) {
+        const clusterName = arn.split('/').pop();
+        const projName = batchInferProject(clusterName);
+        try {
+          const svcList = await ecsClient.send(new ListServicesCommand({ cluster: clusterName }));
+          const svcArns = svcList.serviceArns || [];
+          if (svcArns.length > 0) {
+            const svcDetails = await ecsClient.send(new DescribeServicesCommand({ cluster: clusterName, services: svcArns }));
+            const ecsServices = svcDetails.services || [];
+            const totalTasks = ecsServices.reduce((s, svc) => s + (svc.desiredCount || 0), 0);
+            addResource(projName, 'ECS', clusterName,
+              ecsServices.length + ' services, ' + totalTasks + ' tasks', serviceCosts['Amazon Elastic Container Service'] || 0);
+          }
+        } catch { /* skip */ }
+      }
+
+      // Load Balancers
+      const elbCostMtd = serviceCosts['Amazon Elastic Load Balancing'] || 0;
+      const elbCount = elbs.length || 1;
+      for (const elb of elbs) {
+        const elbTags = elbTagMap[elb.LoadBalancerArn] || null;
+        addResource(batchResolveProject(elbTags, elb.LoadBalancerName), 'ELB', elb.LoadBalancerName,
+          elb.Type + ' load balancer', elbCostMtd / elbCount);
+      }
+
+      // Service-level fallbacks
+      const hasRds = rdsInstances && (rdsInstances.DBInstances || []).length > 0;
+      const hasEcache = elasticacheClusters && (elasticacheClusters.CacheClusters || []).length > 0;
+      const hasEcr = ecrRepos && (ecrRepos.repositories || []).length > 0;
+      const hasCb = codebuildProjects && (codebuildProjects.projects || []).length > 0;
+      const serviceProjectFallback = {
+        ...(hasRds ? { 'Amazon Relational Database Service': 'Career Builder' } : {}),
+        ...(hasEcache ? { 'Amazon ElastiCache': 'Career Builder' } : {}),
+        ...(hasEcr ? { 'Amazon EC2 Container Registry (ECR)': 'Career Builder' } : {}),
+        ...(hasCb ? { 'CodeBuild': 'Career Builder' } : {}),
+        'AWS Secrets Manager': 'Career Builder',
+        'Amazon Simple Email Service': 'Vedic Astro'
+      };
+      for (const [svcName, projName] of Object.entries(serviceProjectFallback)) {
+        const cost = serviceCosts[svcName] || 0;
+        if (cost < 0.001) continue;
+        const mtd = serviceCostsMtd[svcName] || 0;
+        const shortName = svcName.replace('Amazon ', '').replace('AWS ', '').split(' ')[0];
+        addResource(projName, shortName, svcName, 'Est. monthly (MTD $' + r2(mtd) + ')', cost);
+      }
+
+      // Shared infra
+      for (const svcName of ['Amazon Virtual Private Cloud', 'AmazonCloudWatch']) {
+        const cost = serviceCosts[svcName] || 0;
+        if (cost < 0.001) continue;
+        const mtd = serviceCostsMtd[svcName] || 0;
+        const shortName = svcName.includes('VPC') ? 'VPC' : 'CloudWatch';
+        addResource('Shared Infrastructure', shortName, svcName, 'Est. monthly (MTD $' + r2(mtd) + ')', cost);
+      }
+
+      // Tax
+      if ((serviceCosts['Tax'] || 0) > 0) {
+        addResource('Tax & Fees', 'Tax', 'AWS Tax', 'Account-level tax', serviceCosts['Tax']);
+      }
+
+      // EC2-Other distributed proportionally
+      const ec2OtherCost = serviceCosts['EC2 - Other'] || 0;
+      if (ec2OtherCost > 0) {
+        const ec2OtherMtd = serviceCostsMtd['EC2 - Other'] || 0;
+        const ec2Projects = Object.entries(projects).filter(([, p]) => p.serviceSet['EC2']);
+        const totalEc2Cost = ec2Projects.reduce((s, [, p]) =>
+          s + p.resources.filter(r => r.service === 'EC2').reduce((s2, r) => s2 + r.monthlyCost, 0), 0) || 1;
+        for (const [, proj] of ec2Projects) {
+          const projEc2Cost = proj.resources.filter(r => r.service === 'EC2').reduce((s, r) => s + r.monthlyCost, 0);
+          const share = ec2OtherCost * (projEc2Cost / totalEc2Cost);
+          if (share > 0.01) {
+            const shareMtd = ec2OtherMtd * (projEc2Cost / totalEc2Cost);
+            addResource(proj.name, 'EC2', 'EBS volumes & data transfer', 'Est. monthly (MTD $' + r2(shareMtd) + ')', share);
+          }
+        }
+      }
+
+      // Build final project list
+      const projectList = Object.values(projects).map(p => ({
+        name: p.name, category: p.name === 'Tax & Fees' ? 'tax' : 'infra',
+        serviceList: Object.keys(p.serviceSet).join(', '),
+        resources: p.resources, total: r2(p.total), prevTotal: null
+      })).sort((a, b) => b.total - a.total);
+
+      const grandTotal = r2(projectList.reduce((s, p) => s + p.total, 0));
+
+      // Deleted resources detection
+      const deletedResources = [];
+      const deletedChecks = [
+        { svc: 'Amazon Relational Database Service', name: 'RDS Database(s)', type: 'RDS', data: rdsInstances, countKey: 'DBInstances' },
+        { svc: 'Amazon ElastiCache', name: 'ElastiCache Cluster(s)', type: 'ElastiCache', data: elasticacheClusters, countKey: 'CacheClusters' },
+        { svc: 'Amazon Elastic Container Service', name: 'ECS Cluster(s)', type: 'ECS Fargate', data: ecsClusters, countKey: 'clusterArns' },
+        { svc: 'Amazon Elastic Load Balancing', name: 'Load Balancer(s)', type: 'ALB/NLB', data: loadBalancers, countKey: 'LoadBalancers' },
+        { svc: 'Amazon EC2 Container Registry (ECR)', name: 'ECR Repositories', type: 'ECR', data: ecrRepos, countKey: 'repositories' },
+        { svc: 'CodeBuild', name: 'CodeBuild Project(s)', type: 'CodeBuild', data: codebuildProjects, countKey: 'projects' }
+      ];
+      for (const chk of deletedChecks) {
+        const mtd = serviceCostsMtd[chk.svc] || 0;
+        const monthly = serviceCosts[chk.svc] || 0;
+        if (mtd > 0.01 && chk.data && (chk.data[chk.countKey] || []).length === 0) {
+          deletedResources.push({
+            name: chk.name, type: chk.type,
+            project: batchInferProject(chk.name) !== 'AI Product Studio' ? batchInferProject(chk.name) : 'Career Builder',
+            monthlySavings: monthly,
+            reason: 'No active ' + chk.type + ' found but $' + r2(mtd) + ' charged MTD'
+          });
+        }
+      }
+
+      // NAT gateway check
+      const activeNats = (natGateways.NatGateways || []).length;
+      const vpcMtd = serviceCostsMtd['Amazon Virtual Private Cloud'] || 0;
+      if (vpcMtd > 5 && activeNats === 0) {
+        const activeEips = (eipAddresses.Addresses || []).length;
+        const ipCost = activeEips * 3.65;
+        const natEstimate = r2(Math.max(0, (serviceCosts['Amazon Virtual Private Cloud'] || 0) - ipCost));
+        if (natEstimate > 1) {
+          deletedResources.push({ name: 'NAT Gateway(s)', type: 'NAT Gateway', project: 'Career Builder',
+            monthlySavings: natEstimate, reason: 'No active NAT gateways but VPC charges suggest deleted NATs' });
+        }
+      }
+
+      const totalMonthlySavings = r2(deletedResources.reduce((s, d) => s + d.monthlySavings, 0));
+      const projectedNextMonth = r2(grandTotal - totalMonthlySavings);
+      const grandTotalMtd = r2(Object.values(serviceCostsMtd).reduce((s, v) => s + v, 0));
+
+      response.projectCosts = {
+        projects: projectList, grandTotal, grandTotalMtd, projectedNextMonth,
+        totalMonthlySavings, deletedResources,
+        period: { start: startDate, end: endDate, days: daysInPeriod, daysInMonth },
+        serviceCosts: Object.fromEntries(Object.entries(serviceCosts).filter(([, v]) => v > 0.001).map(([k, v]) => [k, r2(v)])),
+        serviceCostsMtd: Object.fromEntries(Object.entries(serviceCostsMtd).filter(([, v]) => v > 0.001).map(([k, v]) => [k, r2(v)]))
+      };
+    } catch (e) {
+      console.error('[Batch] ProjectCosts error:', e);
+      response.projectCosts = null;
+    }
+
+    // ── Section 7: Daily By Project ──
+    try {
+      const ec2ByProject = {};
+      let ec2TotalCost = 0;
+      for (const inst of ec2Instances) {
+        const proj = inst.allTags?.project || inst.allTags?.Project || batchInferProject(inst.name);
+        const cost = inst.estimatedMonthlyCost || 0;
+        ec2ByProject[proj] = (ec2ByProject[proj] || 0) + cost;
+        ec2TotalCost += cost;
+      }
+
+      const dbpLambdaByProject = {};
+      let dbpLambdaTotalCount = 0;
+      for (const fn of (lambdaFunctions.Functions || [])) {
+        const proj = batchInferProject(fn.FunctionName);
+        dbpLambdaByProject[proj] = (dbpLambdaByProject[proj] || 0) + 1;
+        dbpLambdaTotalCount++;
+      }
+
+      const dbpS3ByProject = {};
+      let dbpS3TotalCount = 0;
+      for (const b of (buckets.Buckets || [])) {
+        const proj = batchInferProject(b.Name);
+        dbpS3ByProject[proj] = (dbpS3ByProject[proj] || 0) + 1;
+        dbpS3TotalCount++;
+      }
+
+      const cfByProject = {};
+      let cfTotalCount = 0;
+      for (const dist of (distributions.DistributionList?.Items || [])) {
+        const originDomain = dist.Origins?.Items?.[0]?.DomainName || '';
+        const alias = dist.Aliases?.Items?.[0] || '';
+        const proj = batchInferProject(originDomain) !== 'AI Product Studio'
+          ? batchInferProject(originDomain) : batchInferProject(alias || dist.DomainName);
+        cfByProject[proj] = (cfByProject[proj] || 0) + 1;
+        cfTotalCount++;
+      }
+
+      const fixedServiceMap = {
+        'Amazon Relational Database Service': 'Career Builder',
+        'Amazon ElastiCache': 'Career Builder',
+        'Amazon EC2 Container Registry (ECR)': 'Career Builder',
+        'CodeBuild': 'Career Builder',
+        'AWS Secrets Manager': 'Career Builder',
+        'Amazon Simple Email Service': 'Vedic Astro',
+        'Amazon Virtual Private Cloud': 'Shared Infrastructure',
+        'AmazonCloudWatch': 'Shared Infrastructure',
+        'Tax': 'Tax & Fees'
+      };
+
+      function splitServiceCost(serviceName, cost) {
+        if (fixedServiceMap[serviceName]) return { [fixedServiceMap[serviceName]]: cost };
+        if (serviceName === 'Amazon Elastic Compute Cloud - Compute' || serviceName === 'EC2 - Other') {
+          if (ec2TotalCost <= 0) return { 'AI Product Studio': cost };
+          const result = {};
+          for (const [proj, projCost] of Object.entries(ec2ByProject)) result[proj] = r2(cost * (projCost / ec2TotalCost));
+          return result;
+        }
+        if (serviceName === 'AWS Lambda') {
+          if (dbpLambdaTotalCount <= 0) return { 'AI Product Studio': cost };
+          const result = {};
+          for (const [proj, count] of Object.entries(dbpLambdaByProject)) result[proj] = r2(cost * (count / dbpLambdaTotalCount));
+          return result;
+        }
+        if (serviceName === 'Amazon Simple Storage Service') {
+          if (dbpS3TotalCount <= 0) return { 'AI Product Studio': cost };
+          const result = {};
+          for (const [proj, count] of Object.entries(dbpS3ByProject)) result[proj] = r2(cost * (count / dbpS3TotalCount));
+          return result;
+        }
+        if (serviceName === 'Amazon CloudFront') {
+          if (cfTotalCount <= 0) return { 'AI Product Studio': cost };
+          const result = {};
+          for (const [proj, count] of Object.entries(cfByProject)) result[proj] = r2(cost * (count / cfTotalCount));
+          return result;
+        }
+        if (serviceName === 'Amazon Elastic Load Balancing') return { 'Career Builder': cost };
+        return { 'AI Product Studio': cost };
+      }
+
+      const dates = [];
+      const dailyByProject = {};
+      for (const tp of ceDailyByService.ResultsByTime || []) {
+        const date = tp.TimePeriod.Start;
+        dates.push(date);
+        const dayIdx = dates.length - 1;
+        for (const group of tp.Groups || []) {
+          const service = group.Keys[0];
+          const cost = parseFloat(group.Metrics.UnblendedCost.Amount) || 0;
+          if (cost < 0.001) continue;
+          const projectSplit = splitServiceCost(service, cost);
+          for (const [proj, projCost] of Object.entries(projectSplit)) {
+            if (!dailyByProject[proj]) dailyByProject[proj] = new Array(dates.length).fill(0);
+            while (dailyByProject[proj].length < dates.length) dailyByProject[proj].push(0);
+            dailyByProject[proj][dayIdx] += projCost;
+          }
+        }
+        for (const proj of Object.keys(dailyByProject)) {
+          while (dailyByProject[proj].length < dates.length) dailyByProject[proj].push(0);
+        }
+      }
+      for (const proj of Object.keys(dailyByProject)) {
+        dailyByProject[proj] = dailyByProject[proj].map(v => r2(v));
+      }
+
+      response.dailyByProject = { success: true, dates, dailyByProject };
+    } catch (e) {
+      console.error('[Batch] DailyByProject error:', e);
+      response.dailyByProject = null;
+    }
+
+    return jsonResponse(200, corsHeaders, response);
+  } catch (error) {
+    console.error('[AWS Cost Dashboard Batch] Error:', error);
+    return jsonResponse(500, corsHeaders, { success: false, error: error.message });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Batch 2: handleAwsCostStorageBatch
+// ---------------------------------------------------------------------------
+
+/**
+ * Merges 3 storage/cleanup endpoints into 1 batch call:
+ *   unusedResources, s3Buckets (list), s3Analysis
+ * Fetches shared data once (ListBuckets, EC2 describe calls).
+ */
+export async function handleAwsCostStorageBatch({ body, corsHeaders, ADMIN_PASSWORD }) {
+  if (body.password !== ADMIN_PASSWORD) {
+    return jsonResponse(401, corsHeaders, { success: false, error: 'Unauthorized' });
+  }
+
+  try {
+    const [volumesResult, snapshotsResult, addressesResult, bucketsResult] = await Promise.all([
+      ec2Client.send(new DescribeVolumesCommand({ Filters: [{ Name: 'status', Values: ['available'] }] })),
+      ec2Client.send(new DescribeSnapshotsCommand({ OwnerIds: ['self'] })),
+      ec2Client.send(new DescribeAddressesCommand({})),
+      s3Client.send(new ListBucketsCommand({}))
+    ]);
+
+    const response = { success: true };
+
+    // ── Section 1: Unused Resources ──
+    try {
+      const volumes = (volumesResult.Volumes || []).map(v => {
+        const tags = {};
+        for (const tag of v.Tags || []) tags[tag.Key] = tag.Value;
+        return {
+          volumeId: v.VolumeId, name: tags.Name || v.VolumeId, size: v.Size,
+          volumeType: v.VolumeType, createTime: v.CreateTime ? v.CreateTime.toISOString() : null,
+          az: v.AvailabilityZone, estimatedMonthlyCost: r2((v.Size || 0) * 0.10)
+        };
+      });
+
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const snapshots = (snapshotsResult.Snapshots || [])
+        .filter(s => s.StartTime && new Date(s.StartTime) < thirtyDaysAgo)
+        .map(s => {
+          const tags = {};
+          for (const tag of s.Tags || []) tags[tag.Key] = tag.Value;
+          return {
+            snapshotId: s.SnapshotId, name: tags.Name || s.SnapshotId, volumeId: s.VolumeId,
+            size: s.VolumeSize, startTime: s.StartTime ? s.StartTime.toISOString() : null,
+            description: s.Description || '', estimatedMonthlyCost: r2((s.VolumeSize || 0) * 0.05)
+          };
+        })
+        .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+
+      const elasticIps = (addressesResult.Addresses || [])
+        .filter(a => !a.AssociationId)
+        .map(a => {
+          const tags = {};
+          for (const tag of a.Tags || []) tags[tag.Key] = tag.Value;
+          return {
+            allocationId: a.AllocationId, publicIp: a.PublicIp, name: tags.Name || a.PublicIp,
+            domain: a.Domain, estimatedMonthlyCost: r2(0.005 * 730)
+          };
+        });
+
+      response.unusedResources = { volumes, snapshots, elasticIps };
+    } catch (e) {
+      console.error('[Batch] UnusedResources error:', e);
+      response.unusedResources = null;
+    }
+
+    // ── Section 2: S3 Buckets list (with locations) ──
+    try {
+      const bucketsList = await Promise.all((bucketsResult.Buckets || []).map(async (b) => {
+        let location = 'us-east-1';
+        try {
+          const locResult = await s3Client.send(new GetBucketLocationCommand({ Bucket: b.Name }));
+          location = locResult.LocationConstraint || 'us-east-1';
+        } catch (e) { /* ignore */ }
+        return { name: b.Name, creationDate: b.CreationDate ? b.CreationDate.toISOString() : null, region: location };
+      }));
+      response.s3Buckets = { buckets: bucketsList };
+    } catch (e) {
+      console.error('[Batch] S3Buckets error:', e);
+      response.s3Buckets = null;
+    }
+
+    // ── Section 3: S3 Analysis ──
+    try {
+      const bucketNames = (bucketsResult.Buckets || []).map(b => b.Name);
+      const analyses = [];
+      for (const bucketName of bucketNames) {
+        try {
+          const analysis = { bucket: bucketName, totalSize: 0, totalObjects: 0, categories: {}, tempFiles: [], largeFiles: [] };
+          let continuationToken;
+          do {
+            const params = { Bucket: bucketName, MaxKeys: 1000 };
+            if (continuationToken) params.ContinuationToken = continuationToken;
+            const result = await new S3Client({ region: 'ap-south-1' }).send(new ListObjectsV2Command(params));
+            const contents = result.Contents || [];
+            for (const obj of contents) {
+              const key = obj.Key || '';
+              const size = obj.Size || 0;
+              const ext = ('.' + key.split('.').pop()).toLowerCase();
+              analysis.totalSize += size;
+              analysis.totalObjects++;
+              let category = 'other';
+              for (const [cat, exts] of Object.entries(FILE_CATEGORIES)) {
+                if (exts.includes(ext)) { category = cat; break; }
+              }
+              if (!analysis.categories[category]) analysis.categories[category] = { count: 0, size: 0, files: [] };
+              analysis.categories[category].count++;
+              analysis.categories[category].size += size;
+              if (TEMP_PATTERNS.some(p => p.test(key))) {
+                analysis.tempFiles.push({ key, size, lastModified: obj.LastModified ? obj.LastModified.toISOString() : null });
+              }
+              if (size > 5 * 1024 * 1024) {
+                analysis.largeFiles.push({ key, size, lastModified: obj.LastModified ? obj.LastModified.toISOString() : null });
+              }
+            }
+            continuationToken = result.IsTruncated ? result.NextContinuationToken : null;
+          } while (continuationToken);
+          analysis.largeFiles.sort((a, b) => b.size - a.size);
+          analysis.largeFiles = analysis.largeFiles.slice(0, 20);
+          analysis.tempFiles = analysis.tempFiles.slice(0, 50);
+          for (const cat of Object.values(analysis.categories)) delete cat.files;
+          analyses.push(analysis);
+        } catch (bucketErr) {
+          analyses.push({ bucket: bucketName, error: bucketErr.message });
+        }
+      }
+      response.s3Analysis = { analyses };
+    } catch (e) {
+      console.error('[Batch] S3Analysis error:', e);
+      response.s3Analysis = null;
+    }
+
+    return jsonResponse(200, corsHeaders, response);
+  } catch (error) {
+    console.error('[AWS Cost Storage Batch] Error:', error);
     return jsonResponse(500, corsHeaders, { success: false, error: error.message });
   }
 }
