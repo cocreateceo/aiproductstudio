@@ -99,9 +99,22 @@ const ctClient = new CloudTrailClient({ region: 'us-east-1' });
 const PROJECT_PATTERNS = {
   'Career Builder': [/^careers?[-_]/i, /careers-production/i],
   'CoCreate AI':    [/^cocreate[-_]ai/i],
-  'Tmux Builder':   [/^tmux[-_]/i, /tmux-builder/i],
+  'Tmux Builder':   [/^tmux[-_]/i, /tmux-builder/i, /^cocreate-[a-z0-9]{4,8}-/i, /^agentcore[-_]/i, /^eis[-_]dynamics/i, /^ai[-_]office/i, /^weather[-_]/i],
   'Vedic Astro':    [/^vedic[-_]?astro/i, /^vedic[-_]/i],
   'AI Product Studio': [/^cocreateidea/i, /^cocreate[-_]app/i, /ai[-_]product[-_]studio/i, /^cocreate[-_]applications/i]
+};
+
+/**
+ * Projects created by Tmux Builder should roll up under "Tmux Builder".
+ * Map tag values from sub-projects to the parent project name.
+ */
+const CHILD_PROJECT_MAP = {
+  'aws-agentcore': 'Tmux Builder',
+  'ai_office_assistant': 'Tmux Builder',
+  'eis-dynamics-poc': 'Tmux Builder',
+  'weather-comparison': 'Tmux Builder',
+  'hr-chatbot': 'Tmux Builder',
+  'tmux-builder': 'Tmux Builder',
 };
 
 /** Extract project name from AWS resource tags (primary method). */
@@ -128,9 +141,15 @@ function inferProjectFromName(resourceName) {
   return 'AI Product Studio';
 }
 
-/** Unified resolver: tags first, then name-based fallback. */
+/** Normalize a resolved project name: map child projects to their parent. */
+function normalizeProject(name) {
+  return CHILD_PROJECT_MAP[(name || '').toLowerCase()] || name;
+}
+
+/** Unified resolver: tags first, then name-based fallback. Normalizes child projects. */
 function resolveProject(tags, resourceName) {
-  return getProjectFromTags(tags) || inferProjectFromName(resourceName);
+  const raw = getProjectFromTags(tags) || inferProjectFromName(resourceName);
+  return normalizeProject(raw);
 }
 
 /** Fetch CloudFront distribution tags. Returns { key: value } object or null. */
@@ -1567,10 +1586,10 @@ export async function handleAwsProjectCostsDynamic({ body, corsHeaders, ADMIN_PA
       const alias = dist.Aliases?.Items?.[0] || '';
       const displayName = alias || dist.DomainName;
       const cfTags = cfTagMap[dist.ARN] || null;
-      const projName = getProjectFromTags(cfTags)
+      const projName = normalizeProject(getProjectFromTags(cfTags)
         || (inferProjectFromName(originDomain) !== 'AI Product Studio'
             ? inferProjectFromName(originDomain)
-            : inferProjectFromName(alias || dist.DomainName));
+            : inferProjectFromName(alias || dist.DomainName)));
       const gbStr = (bytes / (1024 * 1024 * 1024)).toFixed(2);
       const reqStr = requests > 1000 ? (requests / 1000).toFixed(1) + 'K' : requests.toString();
       addResource(projName, 'CloudFront', displayName,
@@ -1873,9 +1892,9 @@ export async function handleAwsCostDailyByProject({ body, corsHeaders, ADMIN_PAS
       const originDomain = dist.Origins?.Items?.[0]?.DomainName || '';
       const alias = dist.Aliases?.Items?.[0] || '';
       const distTags = cfTagMap[dist.ARN] || null;
-      const proj = getProjectFromTags(distTags)
+      const proj = normalizeProject(getProjectFromTags(distTags)
         || (inferProjectFromName(originDomain) !== 'AI Product Studio'
-            ? inferProjectFromName(originDomain) : inferProjectFromName(alias || dist.DomainName));
+            ? inferProjectFromName(originDomain) : inferProjectFromName(alias || dist.DomainName)));
       cfByProject[proj] = (cfByProject[proj] || 0) + 1;
       cfTotalCount++;
     }
@@ -2820,9 +2839,9 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
         const alias = dist.Aliases?.Items?.[0] || '';
         const displayName = alias || dist.DomainName;
         const cfTags = cfTagMap[dist.ARN] || null;
-        const projName = getProjectFromTags(cfTags)
+        const projName = normalizeProject(getProjectFromTags(cfTags)
           || (inferProjectFromName(originDomain) !== 'AI Product Studio'
-              ? inferProjectFromName(originDomain) : inferProjectFromName(alias || dist.DomainName));
+              ? inferProjectFromName(originDomain) : inferProjectFromName(alias || dist.DomainName)));
         const gbStr = (bytes / (1024 * 1024 * 1024)).toFixed(2);
         const reqStr = requests > 1000 ? (requests / 1000).toFixed(1) + 'K' : requests.toString();
         addResource(projName, 'CloudFront', displayName, reqStr + ' requests, ' + gbStr + ' GB', estimatedCost);
@@ -3035,9 +3054,9 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
         const originDomain = dist.Origins?.Items?.[0]?.DomainName || '';
         const alias = dist.Aliases?.Items?.[0] || '';
         const distTags = cfTagMap[dist.ARN] || null;
-        const proj = getProjectFromTags(distTags)
+        const proj = normalizeProject(getProjectFromTags(distTags)
           || (inferProjectFromName(originDomain) !== 'AI Product Studio'
-              ? inferProjectFromName(originDomain) : inferProjectFromName(alias || dist.DomainName));
+              ? inferProjectFromName(originDomain) : inferProjectFromName(alias || dist.DomainName)));
         cfByProject[proj] = (cfByProject[proj] || 0) + 1;
         cfTotalCount++;
       }
