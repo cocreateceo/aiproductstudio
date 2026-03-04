@@ -3000,7 +3000,7 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
       const ec2ByProject = {};
       let ec2TotalCost = 0;
       for (const inst of ec2Instances) {
-        const proj = inst.allTags?.project || inst.allTags?.Project || inferProjectFromName(inst.name);
+        const proj = resolveProject(inst.allTags, inst.name);
         const cost = inst.estimatedMonthlyCost || 0;
         ec2ByProject[proj] = (ec2ByProject[proj] || 0) + cost;
         ec2TotalCost += cost;
@@ -3008,27 +3008,31 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
 
       const dbpLambdaByProject = {};
       let dbpLambdaTotalCount = 0;
-      for (const fn of (lambdaFunctions.Functions || [])) {
-        const proj = inferProjectFromName(fn.FunctionName);
+      for (const fn of lambdaFns) {
+        const fnTags = lambdaTagMap[fn.FunctionArn] || null;
+        const proj = resolveProject(fnTags, fn.FunctionName);
         dbpLambdaByProject[proj] = (dbpLambdaByProject[proj] || 0) + 1;
         dbpLambdaTotalCount++;
       }
 
       const dbpS3ByProject = {};
       let dbpS3TotalCount = 0;
-      for (const b of (buckets.Buckets || [])) {
-        const proj = inferProjectFromName(b.Name);
+      for (const b of s3BucketList) {
+        const bTags = s3TagMap[b.Name] || null;
+        const proj = resolveProject(bTags, b.Name);
         dbpS3ByProject[proj] = (dbpS3ByProject[proj] || 0) + 1;
         dbpS3TotalCount++;
       }
 
       const cfByProject = {};
       let cfTotalCount = 0;
-      for (const dist of (distributions.DistributionList?.Items || [])) {
+      for (const dist of cfDistributions) {
         const originDomain = dist.Origins?.Items?.[0]?.DomainName || '';
         const alias = dist.Aliases?.Items?.[0] || '';
-        const proj = inferProjectFromName(originDomain) !== 'AI Product Studio'
-          ? inferProjectFromName(originDomain) : inferProjectFromName(alias || dist.DomainName);
+        const distTags = cfTagMap[dist.ARN] || null;
+        const proj = getProjectFromTags(distTags)
+          || (inferProjectFromName(originDomain) !== 'AI Product Studio'
+              ? inferProjectFromName(originDomain) : inferProjectFromName(alias || dist.DomainName));
         cfByProject[proj] = (cfByProject[proj] || 0) + 1;
         cfTotalCount++;
       }
