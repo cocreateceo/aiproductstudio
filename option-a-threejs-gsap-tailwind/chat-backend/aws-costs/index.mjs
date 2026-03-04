@@ -1683,39 +1683,50 @@ export async function handleAwsProjectCostsDynamic({ body, corsHeaders, ADMIN_PA
         elb.Type + ' load balancer', elbCostMtd / elbCount);
     }
 
-    // ── 7. Service-level costs not yet attributed ──
-    // serviceCosts are already normalized to estimated monthly (see above)
-    // Skip services with no active resources (they'll appear in deletedResources instead)
-    // Fallback: these services use dynamic imports and don't expose tags in list
-    // responses, so we use name-based mapping until tag reading is added.
-    const hasRds = rdsInstances && (rdsInstances.DBInstances || []).length > 0;
-    const hasEcache = elasticacheClusters && (elasticacheClusters.CacheClusters || []).length > 0;
-    const hasEcr = ecrRepos && (ecrRepos.repositories || []).length > 0;
-    const hasCb = codebuildProjects && (codebuildProjects.projects || []).length > 0;
-    const serviceProjectFallback = {
-      ...(hasRds ? { 'Amazon Relational Database Service': 'Career Builder' } : {}),
-      ...(hasEcache ? { 'Amazon ElastiCache': 'Career Builder' } : {}),
-      ...(hasEcr ? { 'Amazon EC2 Container Registry (ECR)': 'Career Builder' } : {}),
-      ...(hasCb ? { 'CodeBuild': 'Career Builder' } : {}),
-      'AWS Secrets Manager': 'Career Builder',
-      'Amazon Simple Email Service': 'Vedic Astro'
-    };
-    for (const [svcName, projName] of Object.entries(serviceProjectFallback)) {
-      const cost = serviceCosts[svcName] || 0;
+    // ── 7. Service-level costs — auto-detect project from resource tags/names ──
+    // Resolve project for each service by inspecting actual resource names/tags
+    const serviceResourceMap = [
+      { svc: 'Amazon Relational Database Service', short: 'RDS', data: rdsInstances, items: d => (d?.DBInstances || []), name: i => i.DBInstanceIdentifier, tags: i => i.TagList },
+      { svc: 'Amazon ElastiCache', short: 'ElastiCache', data: elasticacheClusters, items: d => (d?.CacheClusters || []), name: i => i.CacheClusterId, tags: () => null },
+      { svc: 'Amazon EC2 Container Registry (ECR)', short: 'ECR', data: ecrRepos, items: d => (d?.repositories || []), name: i => i.repositoryName, tags: () => null },
+      { svc: 'CodeBuild', short: 'CodeBuild', data: codebuildProjects, items: d => (d?.projects || []), name: i => (typeof i === 'string' ? i : i.name || i), tags: () => null },
+      { svc: 'AWS Secrets Manager', short: 'Secrets', data: null, items: () => [], name: i => i.Name, tags: i => i.Tags },
+      { svc: 'Amazon Simple Email Service', short: 'SES', data: null, items: () => [], name: i => i, tags: () => null }
+    ];
+    for (const { svc, short, data, items, name: getName, tags: getTags } of serviceResourceMap) {
+      const cost = serviceCosts[svc] || 0;
       if (cost < 0.001) continue;
-      const mtd = serviceCostsMtd[svcName] || 0;
-      const shortName = svcName.replace('Amazon ', '').replace('AWS ', '').split(' ')[0];
-      addResource(projName, shortName, svcName, 'Est. monthly (MTD $' + r2(mtd) + ')', cost);
+      const mtd = serviceCostsMtd[svc] || 0;
+      const resources = data ? items(data) : [];
+      if (resources.length > 0) {
+        // Resolve project from first resource with a tag, or by name pattern
+        const proj = resolveProject(getTags(resources[0]), getName(resources[0]));
+        addResource(proj, short, svc, 'Est. monthly (MTD $' + r2(mtd) + ')', cost);
+      } else {
+        // No active resources — still attribute by service name pattern
+        addResource(inferProjectFromName(short), short, svc, 'Est. monthly (MTD $' + r2(mtd) + ')', cost);
+      }
     }
 
-    // Shared infra costs
-    const sharedServices = ['Amazon Virtual Private Cloud', 'AmazonCloudWatch'];
-    for (const svcName of sharedServices) {
+    // VPC & CloudWatch — distribute proportionally by EC2 spend
+    for (const svcName of ['Amazon Virtual Private Cloud', 'AmazonCloudWatch']) {
       const cost = serviceCosts[svcName] || 0;
       if (cost < 0.001) continue;
       const mtd = serviceCostsMtd[svcName] || 0;
       const shortName = svcName.includes('VPC') ? 'VPC' : 'CloudWatch';
-      addResource('Shared Infrastructure', shortName, svcName, 'Est. monthly (MTD $' + r2(mtd) + ')', cost);
+      const ec2Projects = Object.entries(projects).filter(([, p]) => p.serviceSet['EC2']);
+      const totalEc2Cost = ec2Projects.reduce((s, [, p]) =>
+        s + p.resources.filter(r => r.service === 'EC2').reduce((s2, r) => s2 + r.monthlyCost, 0), 0) || 1;
+      if (ec2Projects.length > 0) {
+        for (const [, proj] of ec2Projects) {
+          const projEc2Cost = proj.resources.filter(r => r.service === 'EC2').reduce((s, r) => s + r.monthlyCost, 0);
+          const share = cost * (projEc2Cost / totalEc2Cost);
+          if (share > 0.01) {
+            const shareMtd = mtd * (projEc2Cost / totalEc2Cost);
+            addResource(proj.name, shortName, svcName, 'Est. monthly (MTD $' + r2(shareMtd) + ')', share);
+          }
+        }
+      }
     }
 
     // Tax — already kept as actual in serviceCosts (not projected)
@@ -1773,7 +1784,7 @@ export async function handleAwsProjectCostsDynamic({ body, corsHeaders, ADMIN_PA
       if (mtd > 0.01 && chk.data && (chk.data[chk.countKey] || []).length === 0) {
         deletedResources.push({
           name: chk.name, type: chk.type,
-          project: inferProjectFromName(chk.name) !== 'AI Product Studio' ? inferProjectFromName(chk.name) : 'Career Builder',
+          project: inferProjectFromName(chk.name),
           monthlySavings: monthly,
           reason: 'No active ' + chk.type + ' found but $' + r2(mtd) + ' charged MTD'
         });
@@ -1783,14 +1794,14 @@ export async function handleAwsProjectCostsDynamic({ body, corsHeaders, ADMIN_PA
     // NAT Gateways: VPC charges include NAT but no active NAT gateways
     const activeNats = (natGateways.NatGateways || []).length;
     const vpcMtd = serviceCostsMtd['Amazon Virtual Private Cloud'] || 0;
-    // If VPC cost is high (>$5) but no NAT gateways, NATs were likely deleted
     if (vpcMtd > 5 && activeNats === 0) {
-      // VPC cost without NAT is mostly public IPv4 ($3.65/IP) — estimate NAT portion
       const activeEips = (eipAddresses.Addresses || []).length;
       const ipCost = activeEips * 3.65;
       const natEstimate = r2(Math.max(0, (serviceCosts['Amazon Virtual Private Cloud'] || 0) - ipCost));
       if (natEstimate > 1) {
-        deletedResources.push({ name: 'NAT Gateway(s)', type: 'NAT Gateway', project: 'Career Builder', monthlySavings: natEstimate, reason: 'No active NAT gateways but VPC charges suggest deleted NATs' });
+        // Attribute to largest EC2 project
+        const topEc2Proj = Object.entries(projects).filter(([, p]) => p.serviceSet['EC2']).sort((a, b) => b[1].total - a[1].total)[0];
+        deletedResources.push({ name: 'NAT Gateway(s)', type: 'NAT Gateway', project: topEc2Proj ? topEc2Proj[1].name : 'AI Product Studio', monthlySavings: natEstimate, reason: 'No active NAT gateways but VPC charges suggest deleted NATs' });
       }
     }
 
@@ -1843,7 +1854,9 @@ export async function handleAwsCostDailyByProject({ body, corsHeaders, ADMIN_PAS
     const endDate = body.endDate || today();
 
     // Fetch daily costs grouped by service + resource inventory in parallel
-    const [costResult, ec2Instances, lambdaFunctions, buckets, distributions] = await Promise.all([
+    const safeImport = (mod, factory) => import(mod).then(factory).catch(() => null);
+    const [costResult, ec2Instances, lambdaFunctions, buckets, distributions, loadBalancers,
+           rdsInstances, elasticacheClusters, codebuildProjects, ecrRepos] = await Promise.all([
       ceClient.send(new GetCostAndUsageCommand({
         TimePeriod: { Start: startDate, End: endDate },
         Granularity: 'DAILY',
@@ -1853,7 +1866,12 @@ export async function handleAwsCostDailyByProject({ body, corsHeaders, ADMIN_PAS
       fetchEC2Instances(),
       lambdaClient.send(new ListFunctionsCommand({ MaxItems: 200 })).catch(() => ({ Functions: [] })),
       s3Client.send(new ListBucketsCommand({})).catch(() => ({ Buckets: [] })),
-      cfClient.send(new ListDistributionsCommand({ MaxItems: '100' })).catch(() => ({ DistributionList: { Items: [] } }))
+      cfClient.send(new ListDistributionsCommand({ MaxItems: '100' })).catch(() => ({ DistributionList: { Items: [] } })),
+      elbClient.send(new DescribeLoadBalancersCommand({})).catch(() => ({ LoadBalancers: [] })),
+      safeImport('@aws-sdk/client-rds', m => new m.RDSClient({ region: 'us-east-1' }).send(new m.DescribeDBInstancesCommand({}))),
+      safeImport('@aws-sdk/client-elasticache', m => new m.ElastiCacheClient({ region: 'us-east-1' }).send(new m.DescribeCacheClustersCommand({}))),
+      safeImport('@aws-sdk/client-codebuild', m => new m.CodeBuildClient({ region: 'us-east-1' }).send(new m.ListProjectsCommand({}))),
+      safeImport('@aws-sdk/client-ecr', m => new m.ECRClient({ region: 'us-east-1' }).send(new m.DescribeRepositoriesCommand({})))
     ]);
 
     // Fetch tags for Lambda, S3, CloudFront in parallel (free API calls)
@@ -1921,33 +1939,65 @@ export async function handleAwsCostDailyByProject({ body, corsHeaders, ADMIN_PAS
       cfTotalCount++;
     }
 
-    // Fixed service-to-project mappings
-    const fixedServiceMap = {
-      'Amazon Relational Database Service': 'Career Builder',
-      'Amazon ElastiCache': 'Career Builder',
-      'Amazon EC2 Container Registry (ECR)': 'Career Builder',
-      'CodeBuild': 'Career Builder',
-      'AWS Secrets Manager': 'Career Builder',
-      'Amazon Simple Email Service': 'Vedic Astro',
-      'Amazon Virtual Private Cloud': 'Shared Infrastructure',
-      'AmazonCloudWatch': 'Shared Infrastructure',
-      'Tax': 'Tax & Fees'
+    // Build resource-count maps for services that need tag/name-based resolution
+    const elbByProject = {};
+    let elbTotalCount = 0;
+    for (const elb of (loadBalancers.LoadBalancers || [])) {
+      const proj = inferProjectFromName(elb.LoadBalancerName);
+      elbByProject[proj] = (elbByProject[proj] || 0) + 1;
+      elbTotalCount++;
+    }
+
+    // RDS, ElastiCache, ECR, CodeBuild — resolve from resource names/tags
+    const svcResourceMaps = {
+      'Amazon Relational Database Service': (() => {
+        const m = {}; let t = 0;
+        for (const i of (rdsInstances?.DBInstances || [])) {
+          const proj = resolveProject(i.TagList, i.DBInstanceIdentifier);
+          m[proj] = (m[proj] || 0) + 1; t++;
+        } return { map: m, total: t };
+      })(),
+      'Amazon ElastiCache': (() => {
+        const m = {}; let t = 0;
+        for (const i of (elasticacheClusters?.CacheClusters || [])) {
+          const proj = inferProjectFromName(i.CacheClusterId);
+          m[proj] = (m[proj] || 0) + 1; t++;
+        } return { map: m, total: t };
+      })(),
+      'Amazon EC2 Container Registry (ECR)': (() => {
+        const m = {}; let t = 0;
+        for (const i of (ecrRepos?.repositories || [])) {
+          const proj = inferProjectFromName(i.repositoryName);
+          m[proj] = (m[proj] || 0) + 1; t++;
+        } return { map: m, total: t };
+      })(),
+      'CodeBuild': (() => {
+        const m = {}; let t = 0;
+        for (const i of (codebuildProjects?.projects || [])) {
+          const name = typeof i === 'string' ? i : (i.name || i);
+          const proj = inferProjectFromName(name);
+          m[proj] = (m[proj] || 0) + 1; t++;
+        } return { map: m, total: t };
+      })()
     };
 
     // Function to split a service's daily cost across projects
     function splitServiceCost(serviceName, cost) {
-      // Check fixed mapping first
-      if (fixedServiceMap[serviceName]) {
-        return { [fixedServiceMap[serviceName]]: cost };
-      }
+      if (serviceName === 'Tax') return { 'Tax & Fees': cost };
 
-      // EC2
+      // EC2 + EC2-Other: distribute by EC2 instance cost
       if (serviceName === 'Amazon Elastic Compute Cloud - Compute' || serviceName === 'EC2 - Other') {
         if (ec2TotalCost <= 0) return { 'AI Product Studio': cost };
         const result = {};
-        for (const [proj, projCost] of Object.entries(ec2ByProject)) {
-          result[proj] = r2(cost * (projCost / ec2TotalCost));
-        }
+        for (const [proj, projCost] of Object.entries(ec2ByProject)) result[proj] = r2(cost * (projCost / ec2TotalCost));
+        return result;
+      }
+
+      // VPC & CloudWatch: distribute proportionally by EC2 spend
+      if (serviceName === 'Amazon Virtual Private Cloud' || serviceName === 'AmazonCloudWatch') {
+        if (ec2TotalCost <= 0) return { 'AI Product Studio': cost };
+        const result = {};
+        for (const [proj, projCost] of Object.entries(ec2ByProject)) result[proj] = r2(cost * (projCost / ec2TotalCost));
         return result;
       }
 
@@ -1955,9 +2005,7 @@ export async function handleAwsCostDailyByProject({ body, corsHeaders, ADMIN_PAS
       if (serviceName === 'AWS Lambda') {
         if (lambdaTotalCount <= 0) return { 'AI Product Studio': cost };
         const result = {};
-        for (const [proj, count] of Object.entries(lambdaByProject)) {
-          result[proj] = r2(cost * (count / lambdaTotalCount));
-        }
+        for (const [proj, count] of Object.entries(lambdaByProject)) result[proj] = r2(cost * (count / lambdaTotalCount));
         return result;
       }
 
@@ -1965,9 +2013,7 @@ export async function handleAwsCostDailyByProject({ body, corsHeaders, ADMIN_PAS
       if (serviceName === 'Amazon Simple Storage Service') {
         if (s3TotalCount <= 0) return { 'AI Product Studio': cost };
         const result = {};
-        for (const [proj, count] of Object.entries(s3ByProject)) {
-          result[proj] = r2(cost * (count / s3TotalCount));
-        }
+        for (const [proj, count] of Object.entries(s3ByProject)) result[proj] = r2(cost * (count / s3TotalCount));
         return result;
       }
 
@@ -1975,15 +2021,31 @@ export async function handleAwsCostDailyByProject({ body, corsHeaders, ADMIN_PAS
       if (serviceName === 'Amazon CloudFront') {
         if (cfTotalCount <= 0) return { 'AI Product Studio': cost };
         const result = {};
-        for (const [proj, count] of Object.entries(cfByProject)) {
-          result[proj] = r2(cost * (count / cfTotalCount));
-        }
+        for (const [proj, count] of Object.entries(cfByProject)) result[proj] = r2(cost * (count / cfTotalCount));
         return result;
       }
 
-      // ELB
+      // ELB: distribute by load balancer tags/names
       if (serviceName === 'Amazon Elastic Load Balancing') {
-        return { 'Career Builder': cost }; // Only Career Builder uses ELB
+        if (elbTotalCount <= 0) return { 'AI Product Studio': cost };
+        const result = {};
+        for (const [proj, count] of Object.entries(elbByProject)) result[proj] = r2(cost * (count / elbTotalCount));
+        return result;
+      }
+
+      // RDS, ElastiCache, ECR, CodeBuild — use resource-count maps
+      if (svcResourceMaps[serviceName]) {
+        const { map, total } = svcResourceMaps[serviceName];
+        if (total <= 0) return { 'AI Product Studio': cost };
+        const result = {};
+        for (const [proj, count] of Object.entries(map)) result[proj] = r2(cost * (count / total));
+        return result;
+      }
+
+      // Secrets Manager & SES — resolve by service short name
+      if (serviceName === 'AWS Secrets Manager' || serviceName === 'Amazon Simple Email Service') {
+        const short = serviceName.includes('Secrets') ? 'secrets-manager' : 'ses-email';
+        return { [inferProjectFromName(short)]: cost };
       }
 
       // Default: attribute to AI Product Studio
@@ -2779,40 +2841,43 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
       console.warn('[Batch] Tag fetching error:', e.message);
     }
 
+    // Shared between Section 6 and 7
+    const serviceCostsMtd = {};
+    for (const tp of ceSummaryCurrent.ResultsByTime || []) {
+      for (const g of tp.Groups || []) {
+        const svc = g.Keys[0];
+        const cost = parseFloat(g.Metrics.UnblendedCost.Amount) || 0;
+        serviceCostsMtd[svc] = (serviceCostsMtd[svc] || 0) + cost;
+      }
+    }
+
+    const nowDate = new Date();
+    const daysInMonth = new Date(nowDate.getUTCFullYear(), nowDate.getUTCMonth() + 1, 0).getUTCDate();
+    const monthlyMultiplier = daysInPeriod > 0 ? daysInMonth / daysInPeriod : 1;
+    const serviceCosts = {};
+    for (const [svc, mtd] of Object.entries(serviceCostsMtd)) {
+      serviceCosts[svc] = svc === 'Tax' ? mtd : r2(mtd * monthlyMultiplier);
+    }
+
+    // ELB tags (shared between Section 6 and 7)
+    const elbs = loadBalancers.LoadBalancers || [];
+    const elbTagMap = {};
+    if (elbs.length > 0) {
+      try {
+        const elbArns = elbs.map(e => e.LoadBalancerArn);
+        const tagResult = await elbClient.send(new ELBDescribeTagsCommand({ ResourceArns: elbArns }));
+        for (const desc of tagResult.TagDescriptions || []) {
+          const tags = {};
+          for (const t of desc.Tags || []) tags[t.Key] = t.Value;
+          elbTagMap[desc.ResourceArn] = tags;
+        }
+      } catch (e) {
+        console.warn('[ELB Tags] Error fetching:', e.message);
+      }
+    }
+
     // ── Section 6: Project Costs (dynamic) ──
     try {
-      const serviceCostsMtd = {};
-      for (const tp of ceSummaryCurrent.ResultsByTime || []) {
-        for (const g of tp.Groups || []) {
-          const svc = g.Keys[0];
-          const cost = parseFloat(g.Metrics.UnblendedCost.Amount) || 0;
-          serviceCostsMtd[svc] = (serviceCostsMtd[svc] || 0) + cost;
-        }
-      }
-
-      const nowDate = new Date();
-      const daysInMonth = new Date(nowDate.getUTCFullYear(), nowDate.getUTCMonth() + 1, 0).getUTCDate();
-      const monthlyMultiplier = daysInPeriod > 0 ? daysInMonth / daysInPeriod : 1;
-      const serviceCosts = {};
-      for (const [svc, mtd] of Object.entries(serviceCostsMtd)) {
-        serviceCosts[svc] = svc === 'Tax' ? mtd : r2(mtd * monthlyMultiplier);
-      }
-
-      // ELB tags
-      const elbs = loadBalancers.LoadBalancers || [];
-      const elbTagMap = {};
-      if (elbs.length > 0) {
-        try {
-          const elbArns = elbs.map(e => e.LoadBalancerArn);
-          const tagResult = await elbClient.send(new ELBDescribeTagsCommand({ ResourceArns: elbArns }));
-          for (const desc of tagResult.TagDescriptions || []) {
-            const tags = {};
-            for (const t of desc.Tags || []) tags[t.Key] = t.Value;
-            elbTagMap[desc.ResourceArn] = tags;
-          }
-        } catch (e) { console.warn('[Batch/ELB Tags] Error:', e.message); }
-      }
-
       const projects = {};
       function getProject(name) {
         if (!projects[name]) projects[name] = { name, resources: [], total: 0, serviceSet: {} };
@@ -2928,34 +2993,47 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
           elb.Type + ' load balancer', elbCostMtd / elbCount);
       }
 
-      // Service-level fallbacks
-      const hasRds = rdsInstances && (rdsInstances.DBInstances || []).length > 0;
-      const hasEcache = elasticacheClusters && (elasticacheClusters.CacheClusters || []).length > 0;
-      const hasEcr = ecrRepos && (ecrRepos.repositories || []).length > 0;
-      const hasCb = codebuildProjects && (codebuildProjects.projects || []).length > 0;
-      const serviceProjectFallback = {
-        ...(hasRds ? { 'Amazon Relational Database Service': 'Career Builder' } : {}),
-        ...(hasEcache ? { 'Amazon ElastiCache': 'Career Builder' } : {}),
-        ...(hasEcr ? { 'Amazon EC2 Container Registry (ECR)': 'Career Builder' } : {}),
-        ...(hasCb ? { 'CodeBuild': 'Career Builder' } : {}),
-        'AWS Secrets Manager': 'Career Builder',
-        'Amazon Simple Email Service': 'Vedic Astro'
-      };
-      for (const [svcName, projName] of Object.entries(serviceProjectFallback)) {
-        const cost = serviceCosts[svcName] || 0;
+      // Service-level costs — auto-detect project from resource tags/names
+      const serviceResourceMap = [
+        { svc: 'Amazon Relational Database Service', short: 'RDS', data: rdsInstances, items: d => (d?.DBInstances || []), name: i => i.DBInstanceIdentifier, tags: i => i.TagList },
+        { svc: 'Amazon ElastiCache', short: 'ElastiCache', data: elasticacheClusters, items: d => (d?.CacheClusters || []), name: i => i.CacheClusterId, tags: () => null },
+        { svc: 'Amazon EC2 Container Registry (ECR)', short: 'ECR', data: ecrRepos, items: d => (d?.repositories || []), name: i => i.repositoryName, tags: () => null },
+        { svc: 'CodeBuild', short: 'CodeBuild', data: codebuildProjects, items: d => (d?.projects || []), name: i => (typeof i === 'string' ? i : i.name || i), tags: () => null },
+        { svc: 'AWS Secrets Manager', short: 'Secrets', data: null, items: () => [], name: i => i.Name, tags: i => i.Tags },
+        { svc: 'Amazon Simple Email Service', short: 'SES', data: null, items: () => [], name: i => i, tags: () => null }
+      ];
+      for (const { svc, short, data, items, name: getName, tags: getTags } of serviceResourceMap) {
+        const cost = serviceCosts[svc] || 0;
         if (cost < 0.001) continue;
-        const mtd = serviceCostsMtd[svcName] || 0;
-        const shortName = svcName.replace('Amazon ', '').replace('AWS ', '').split(' ')[0];
-        addResource(projName, shortName, svcName, 'Est. monthly (MTD $' + r2(mtd) + ')', cost);
+        const mtd = serviceCostsMtd[svc] || 0;
+        const resources = data ? items(data) : [];
+        if (resources.length > 0) {
+          const proj = resolveProject(getTags(resources[0]), getName(resources[0]));
+          addResource(proj, short, svc, 'Est. monthly (MTD $' + r2(mtd) + ')', cost);
+        } else {
+          addResource(inferProjectFromName(short), short, svc, 'Est. monthly (MTD $' + r2(mtd) + ')', cost);
+        }
       }
 
-      // Shared infra
+      // VPC & CloudWatch — distribute proportionally by EC2 spend
       for (const svcName of ['Amazon Virtual Private Cloud', 'AmazonCloudWatch']) {
         const cost = serviceCosts[svcName] || 0;
         if (cost < 0.001) continue;
         const mtd = serviceCostsMtd[svcName] || 0;
         const shortName = svcName.includes('VPC') ? 'VPC' : 'CloudWatch';
-        addResource('Shared Infrastructure', shortName, svcName, 'Est. monthly (MTD $' + r2(mtd) + ')', cost);
+        const ec2Projects = Object.entries(projects).filter(([, p]) => p.serviceSet['EC2']);
+        const totalEc2Cost = ec2Projects.reduce((s, [, p]) =>
+          s + p.resources.filter(r => r.service === 'EC2').reduce((s2, r) => s2 + r.monthlyCost, 0), 0) || 1;
+        if (ec2Projects.length > 0) {
+          for (const [, proj] of ec2Projects) {
+            const projEc2Cost = proj.resources.filter(r => r.service === 'EC2').reduce((s, r) => s + r.monthlyCost, 0);
+            const share = cost * (projEc2Cost / totalEc2Cost);
+            if (share > 0.01) {
+              const shareMtd = mtd * (projEc2Cost / totalEc2Cost);
+              addResource(proj.name, shortName, svcName, 'Est. monthly (MTD $' + r2(shareMtd) + ')', share);
+            }
+          }
+        }
       }
 
       // Tax
@@ -3005,7 +3083,7 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
         if (mtd > 0.01 && chk.data && (chk.data[chk.countKey] || []).length === 0) {
           deletedResources.push({
             name: chk.name, type: chk.type,
-            project: inferProjectFromName(chk.name) !== 'AI Product Studio' ? inferProjectFromName(chk.name) : 'Career Builder',
+            project: inferProjectFromName(chk.name),
             monthlySavings: monthly,
             reason: 'No active ' + chk.type + ' found but $' + r2(mtd) + ' charged MTD'
           });
@@ -3020,7 +3098,8 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
         const ipCost = activeEips * 3.65;
         const natEstimate = r2(Math.max(0, (serviceCosts['Amazon Virtual Private Cloud'] || 0) - ipCost));
         if (natEstimate > 1) {
-          deletedResources.push({ name: 'NAT Gateway(s)', type: 'NAT Gateway', project: 'Career Builder',
+          const topEc2Proj = Object.entries(projects).filter(([, p]) => p.serviceSet['EC2']).sort((a, b) => b[1].total - a[1].total)[0];
+          deletedResources.push({ name: 'NAT Gateway(s)', type: 'NAT Gateway', project: topEc2Proj ? topEc2Proj[1].name : 'AI Product Studio',
             monthlySavings: natEstimate, reason: 'No active NAT gateways but VPC charges suggest deleted NATs' });
         }
       }
@@ -3083,26 +3162,67 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
         cfTotalCount++;
       }
 
-      const fixedServiceMap = {
-        'Amazon Relational Database Service': 'Career Builder',
-        'Amazon ElastiCache': 'Career Builder',
-        'Amazon EC2 Container Registry (ECR)': 'Career Builder',
-        'CodeBuild': 'Career Builder',
-        'AWS Secrets Manager': 'Career Builder',
-        'Amazon Simple Email Service': 'Vedic Astro',
-        'Amazon Virtual Private Cloud': 'Shared Infrastructure',
-        'AmazonCloudWatch': 'Shared Infrastructure',
-        'Tax': 'Tax & Fees'
+      // ELB resource-count map
+      const elbByProject = {};
+      let elbTotalCount = 0;
+      for (const elb of elbs) {
+        const proj = resolveProject(elbTagMap[elb.LoadBalancerArn] || null, elb.LoadBalancerName);
+        elbByProject[proj] = (elbByProject[proj] || 0) + 1;
+        elbTotalCount++;
+      }
+
+      // RDS, ElastiCache, ECR, CodeBuild resource-count maps
+      const dbpSvcResourceMaps = {
+        'Amazon Relational Database Service': (() => {
+          const m = {}; let t = 0;
+          for (const i of (rdsInstances?.DBInstances || [])) {
+            const proj = resolveProject(i.TagList, i.DBInstanceIdentifier);
+            m[proj] = (m[proj] || 0) + 1; t++;
+          } return { map: m, total: t };
+        })(),
+        'Amazon ElastiCache': (() => {
+          const m = {}; let t = 0;
+          for (const i of (elasticacheClusters?.CacheClusters || [])) {
+            const proj = inferProjectFromName(i.CacheClusterId);
+            m[proj] = (m[proj] || 0) + 1; t++;
+          } return { map: m, total: t };
+        })(),
+        'Amazon EC2 Container Registry (ECR)': (() => {
+          const m = {}; let t = 0;
+          for (const i of (ecrRepos?.repositories || [])) {
+            const proj = inferProjectFromName(i.repositoryName);
+            m[proj] = (m[proj] || 0) + 1; t++;
+          } return { map: m, total: t };
+        })(),
+        'CodeBuild': (() => {
+          const m = {}; let t = 0;
+          for (const i of (codebuildProjects?.projects || [])) {
+            const name = typeof i === 'string' ? i : (i.name || i);
+            const proj = inferProjectFromName(name);
+            m[proj] = (m[proj] || 0) + 1; t++;
+          } return { map: m, total: t };
+        })()
       };
 
       function splitServiceCost(serviceName, cost) {
-        if (fixedServiceMap[serviceName]) return { [fixedServiceMap[serviceName]]: cost };
+        if (serviceName === 'Tax') return { 'Tax & Fees': cost };
+
+        // EC2 + EC2-Other: distribute by instance cost
         if (serviceName === 'Amazon Elastic Compute Cloud - Compute' || serviceName === 'EC2 - Other') {
           if (ec2TotalCost <= 0) return { 'AI Product Studio': cost };
           const result = {};
           for (const [proj, projCost] of Object.entries(ec2ByProject)) result[proj] = r2(cost * (projCost / ec2TotalCost));
           return result;
         }
+
+        // VPC & CloudWatch: distribute proportionally by EC2 spend
+        if (serviceName === 'Amazon Virtual Private Cloud' || serviceName === 'AmazonCloudWatch') {
+          if (ec2TotalCost <= 0) return { 'AI Product Studio': cost };
+          const result = {};
+          for (const [proj, projCost] of Object.entries(ec2ByProject)) result[proj] = r2(cost * (projCost / ec2TotalCost));
+          return result;
+        }
+
         if (serviceName === 'AWS Lambda') {
           if (dbpLambdaTotalCount <= 0) return { 'AI Product Studio': cost };
           const result = {};
@@ -3121,7 +3241,30 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
           for (const [proj, count] of Object.entries(cfByProject)) result[proj] = r2(cost * (count / cfTotalCount));
           return result;
         }
-        if (serviceName === 'Amazon Elastic Load Balancing') return { 'Career Builder': cost };
+
+        // ELB: distribute by load balancer tags/names
+        if (serviceName === 'Amazon Elastic Load Balancing') {
+          if (elbTotalCount <= 0) return { 'AI Product Studio': cost };
+          const result = {};
+          for (const [proj, count] of Object.entries(elbByProject)) result[proj] = r2(cost * (count / elbTotalCount));
+          return result;
+        }
+
+        // RDS, ElastiCache, ECR, CodeBuild
+        if (dbpSvcResourceMaps[serviceName]) {
+          const { map, total } = dbpSvcResourceMaps[serviceName];
+          if (total <= 0) return { 'AI Product Studio': cost };
+          const result = {};
+          for (const [proj, count] of Object.entries(map)) result[proj] = r2(cost * (count / total));
+          return result;
+        }
+
+        // Secrets Manager & SES
+        if (serviceName === 'AWS Secrets Manager' || serviceName === 'Amazon Simple Email Service') {
+          const short = serviceName.includes('Secrets') ? 'secrets-manager' : 'ses-email';
+          return { [inferProjectFromName(short)]: cost };
+        }
+
         return { 'AI Product Studio': cost };
       }
 
