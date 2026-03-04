@@ -2742,6 +2742,31 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
         } catch (e) { console.warn('[Batch/ELB Tags] Error:', e.message); }
       }
 
+      // Fetch tags for CloudFront, Lambda, S3, ECS in parallel (free API calls)
+      const cfDistributions = distributions.DistributionList?.Items || [];
+      const lambdaFns = lambdaFunctions.Functions || [];
+      const s3BucketList = buckets.Buckets || [];
+      const ecsClusterArns = ecsClusters.clusterArns || [];
+
+      const [cfTagMap, lambdaTagMap, s3TagMap, ecsTagMap] = await Promise.all([
+        Promise.all(cfDistributions.map(async (dist) => {
+          const tags = await fetchCFTags(dist.ARN);
+          return [dist.ARN, tags];
+        })).then(entries => Object.fromEntries(entries.filter(([, t]) => t))),
+        Promise.all(lambdaFns.map(async (fn) => {
+          const tags = await fetchLambdaTags(fn.FunctionArn);
+          return [fn.FunctionArn, tags];
+        })).then(entries => Object.fromEntries(entries.filter(([, t]) => t))),
+        Promise.all(s3BucketList.map(async (b) => {
+          const tags = await fetchS3BucketTags(b.Name);
+          return [b.Name, tags];
+        })).then(entries => Object.fromEntries(entries.filter(([, t]) => t))),
+        Promise.all(ecsClusterArns.map(async (arn) => {
+          const tags = await fetchECSTags(arn);
+          return [arn, tags];
+        })).then(entries => Object.fromEntries(entries.filter(([, t]) => t)))
+      ]);
+
       const projects = {};
       function getProject(name) {
         if (!projects[name]) projects[name] = { name, resources: [], total: 0, serviceSet: {} };
@@ -2762,7 +2787,6 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
       }
 
       // CloudFront with CW metrics
-      const cfDistributions = distributions.DistributionList?.Items || [];
       const cfMetricPromises = cfDistributions.map(async (dist) => {
         try {
           const [reqResult, bytesResult] = await Promise.all([
@@ -2790,18 +2814,20 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
         const originDomain = dist.Origins?.Items?.[0]?.DomainName || '';
         const alias = dist.Aliases?.Items?.[0] || '';
         const displayName = alias || dist.DomainName;
-        const projName = inferProjectFromName(originDomain) !== 'AI Product Studio'
-          ? inferProjectFromName(originDomain) : inferProjectFromName(alias || dist.DomainName);
+        const cfTags = cfTagMap[dist.ARN] || null;
+        const projName = getProjectFromTags(cfTags)
+          || (inferProjectFromName(originDomain) !== 'AI Product Studio'
+              ? inferProjectFromName(originDomain) : inferProjectFromName(alias || dist.DomainName));
         const gbStr = (bytes / (1024 * 1024 * 1024)).toFixed(2);
         const reqStr = requests > 1000 ? (requests / 1000).toFixed(1) + 'K' : requests.toString();
         addResource(projName, 'CloudFront', displayName, reqStr + ' requests, ' + gbStr + ' GB', estimatedCost);
       }
 
       // Lambda
-      const lambdaFns = lambdaFunctions.Functions || [];
       const lambdaByProj = {};
       for (const fn of lambdaFns) {
-        const projName = inferProjectFromName(fn.FunctionName);
+        const fnTags = lambdaTagMap[fn.FunctionArn] || null;
+        const projName = resolveProject(fnTags, fn.FunctionName);
         if (!lambdaByProj[projName]) lambdaByProj[projName] = [];
         lambdaByProj[projName].push(fn.FunctionName);
       }
@@ -2814,11 +2840,11 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
       }
 
       // S3
-      const s3BucketList = buckets.Buckets || [];
       const s3CostMtd = serviceCosts['Amazon Simple Storage Service'] || 0;
       const s3ByProj = {};
       for (const b of s3BucketList) {
-        const projName = inferProjectFromName(b.Name);
+        const bTags = s3TagMap[b.Name] || null;
+        const projName = resolveProject(bTags, b.Name);
         if (!s3ByProj[projName]) s3ByProj[projName] = [];
         s3ByProj[projName].push(b.Name);
       }
@@ -2830,10 +2856,10 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
       }
 
       // ECS
-      const ecsArns = ecsClusters.clusterArns || [];
-      for (const arn of ecsArns) {
+      for (const arn of ecsClusterArns) {
         const clusterName = arn.split('/').pop();
-        const projName = inferProjectFromName(clusterName);
+        const clusterTags = ecsTagMap[arn] || null;
+        const projName = resolveProject(clusterTags, clusterName);
         try {
           const svcList = await ecsClient.send(new ListServicesCommand({ cluster: clusterName }));
           const svcArns = svcList.serviceArns || [];
