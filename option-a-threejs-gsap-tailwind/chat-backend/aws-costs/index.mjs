@@ -2708,6 +2708,36 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
       response.serviceDetail = null;
     }
 
+    // ── Shared data for Sections 6 & 7: tag maps ──
+    const cfDistributions = distributions.DistributionList?.Items || [];
+    const lambdaFns = lambdaFunctions.Functions || [];
+    const s3BucketList = buckets.Buckets || [];
+    const ecsClusterArns = ecsClusters.clusterArns || [];
+
+    let cfTagMap = {}, lambdaTagMap = {}, s3TagMap = {}, ecsTagMap = {};
+    try {
+      [cfTagMap, lambdaTagMap, s3TagMap, ecsTagMap] = await Promise.all([
+        Promise.all(cfDistributions.map(async (dist) => {
+          const tags = await fetchCFTags(dist.ARN);
+          return [dist.ARN, tags];
+        })).then(entries => Object.fromEntries(entries.filter(([, t]) => t))),
+        Promise.all(lambdaFns.map(async (fn) => {
+          const tags = await fetchLambdaTags(fn.FunctionArn);
+          return [fn.FunctionArn, tags];
+        })).then(entries => Object.fromEntries(entries.filter(([, t]) => t))),
+        Promise.all(s3BucketList.map(async (b) => {
+          const tags = await fetchS3BucketTags(b.Name);
+          return [b.Name, tags];
+        })).then(entries => Object.fromEntries(entries.filter(([, t]) => t))),
+        Promise.all(ecsClusterArns.map(async (arn) => {
+          const tags = await fetchECSTags(arn);
+          return [arn, tags];
+        })).then(entries => Object.fromEntries(entries.filter(([, t]) => t)))
+      ]);
+    } catch (e) {
+      console.warn('[Batch] Tag fetching error:', e.message);
+    }
+
     // ── Section 6: Project Costs (dynamic) ──
     try {
       const serviceCostsMtd = {};
@@ -2741,31 +2771,6 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
           }
         } catch (e) { console.warn('[Batch/ELB Tags] Error:', e.message); }
       }
-
-      // Fetch tags for CloudFront, Lambda, S3, ECS in parallel (free API calls)
-      const cfDistributions = distributions.DistributionList?.Items || [];
-      const lambdaFns = lambdaFunctions.Functions || [];
-      const s3BucketList = buckets.Buckets || [];
-      const ecsClusterArns = ecsClusters.clusterArns || [];
-
-      const [cfTagMap, lambdaTagMap, s3TagMap, ecsTagMap] = await Promise.all([
-        Promise.all(cfDistributions.map(async (dist) => {
-          const tags = await fetchCFTags(dist.ARN);
-          return [dist.ARN, tags];
-        })).then(entries => Object.fromEntries(entries.filter(([, t]) => t))),
-        Promise.all(lambdaFns.map(async (fn) => {
-          const tags = await fetchLambdaTags(fn.FunctionArn);
-          return [fn.FunctionArn, tags];
-        })).then(entries => Object.fromEntries(entries.filter(([, t]) => t))),
-        Promise.all(s3BucketList.map(async (b) => {
-          const tags = await fetchS3BucketTags(b.Name);
-          return [b.Name, tags];
-        })).then(entries => Object.fromEntries(entries.filter(([, t]) => t))),
-        Promise.all(ecsClusterArns.map(async (arn) => {
-          const tags = await fetchECSTags(arn);
-          return [arn, tags];
-        })).then(entries => Object.fromEntries(entries.filter(([, t]) => t)))
-      ]);
 
       const projects = {};
       function getProject(name) {
