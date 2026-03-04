@@ -1815,43 +1815,67 @@ export async function handleAwsCostDailyByProject({ body, corsHeaders, ADMIN_PAS
       cfClient.send(new ListDistributionsCommand({ MaxItems: '100' })).catch(() => ({ DistributionList: { Items: [] } }))
     ]);
 
+    // Fetch tags for Lambda, S3, CloudFront in parallel (free API calls)
+    const lambdaFns = lambdaFunctions.Functions || [];
+    const s3BucketList = buckets.Buckets || [];
+    const cfDists = distributions.DistributionList?.Items || [];
+
+    const [lambdaTagMap, s3TagMap, cfTagMap] = await Promise.all([
+      Promise.all(lambdaFns.map(async (fn) => {
+        const tags = await fetchLambdaTags(fn.FunctionArn);
+        return [fn.FunctionArn, tags];
+      })).then(entries => Object.fromEntries(entries.filter(([, t]) => t))),
+      Promise.all(s3BucketList.map(async (b) => {
+        const tags = await fetchS3BucketTags(b.Name);
+        return [b.Name, tags];
+      })).then(entries => Object.fromEntries(entries.filter(([, t]) => t))),
+      Promise.all(cfDists.map(async (dist) => {
+        const tags = await fetchCFTags(dist.ARN);
+        return [dist.ARN, tags];
+      })).then(entries => Object.fromEntries(entries.filter(([, t]) => t)))
+    ]);
+
     // Build service → project mapping with cost proportions
     // EC2: map by instance tags/names
     const ec2ByProject = {};
     let ec2TotalCost = 0;
     for (const inst of ec2Instances) {
-      const proj = inst.allTags?.project || inst.allTags?.Project || inferProjectFromName(inst.name);
+      const proj = resolveProject(inst.allTags, inst.name);
       const cost = inst.estimatedMonthlyCost || 0;
       ec2ByProject[proj] = (ec2ByProject[proj] || 0) + cost;
       ec2TotalCost += cost;
     }
 
-    // Lambda: map by function name
+    // Lambda: map by function tags/name
     const lambdaByProject = {};
     let lambdaTotalCount = 0;
-    for (const fn of (lambdaFunctions.Functions || [])) {
-      const proj = inferProjectFromName(fn.FunctionName);
+    for (const fn of lambdaFns) {
+      const fnTags = lambdaTagMap[fn.FunctionArn] || null;
+      const proj = resolveProject(fnTags, fn.FunctionName);
       lambdaByProject[proj] = (lambdaByProject[proj] || 0) + 1;
       lambdaTotalCount++;
     }
 
-    // S3: map by bucket name
+    // S3: map by bucket tags/name
     const s3ByProject = {};
     let s3TotalCount = 0;
-    for (const b of (buckets.Buckets || [])) {
-      const proj = inferProjectFromName(b.Name);
+    for (const b of s3BucketList) {
+      const bTags = s3TagMap[b.Name] || null;
+      const proj = resolveProject(bTags, b.Name);
       s3ByProject[proj] = (s3ByProject[proj] || 0) + 1;
       s3TotalCount++;
     }
 
-    // CloudFront: map by origin/alias
+    // CloudFront: map by dist tags/origin/alias
     const cfByProject = {};
     let cfTotalCount = 0;
-    for (const dist of (distributions.DistributionList?.Items || [])) {
+    for (const dist of cfDists) {
       const originDomain = dist.Origins?.Items?.[0]?.DomainName || '';
       const alias = dist.Aliases?.Items?.[0] || '';
-      const proj = inferProjectFromName(originDomain) !== 'AI Product Studio'
-        ? inferProjectFromName(originDomain) : inferProjectFromName(alias || dist.DomainName);
+      const distTags = cfTagMap[dist.ARN] || null;
+      const proj = getProjectFromTags(distTags)
+        || (inferProjectFromName(originDomain) !== 'AI Product Studio'
+            ? inferProjectFromName(originDomain) : inferProjectFromName(alias || dist.DomainName));
       cfByProject[proj] = (cfByProject[proj] || 0) + 1;
       cfTotalCount++;
     }
