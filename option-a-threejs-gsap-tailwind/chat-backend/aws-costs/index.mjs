@@ -99,9 +99,31 @@ const ctClient = new CloudTrailClient({ region: 'us-east-1' });
 const PROJECT_PATTERNS = {
   'Career Builder': [/^careers?[-_]/i, /careers-production/i],
   'CoCreate AI':    [/^cocreate[-_]ai/i],
-  'Tmux Builder':   [/^tmux[-_]/i, /tmux-builder/i, /^cocreate-[a-z0-9]{4,8}-/i, /^agentcore[-_]/i, /^eis[-_]dynamics/i, /^ai[-_]office/i, /^weather[-_]/i],
-  'Vedic Astro':    [/^vedic[-_]?astro/i, /^vedic[-_]/i],
-  'AI Product Studio': [/^cocreateidea/i, /^cocreate[-_]app/i, /ai[-_]product[-_]studio/i, /^cocreate[-_]applications/i]
+  'Tmux Builder':   [
+    /^tmux[-_]/i, /tmux-builder/i,
+    // Tmux Builder deployed projects (cocreate-{user}-{slug} pattern)
+    /^cocreate-[a-z0-9]{4,8}-/i,
+    // Tmux Builder demo sites (name-TIMESTAMP pattern)
+    /^animation[-_]site/i, /^aqua[-_]paradise/i, /^biolumina/i, /^blade[-_]barbershop/i,
+    /^circuitcore/i, /^cookhub/i, /^cropion/i, /^elite[-_]cuts/i, /^fish[-_]shop/i,
+    /^glamour[-_]studio/i, /^growthpulse/i, /^kids[-_]cartoon/i, /^launchpad[-_]mvp/i,
+    /^luxe[-_]ecommerce/i, /^mobileshop/i, /^mvp[-_]/i, /^nexus[-_]?test/i,
+    /^nexusdigital/i, /^oakwood[-_]school/i, /^petshop/i, /^prestige[-_]motors/i,
+    /^restaurant[-_]/i, /^shimmer[-_]demo/i, /^showcase[-_]site/i, /^swiftride/i,
+    /^taskflow[-_]todo/i, /^todo[-_]app/i, /^toonworld/i, /^toybox/i,
+    // Tmux Builder infra & sub-projects
+    /^agentcore[-_]/i, /^eis[-_]dynamics/i, /^ai[-_]office/i, /^weather[-_]/i,
+    /^hr[-_]chatbot/i, /^safex[-_]/i, /^petinsure/i, /^pred[-_]maint/i,
+    /^dwh[-_]/i, /^sempra/i, /^sunware[-_]digimarket/i,
+    /^ui[-_]js[-_]api/i, /^ui[-_]wss/i, /^devgenius/i, /^dev[-_]swc/i,
+    /^genius[-_]app/i, /^vyli/i, /^ed[-_]cloud/i, /^edgedata/i,
+    // EC2 instances created via Tmux Builder
+    /^flow[-_ ]pipeline/i, /^rcm[-_ ]smart/i, /^ash[-_ ]test/i,
+    // EC2 origin patterns (CloudFront → EC2)
+    /^ec2-\d+/i
+  ],
+  'Vedic Astro':    [/^vedic[-_]?astro/i, /^vedic[-_]/i, /vedics\.net/i, /^10x\.vedics/i, /vedic[-_]wellness/i],
+  'AI Product Studio': [/^cocreateidea/i, /^cocreate[-_]app/i, /ai[-_]product[-_]studio/i, /^cocreate[-_]applications/i, /^aws[-_]cost[-_](dashboard|reports|analyzer)/i]
 };
 
 /**
