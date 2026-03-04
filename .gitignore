@@ -4,8 +4,10 @@ package-lock.json
 
 # Build artifacts
 *.zip
+*.tar
 dist/
 build/
+response*.json
 
 # Environment files
 .env
