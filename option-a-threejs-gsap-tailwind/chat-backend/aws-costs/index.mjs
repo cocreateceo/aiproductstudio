@@ -1484,6 +1484,31 @@ export async function handleAwsProjectCostsDynamic({ body, corsHeaders, ADMIN_PA
       }
     }
 
+    // Fetch tags for CloudFront, Lambda, S3, ECS in parallel (free API calls)
+    const cfDistributions = distributions.DistributionList?.Items || [];
+    const lambdaFns = lambdaFunctions.Functions || [];
+    const s3Buckets = buckets.Buckets || [];
+    const ecsArns = ecsClusters.clusterArns || [];
+
+    const [cfTagMap, lambdaTagMap, s3TagMap, ecsTagMap] = await Promise.all([
+      Promise.all(cfDistributions.map(async (dist) => {
+        const tags = await fetchCFTags(dist.ARN);
+        return [dist.ARN, tags];
+      })).then(entries => Object.fromEntries(entries.filter(([, t]) => t))),
+      Promise.all(lambdaFns.map(async (fn) => {
+        const tags = await fetchLambdaTags(fn.FunctionArn);
+        return [fn.FunctionArn, tags];
+      })).then(entries => Object.fromEntries(entries.filter(([, t]) => t))),
+      Promise.all(s3Buckets.map(async (b) => {
+        const tags = await fetchS3BucketTags(b.Name);
+        return [b.Name, tags];
+      })).then(entries => Object.fromEntries(entries.filter(([, t]) => t))),
+      Promise.all(ecsArns.map(async (arn) => {
+        const tags = await fetchECSTags(arn);
+        return [arn, tags];
+      })).then(entries => Object.fromEntries(entries.filter(([, t]) => t)))
+    ]);
+
     // ── Build project map ──
     const projects = {};
     function getProject(name) {
@@ -1508,7 +1533,6 @@ export async function handleAwsProjectCostsDynamic({ body, corsHeaders, ADMIN_PA
     }
 
     // ── 2. CloudFront Distributions ──
-    const cfDistributions = distributions.DistributionList?.Items || [];
     // Get CloudWatch metrics for each distribution to estimate cost
     const cfMetricPromises = cfDistributions.map(async (dist) => {
       try {
@@ -1542,9 +1566,11 @@ export async function handleAwsProjectCostsDynamic({ body, corsHeaders, ADMIN_PA
       const originDomain = dist.Origins?.Items?.[0]?.DomainName || '';
       const alias = dist.Aliases?.Items?.[0] || '';
       const displayName = alias || dist.DomainName;
-      const projName = inferProjectFromName(originDomain) !== 'AI Product Studio'
-        ? inferProjectFromName(originDomain)
-        : inferProjectFromName(alias || dist.DomainName);
+      const cfTags = cfTagMap[dist.ARN] || null;
+      const projName = getProjectFromTags(cfTags)
+        || (inferProjectFromName(originDomain) !== 'AI Product Studio'
+            ? inferProjectFromName(originDomain)
+            : inferProjectFromName(alias || dist.DomainName));
       const gbStr = (bytes / (1024 * 1024 * 1024)).toFixed(2);
       const reqStr = requests > 1000 ? (requests / 1000).toFixed(1) + 'K' : requests.toString();
       addResource(projName, 'CloudFront', displayName,
@@ -1552,11 +1578,11 @@ export async function handleAwsProjectCostsDynamic({ body, corsHeaders, ADMIN_PA
     }
 
     // ── 3. Lambda Functions ──
-    const lambdaFns = lambdaFunctions.Functions || [];
     // Group by project prefix
     const lambdaByProject = {};
     for (const fn of lambdaFns) {
-      const projName = inferProjectFromName(fn.FunctionName);
+      const fnTags = lambdaTagMap[fn.FunctionArn] || null;
+      const projName = resolveProject(fnTags, fn.FunctionName);
       if (!lambdaByProject[projName]) lambdaByProject[projName] = [];
       lambdaByProject[projName].push(fn.FunctionName);
     }
@@ -1571,11 +1597,11 @@ export async function handleAwsProjectCostsDynamic({ body, corsHeaders, ADMIN_PA
     }
 
     // ── 4. S3 Buckets ──
-    const s3Buckets = buckets.Buckets || [];
     const s3CostMtd = serviceCosts['Amazon Simple Storage Service'] || 0;
     const s3ByProject = {};
     for (const b of s3Buckets) {
-      const projName = inferProjectFromName(b.Name);
+      const bTags = s3TagMap[b.Name] || null;
+      const projName = resolveProject(bTags, b.Name);
       if (!s3ByProject[projName]) s3ByProject[projName] = [];
       s3ByProject[projName].push(b.Name);
     }
@@ -1588,10 +1614,10 @@ export async function handleAwsProjectCostsDynamic({ body, corsHeaders, ADMIN_PA
     }
 
     // ── 5. ECS Clusters & Services ──
-    const ecsArns = ecsClusters.clusterArns || [];
     for (const arn of ecsArns) {
       const clusterName = arn.split('/').pop();
-      const projName = inferProjectFromName(clusterName);
+      const clusterTags = ecsTagMap[arn] || null;
+      const projName = resolveProject(clusterTags, clusterName);
       try {
         const svcList = await ecsClient.send(new ListServicesCommand({ cluster: clusterName }));
         const svcArns = svcList.serviceArns || [];
