@@ -34,17 +34,21 @@ import {
   ListBucketsCommand,
   ListObjectsV2Command,
   GetBucketLocationCommand,
-  DeleteObjectCommand
+  DeleteObjectCommand,
+  GetObjectCommand,
+  GetBucketTaggingCommand
 } from '@aws-sdk/client-s3';
 
 import {
   CloudFrontClient,
-  ListDistributionsCommand
+  ListDistributionsCommand,
+  ListTagsForResourceCommand as CFListTagsCommand
 } from '@aws-sdk/client-cloudfront';
 
 import {
   LambdaClient,
-  ListFunctionsCommand
+  ListFunctionsCommand,
+  ListTagsCommand as LambdaListTagsCommand
 } from '@aws-sdk/client-lambda';
 
 import {
@@ -62,13 +66,16 @@ import {
   ECSClient,
   ListClustersCommand,
   ListServicesCommand,
-  DescribeServicesCommand
+  DescribeServicesCommand,
+  ListTagsForResourceCommand as ECSListTagsCommand
 } from '@aws-sdk/client-ecs';
 
 import {
   CloudTrailClient,
   LookupEventsCommand
 } from '@aws-sdk/client-cloudtrail';
+
+import { gunzipSync } from 'zlib';
 
 const ceClient = new CostExplorerClient({ region: 'us-east-1' });
 const ec2Client = new EC2Client({ region: 'us-east-1' });
@@ -79,6 +86,90 @@ const cwClient = new CloudWatchClient({ region: 'us-east-1' });
 const elbClient = new ElasticLoadBalancingV2Client({ region: 'us-east-1' });
 const ecsClient = new ECSClient({ region: 'us-east-1' });
 const ctClient = new CloudTrailClient({ region: 'us-east-1' });
+
+// ---------------------------------------------------------------------------
+// Shared Project Resolution
+// ---------------------------------------------------------------------------
+
+/**
+ * Regex patterns for inferring project from resource names.
+ * Used as fallback when AWS resource tags are not set.
+ * New projects should use AWS resource tags (project=<name>) instead.
+ */
+const PROJECT_PATTERNS = {
+  'Career Builder': [/^careers?[-_]/i, /careers-production/i],
+  'CoCreate AI':    [/^cocreate[-_]ai/i],
+  'Tmux Builder':   [/^tmux[-_]/i, /tmux-builder/i],
+  'Vedic Astro':    [/^vedic[-_]?astro/i, /^vedic[-_]/i],
+  'AI Product Studio': [/^cocreateidea/i, /^cocreate[-_]app/i, /ai[-_]product[-_]studio/i, /^cocreate[-_]applications/i]
+};
+
+/** Extract project name from AWS resource tags (primary method). */
+function getProjectFromTags(tags) {
+  if (!tags) return null;
+  if (Array.isArray(tags)) {
+    for (const key of ['project', 'Project', 'application', 'Application', 'app']) {
+      const tag = tags.find(t => t.Key === key);
+      if (tag && tag.Value) return tag.Value;
+    }
+    return null;
+  }
+  return tags.project || tags.Project || tags.application || tags.Application || tags.app || null;
+}
+
+/** Fallback: infer project from resource name using regex patterns. */
+function inferProjectFromName(resourceName) {
+  const name = (resourceName || '').toLowerCase();
+  for (const [proj, patterns] of Object.entries(PROJECT_PATTERNS)) {
+    for (const pat of patterns) {
+      if (pat.test(name)) return proj;
+    }
+  }
+  return 'AI Product Studio';
+}
+
+/** Unified resolver: tags first, then name-based fallback. */
+function resolveProject(tags, resourceName) {
+  return getProjectFromTags(tags) || inferProjectFromName(resourceName);
+}
+
+/** Fetch CloudFront distribution tags. Returns { key: value } object or null. */
+async function fetchCFTags(distARN) {
+  try {
+    const result = await cfClient.send(new CFListTagsCommand({ Resource: distARN }));
+    const tags = {};
+    for (const t of result.Tags?.Items || []) tags[t.Key] = t.Value;
+    return tags;
+  } catch { return null; }
+}
+
+/** Fetch Lambda function tags. Returns { key: value } object or null. */
+async function fetchLambdaTags(functionArn) {
+  try {
+    const result = await lambdaClient.send(new LambdaListTagsCommand({ Resource: functionArn }));
+    return result.Tags || null;
+  } catch { return null; }
+}
+
+/** Fetch S3 bucket tags. Returns { key: value } object or null. */
+async function fetchS3BucketTags(bucketName) {
+  try {
+    const result = await s3Client.send(new GetBucketTaggingCommand({ Bucket: bucketName }));
+    const tags = {};
+    for (const t of result.TagSet || []) tags[t.Key] = t.Value;
+    return tags;
+  } catch { return null; }
+}
+
+/** Fetch ECS cluster tags. Returns { key: value } object or null. */
+async function fetchECSTags(resourceArn) {
+  try {
+    const result = await ecsClient.send(new ECSListTagsCommand({ resourceArn }));
+    const tags = {};
+    for (const t of result.tags || []) tags[t.key] = t.value;
+    return tags;
+  } catch { return null; }
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -128,6 +219,193 @@ function jsonResponse(statusCode, corsHeaders, payload) {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   };
+}
+
+// ---------------------------------------------------------------------------
+// CUR (Cost and Usage Report) Reader — reads from S3 instead of CE API ($0.00)
+// ---------------------------------------------------------------------------
+
+const CUR_BUCKET = 'cocreate-cur-reports';
+const CUR_REPORT_NAME = 'cocreate-daily-cost-report';
+const CUR_PREFIX = 'cur/' + CUR_REPORT_NAME;
+
+/** Parse a CSV line handling quoted fields with commas/newlines inside. */
+function parseCsvLine(line) {
+  const fields = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"' && line[i + 1] === '"') { current += '"'; i++; }
+      else if (ch === '"') { inQuotes = false; }
+      else { current += ch; }
+    } else {
+      if (ch === '"') { inQuotes = true; }
+      else if (ch === ',') { fields.push(current); current = ''; }
+      else { current += ch; }
+    }
+  }
+  fields.push(current);
+  return fields;
+}
+
+/** Build CUR S3 folder key for a billing period: YYYYMMDD-YYYYMMDD */
+function billingPeriodKey(year, month) {
+  const start = `${year}${String(month).padStart(2, '0')}01`;
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextYear = month === 12 ? year + 1 : year;
+  const end = `${nextYear}${String(nextMonth).padStart(2, '0')}01`;
+  return `${start}-${end}`;
+}
+
+/** Read CUR data for a single billing period (month). Returns array of row objects or null. */
+async function readCurForPeriod(year, month) {
+  const period = billingPeriodKey(year, month);
+  const prefix = `${CUR_PREFIX}/${period}/`;
+  const listResp = await s3Client.send(new ListObjectsV2Command({ Bucket: CUR_BUCKET, Prefix: prefix }));
+  const contents = listResp.Contents || [];
+  const manifestObj = contents.find(c => c.Key.endsWith('-Manifest.json'));
+  if (!manifestObj) return null;
+
+  const mResp = await s3Client.send(new GetObjectCommand({ Bucket: CUR_BUCKET, Key: manifestObj.Key }));
+  const manifest = JSON.parse(await mResp.Body.transformToString());
+
+  const allRows = [];
+  for (const csvKey of manifest.reportKeys || []) {
+    const csvResp = await s3Client.send(new GetObjectCommand({ Bucket: CUR_BUCKET, Key: csvKey }));
+    const bytes = await csvResp.Body.transformToByteArray();
+    const decompressed = gunzipSync(Buffer.from(bytes));
+    const lines = decompressed.toString('utf-8').split('\n');
+    if (lines.length < 2) continue;
+    const headers = parseCsvLine(lines[0]);
+    for (let i = 1; i < lines.length; i++) {
+      if (!lines[i].trim()) continue;
+      const values = parseCsvLine(lines[i]);
+      const row = {};
+      for (let j = 0; j < headers.length; j++) row[headers[j]] = values[j] || '';
+      allRows.push(row);
+    }
+  }
+  return allRows;
+}
+
+/** Load CUR data for last 7 months (current + 6 previous). Returns flat array of all rows. */
+async function loadAllCurData() {
+  const now = new Date();
+  const months = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+    months.push({ year: d.getUTCFullYear(), month: d.getUTCMonth() + 1 });
+  }
+  const results = await Promise.all(
+    months.map(({ year, month }) => readCurForPeriod(year, month).catch(() => null))
+  );
+  return results.filter(r => r !== null).flat();
+}
+
+/** Map CUR row to CE API-compatible service name. */
+function curToServiceName(row) {
+  const lineItemType = row['lineItem/LineItemType'] || '';
+  if (lineItemType === 'Tax') return 'Tax';
+  const productCode = row['lineItem/ProductCode'] || '';
+  const productName = row['product/ProductName'] || productCode;
+  const usageType = row['lineItem/UsageType'] || '';
+  // EC2 split: Compute vs Other
+  if (productCode === 'AmazonEC2') {
+    if (/BoxUsage|HeavyUsage|SpotUsage|InstanceUsage|DedicatedUsage/i.test(usageType)) {
+      return 'Amazon Elastic Compute Cloud - Compute';
+    }
+    return 'EC2 - Other';
+  }
+  // Normalize known mismatches between CUR product names and CE service names
+  const nameMap = {
+    'Elastic Load Balancing': 'Amazon Elastic Load Balancing',
+    'AWS CodeBuild': 'CodeBuild'
+  };
+  return nameMap[productName] || productName;
+}
+
+/**
+ * Aggregate CUR rows into a CE-API-compatible ResultsByTime response.
+ * @param {Array} rows - CUR data rows
+ * @param {string} startDate - YYYY-MM-DD inclusive start
+ * @param {string} endDate - YYYY-MM-DD exclusive end
+ * @param {string} granularity - 'DAILY' or 'MONTHLY'
+ * @param {string[]} groupByKeys - e.g. ['SERVICE'] or ['SERVICE','USAGE_TYPE']
+ * @param {string[]} metrics - e.g. ['UnblendedCost'] or ['UnblendedCost','UsageQuantity']
+ */
+function curToCeFormat(rows, startDate, endDate, granularity, groupByKeys, metrics) {
+  const filtered = rows.filter(row => {
+    const date = (row['lineItem/UsageStartDate'] || '').slice(0, 10);
+    return date >= startDate && date < endDate;
+  });
+
+  const periods = {};
+  for (const row of filtered) {
+    const date = (row['lineItem/UsageStartDate'] || '').slice(0, 10);
+    const periodKey = granularity === 'DAILY' ? date : date.slice(0, 7) + '-01';
+    if (!periods[periodKey]) periods[periodKey] = [];
+    periods[periodKey].push(row);
+  }
+
+  const resultsByTime = [];
+  for (const periodStart of Object.keys(periods).sort()) {
+    const periodRows = periods[periodStart];
+    let periodEnd;
+    if (granularity === 'DAILY') {
+      const d = new Date(periodStart + 'T00:00:00Z');
+      d.setUTCDate(d.getUTCDate() + 1);
+      periodEnd = d.toISOString().slice(0, 10);
+    } else {
+      const d = new Date(periodStart + 'T00:00:00Z');
+      d.setUTCMonth(d.getUTCMonth() + 1);
+      periodEnd = d.toISOString().slice(0, 10);
+    }
+
+    const groups = {};
+    for (const row of periodRows) {
+      const keys = groupByKeys.map(k => {
+        if (k === 'SERVICE') return curToServiceName(row);
+        if (k === 'USAGE_TYPE') return row['lineItem/UsageType'] || 'Unknown';
+        return 'Unknown';
+      });
+      const gk = keys.join('|');
+      if (!groups[gk]) groups[gk] = { keys, cost: 0, usage: 0 };
+      groups[gk].cost += parseFloat(row['lineItem/UnblendedCost'] || '0') || 0;
+      groups[gk].usage += parseFloat(row['lineItem/UsageAmount'] || '0') || 0;
+    }
+
+    const ceGroups = Object.values(groups).map(g => {
+      const m = {};
+      if (metrics.includes('UnblendedCost')) m.UnblendedCost = { Amount: String(g.cost) };
+      if (metrics.includes('UsageQuantity')) m.UsageQuantity = { Amount: String(g.usage) };
+      return { Keys: g.keys, Metrics: m };
+    });
+
+    resultsByTime.push({ TimePeriod: { Start: periodStart, End: periodEnd }, Groups: ceGroups });
+  }
+
+  return { ResultsByTime: resultsByTime };
+}
+
+/**
+ * Calculate forecast from CUR data: (totalMTD / daysElapsed) * daysInMonth.
+ * Returns CE-API-compatible forecast response.
+ */
+function curCalculateForecast(curRows, todayStr, forecastEndStr) {
+  const monthStart = todayStr.slice(0, 7) + '-01';
+  const currentMonthRows = curRows.filter(row => {
+    const date = (row['lineItem/UsageStartDate'] || '').slice(0, 10);
+    return date >= monthStart && date < todayStr;
+  });
+  const totalMtd = currentMonthRows.reduce((sum, row) =>
+    sum + (parseFloat(row['lineItem/UnblendedCost'] || '0') || 0), 0);
+  const daysElapsed = daysBetween(monthStart, todayStr) || 1;
+  const dEnd = new Date(forecastEndStr + 'T00:00:00Z');
+  const daysInMonth = new Date(Date.UTC(dEnd.getUTCFullYear(), dEnd.getUTCMonth(), 0)).getUTCDate();
+  const forecastedTotal = (totalMtd / daysElapsed) * daysInMonth;
+  return { Total: { Amount: String(forecastedTotal) } };
 }
 
 // ---------------------------------------------------------------------------
@@ -1206,45 +1484,6 @@ export async function handleAwsProjectCostsDynamic({ body, corsHeaders, ADMIN_PA
       }
     }
 
-    // ── Project definitions ──
-    const PROJECT_PATTERNS = {
-      'Career Builder': [/^careers?[-_]/i, /careers-production/i],
-      'CoCreate AI':    [/^cocreate[-_]ai/i],
-      'Tmux Builder':   [/^tmux[-_]/i, /tmux-builder/i],
-      'Vedic Astro':    [/^vedic[-_]?astro/i, /^vedic[-_]/i],
-      'AI Product Studio': [/^cocreateidea/i, /^cocreate[-_]app/i, /ai[-_]product[-_]studio/i, /^cocreate[-_]applications/i]
-    };
-
-    // Read project from AWS resource tags (primary mapping method)
-    function getProjectFromTags(tags) {
-      if (!tags) return null;
-      if (Array.isArray(tags)) {
-        for (const key of ['project', 'Project', 'application', 'Application', 'app']) {
-          const tag = tags.find(t => t.Key === key);
-          if (tag && tag.Value) return tag.Value;
-        }
-        return null;
-      }
-      // Object format (already parsed, e.g. EC2 allTags)
-      return tags.project || tags.Project || tags.application || tags.Application || tags.app || null;
-    }
-
-    // Fallback: infer project from resource name using regex patterns
-    function inferProjectFromName(resourceName) {
-      const name = (resourceName || '').toLowerCase();
-      for (const [proj, patterns] of Object.entries(PROJECT_PATTERNS)) {
-        for (const pat of patterns) {
-          if (pat.test(name)) return proj;
-        }
-      }
-      return 'AI Product Studio'; // default
-    }
-
-    // Unified resolver: tags first, then name-based fallback
-    function resolveProject(tags, resourceName) {
-      return getProjectFromTags(tags) || inferProjectFromName(resourceName);
-    }
-
     // ── Build project map ──
     const projects = {};
     function getProject(name) {
@@ -1550,25 +1789,6 @@ export async function handleAwsCostDailyByProject({ body, corsHeaders, ADMIN_PAS
       cfClient.send(new ListDistributionsCommand({ MaxItems: '100' })).catch(() => ({ DistributionList: { Items: [] } }))
     ]);
 
-    // Project patterns (same as dynamic handler)
-    const PROJECT_PATTERNS = {
-      'Career Builder': [/^careers?[-_]/i, /careers-production/i],
-      'CoCreate AI':    [/^cocreate[-_]ai/i],
-      'Tmux Builder':   [/^tmux[-_]/i, /tmux-builder/i],
-      'Vedic Astro':    [/^vedic[-_]?astro/i, /^vedic[-_]/i],
-      'AI Product Studio': [/^cocreateidea/i, /^cocreate[-_]app/i, /ai[-_]product[-_]studio/i, /^cocreate[-_]applications/i]
-    };
-
-    function inferProjectFromName(resourceName) {
-      const name = (resourceName || '').toLowerCase();
-      for (const [proj, patterns] of Object.entries(PROJECT_PATTERNS)) {
-        for (const pat of patterns) {
-          if (pat.test(name)) return proj;
-        }
-      }
-      return 'AI Product Studio';
-    }
-
     // Build service → project mapping with cost proportions
     // EC2: map by instance tags/names
     const ec2ByProject = {};
@@ -1864,6 +2084,17 @@ export async function handleAwsActivityEmailReport({ body, corsHeaders, ADMIN_PA
     const prevMtdStart = monthStart(1);
     const prevMtdEnd = mtdStart;
 
+    // ── Try CUR data first (free), fall back to CE API ($0.04) ──
+    let emailCurRows = null;
+    try {
+      emailCurRows = await loadAllCurData();
+      if (emailCurRows.length === 0) emailCurRows = null;
+    } catch (e) {
+      console.log('[EmailReport] CUR not available, using CE API fallback');
+      emailCurRows = null;
+    }
+    const emailUseCur = emailCurRows !== null;
+
     const [
       cloudTrailResult,
       yesterdayCost,
@@ -1886,29 +2117,42 @@ export async function handleAwsActivityEmailReport({ body, corsHeaders, ADMIN_PA
         } while (nextToken && pg < 6);
         return allEvents;
       })(),
-      // Yesterday cost by service
-      ceClient.send(new GetCostAndUsageCommand({
-        TimePeriod: { Start: yesterdayStr, End: todayStr },
-        Granularity: 'DAILY', Metrics: ['UnblendedCost'],
-        GroupBy: [{ Type: 'DIMENSION', Key: 'SERVICE' }]
-      })).catch(() => null),
-      // Day before yesterday cost
-      ceClient.send(new GetCostAndUsageCommand({
-        TimePeriod: { Start: dayBeforeStr, End: yesterdayStr },
-        Granularity: 'DAILY', Metrics: ['UnblendedCost'],
-        GroupBy: [{ Type: 'DIMENSION', Key: 'SERVICE' }]
-      })).catch(() => null),
-      // Month-to-date cost by service
-      ceClient.send(new GetCostAndUsageCommand({
-        TimePeriod: { Start: mtdStart, End: todayStr },
-        Granularity: 'MONTHLY', Metrics: ['UnblendedCost'],
-        GroupBy: [{ Type: 'DIMENSION', Key: 'SERVICE' }]
-      })).catch(() => null),
-      // Previous month cost
-      ceClient.send(new GetCostAndUsageCommand({
-        TimePeriod: { Start: prevMtdStart, End: prevMtdEnd },
-        Granularity: 'MONTHLY', Metrics: ['UnblendedCost']
-      })).catch(() => null),
+      // Yesterday cost by service — CUR or CE API
+      emailUseCur
+        ? curToCeFormat(emailCurRows, yesterdayStr, todayStr, 'DAILY', ['SERVICE'], ['UnblendedCost'])
+        : ceClient.send(new GetCostAndUsageCommand({
+            TimePeriod: { Start: yesterdayStr, End: todayStr },
+            Granularity: 'DAILY', Metrics: ['UnblendedCost'],
+            GroupBy: [{ Type: 'DIMENSION', Key: 'SERVICE' }]
+          })).catch(() => null),
+      // Day before yesterday cost — CUR or CE API
+      emailUseCur
+        ? curToCeFormat(emailCurRows, dayBeforeStr, yesterdayStr, 'DAILY', ['SERVICE'], ['UnblendedCost'])
+        : ceClient.send(new GetCostAndUsageCommand({
+            TimePeriod: { Start: dayBeforeStr, End: yesterdayStr },
+            Granularity: 'DAILY', Metrics: ['UnblendedCost'],
+            GroupBy: [{ Type: 'DIMENSION', Key: 'SERVICE' }]
+          })).catch(() => null),
+      // Month-to-date cost by service — CUR or CE API
+      emailUseCur
+        ? curToCeFormat(emailCurRows, mtdStart, todayStr, 'MONTHLY', ['SERVICE'], ['UnblendedCost'])
+        : ceClient.send(new GetCostAndUsageCommand({
+            TimePeriod: { Start: mtdStart, End: todayStr },
+            Granularity: 'MONTHLY', Metrics: ['UnblendedCost'],
+            GroupBy: [{ Type: 'DIMENSION', Key: 'SERVICE' }]
+          })).catch(() => null),
+      // Previous month cost — CUR or CE API
+      emailUseCur
+        ? (function() {
+            const r = curToCeFormat(emailCurRows, prevMtdStart, prevMtdEnd, 'MONTHLY', ['SERVICE'], ['UnblendedCost']);
+            const total = (r.ResultsByTime || []).reduce((s, tp) =>
+              s + (tp.Groups || []).reduce((s2, g) => s2 + (parseFloat(g.Metrics.UnblendedCost.Amount) || 0), 0), 0);
+            return { ResultsByTime: [{ TimePeriod: { Start: prevMtdStart, End: prevMtdEnd }, Total: { UnblendedCost: { Amount: String(total) } }, Groups: [] }] };
+          })()
+        : ceClient.send(new GetCostAndUsageCommand({
+            TimePeriod: { Start: prevMtdStart, End: prevMtdEnd },
+            Granularity: 'MONTHLY', Metrics: ['UnblendedCost']
+          })).catch(() => null),
       // Unattached volumes
       ec2Client.send(new DescribeVolumesCommand({ Filters: [{ Name: 'status', Values: ['available'] }] })).catch(() => ({ Volumes: [] })),
       // Old snapshots
@@ -2197,6 +2441,19 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
 
     const safeImport = (mod, factory) => import(mod).then(factory).catch(() => null);
 
+    // ── Try CUR data first (free), fall back to CE API ($0.06) ──
+    let curRows = null;
+    try {
+      curRows = await loadAllCurData();
+      if (curRows.length === 0) curRows = null;
+    } catch (e) {
+      console.log('[Batch] CUR not available, using CE API fallback:', e.message);
+      curRows = null;
+    }
+    const useCur = curRows !== null;
+    if (useCur) console.log('[Batch] Using CUR data (' + curRows.length + ' rows) — $0.00 cost');
+    else console.log('[Batch] Using CE API — $0.06 cost');
+
     // ── Fetch all shared data in one parallel batch ──
     const [
       ceSummaryCurrent, ceSummaryPrevious, ceDailyByService6mo,
@@ -2205,33 +2462,48 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
       ecsClusters, loadBalancers, natGateways, eipAddresses,
       rdsInstances, elasticacheClusters, codebuildProjects, ecrRepos
     ] = await Promise.all([
-      ceClient.send(new GetCostAndUsageCommand({
-        TimePeriod: { Start: startDate, End: endDate }, Granularity: 'MONTHLY',
-        Metrics: ['UnblendedCost'], GroupBy: [{ Type: 'DIMENSION', Key: 'SERVICE' }]
-      })),
-      ceClient.send(new GetCostAndUsageCommand({
-        TimePeriod: { Start: prevStart, End: prevEnd }, Granularity: 'MONTHLY',
-        Metrics: ['UnblendedCost'], GroupBy: [{ Type: 'DIMENSION', Key: 'SERVICE' }]
-      })),
-      ceClient.send(new GetCostAndUsageCommand({
-        TimePeriod: { Start: monthStart(6), End: todayStr }, Granularity: 'MONTHLY',
-        Metrics: ['UnblendedCost'], GroupBy: [{ Type: 'DIMENSION', Key: 'SERVICE' }]
-      })),
-      ceClient.send(new GetCostAndUsageCommand({
-        TimePeriod: { Start: startDate, End: endDate }, Granularity: 'MONTHLY',
-        Metrics: ['UnblendedCost', 'UsageQuantity'],
-        GroupBy: [{ Type: 'DIMENSION', Key: 'SERVICE' }, { Type: 'DIMENSION', Key: 'USAGE_TYPE' }]
-      })),
-      ceClient.send(new GetCostAndUsageCommand({
-        TimePeriod: { Start: startDate, End: endDate }, Granularity: 'DAILY',
-        Metrics: ['UnblendedCost'], GroupBy: [{ Type: 'DIMENSION', Key: 'SERVICE' }]
-      })),
-      (todayStr < forecastEndStr
-        ? ceClient.send(new GetCostForecastCommand({
-            TimePeriod: { Start: todayStr, End: forecastEndStr },
-            Granularity: 'MONTHLY', Metric: 'UNBLENDED_COST'
-          })).catch(err => ({ _error: err.message }))
-        : Promise.resolve(null)),
+      // Cost data: CUR (free) or CE API ($0.01 each)
+      useCur
+        ? curToCeFormat(curRows, startDate, endDate, 'MONTHLY', ['SERVICE'], ['UnblendedCost'])
+        : ceClient.send(new GetCostAndUsageCommand({
+            TimePeriod: { Start: startDate, End: endDate }, Granularity: 'MONTHLY',
+            Metrics: ['UnblendedCost'], GroupBy: [{ Type: 'DIMENSION', Key: 'SERVICE' }]
+          })),
+      useCur
+        ? curToCeFormat(curRows, prevStart, prevEnd, 'MONTHLY', ['SERVICE'], ['UnblendedCost'])
+        : ceClient.send(new GetCostAndUsageCommand({
+            TimePeriod: { Start: prevStart, End: prevEnd }, Granularity: 'MONTHLY',
+            Metrics: ['UnblendedCost'], GroupBy: [{ Type: 'DIMENSION', Key: 'SERVICE' }]
+          })),
+      useCur
+        ? curToCeFormat(curRows, monthStart(6), todayStr, 'MONTHLY', ['SERVICE'], ['UnblendedCost'])
+        : ceClient.send(new GetCostAndUsageCommand({
+            TimePeriod: { Start: monthStart(6), End: todayStr }, Granularity: 'MONTHLY',
+            Metrics: ['UnblendedCost'], GroupBy: [{ Type: 'DIMENSION', Key: 'SERVICE' }]
+          })),
+      useCur
+        ? curToCeFormat(curRows, startDate, endDate, 'MONTHLY', ['SERVICE', 'USAGE_TYPE'], ['UnblendedCost', 'UsageQuantity'])
+        : ceClient.send(new GetCostAndUsageCommand({
+            TimePeriod: { Start: startDate, End: endDate }, Granularity: 'MONTHLY',
+            Metrics: ['UnblendedCost', 'UsageQuantity'],
+            GroupBy: [{ Type: 'DIMENSION', Key: 'SERVICE' }, { Type: 'DIMENSION', Key: 'USAGE_TYPE' }]
+          })),
+      useCur
+        ? curToCeFormat(curRows, startDate, endDate, 'DAILY', ['SERVICE'], ['UnblendedCost'])
+        : ceClient.send(new GetCostAndUsageCommand({
+            TimePeriod: { Start: startDate, End: endDate }, Granularity: 'DAILY',
+            Metrics: ['UnblendedCost'], GroupBy: [{ Type: 'DIMENSION', Key: 'SERVICE' }]
+          })),
+      // Forecast: self-calculated from CUR or CE API
+      useCur
+        ? curCalculateForecast(curRows, todayStr, forecastEndStr)
+        : (todayStr < forecastEndStr
+            ? ceClient.send(new GetCostForecastCommand({
+                TimePeriod: { Start: todayStr, End: forecastEndStr },
+                Granularity: 'MONTHLY', Metric: 'UNBLENDED_COST'
+              })).catch(err => ({ _error: err.message }))
+            : Promise.resolve(null)),
+      // Resource inventory (always free, unchanged)
       fetchEC2Instances(),
       cfClient.send(new ListDistributionsCommand({ MaxItems: '100' })).catch(() => ({ DistributionList: { Items: [] } })),
       lambdaClient.send(new ListFunctionsCommand({ MaxItems: 200 })).catch(() => ({ Functions: [] })),
@@ -2246,7 +2518,7 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
       safeImport('@aws-sdk/client-ecr', m => new m.ECRClient({ region: 'us-east-1' }).send(new m.DescribeRepositoriesCommand({})))
     ]);
 
-    const response = { success: true };
+    const response = { success: true, dataSource: useCur ? 'CUR' : 'CostExplorerAPI' };
 
     // ── Section 1: Summary ──
     try {
@@ -2386,41 +2658,6 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
       response.serviceDetail = null;
     }
 
-    // ── Shared helpers for sections 6 & 7 ──
-    const PROJECT_PATTERNS = {
-      'Career Builder': [/^careers?[-_]/i, /careers-production/i],
-      'CoCreate AI':    [/^cocreate[-_]ai/i],
-      'Tmux Builder':   [/^tmux[-_]/i, /tmux-builder/i],
-      'Vedic Astro':    [/^vedic[-_]?astro/i, /^vedic[-_]/i],
-      'AI Product Studio': [/^cocreateidea/i, /^cocreate[-_]app/i, /ai[-_]product[-_]studio/i, /^cocreate[-_]applications/i]
-    };
-
-    function batchGetProjectFromTags(tags) {
-      if (!tags) return null;
-      if (Array.isArray(tags)) {
-        for (const key of ['project', 'Project', 'application', 'Application', 'app']) {
-          const tag = tags.find(t => t.Key === key);
-          if (tag && tag.Value) return tag.Value;
-        }
-        return null;
-      }
-      return tags.project || tags.Project || tags.application || tags.Application || tags.app || null;
-    }
-
-    function batchInferProject(resourceName) {
-      const name = (resourceName || '').toLowerCase();
-      for (const [proj, patterns] of Object.entries(PROJECT_PATTERNS)) {
-        for (const pat of patterns) {
-          if (pat.test(name)) return proj;
-        }
-      }
-      return 'AI Product Studio';
-    }
-
-    function batchResolveProject(tags, resourceName) {
-      return batchGetProjectFromTags(tags) || batchInferProject(resourceName);
-    }
-
     // ── Section 6: Project Costs (dynamic) ──
     try {
       const serviceCostsMtd = {};
@@ -2469,7 +2706,7 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
 
       // EC2
       for (const inst of ec2Instances) {
-        const projName = batchResolveProject(inst.allTags, inst.name);
+        const projName = resolveProject(inst.allTags, inst.name);
         addResource(projName, 'EC2', inst.name + ' (' + (inst.type || '--') + ')',
           inst.state + (inst.publicIp ? ', ' + inst.publicIp : ''), inst.estimatedMonthlyCost || 0);
       }
@@ -2503,8 +2740,8 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
         const originDomain = dist.Origins?.Items?.[0]?.DomainName || '';
         const alias = dist.Aliases?.Items?.[0] || '';
         const displayName = alias || dist.DomainName;
-        const projName = batchInferProject(originDomain) !== 'AI Product Studio'
-          ? batchInferProject(originDomain) : batchInferProject(alias || dist.DomainName);
+        const projName = inferProjectFromName(originDomain) !== 'AI Product Studio'
+          ? inferProjectFromName(originDomain) : inferProjectFromName(alias || dist.DomainName);
         const gbStr = (bytes / (1024 * 1024 * 1024)).toFixed(2);
         const reqStr = requests > 1000 ? (requests / 1000).toFixed(1) + 'K' : requests.toString();
         addResource(projName, 'CloudFront', displayName, reqStr + ' requests, ' + gbStr + ' GB', estimatedCost);
@@ -2514,7 +2751,7 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
       const lambdaFns = lambdaFunctions.Functions || [];
       const lambdaByProj = {};
       for (const fn of lambdaFns) {
-        const projName = batchInferProject(fn.FunctionName);
+        const projName = inferProjectFromName(fn.FunctionName);
         if (!lambdaByProj[projName]) lambdaByProj[projName] = [];
         lambdaByProj[projName].push(fn.FunctionName);
       }
@@ -2531,7 +2768,7 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
       const s3CostMtd = serviceCosts['Amazon Simple Storage Service'] || 0;
       const s3ByProj = {};
       for (const b of s3BucketList) {
-        const projName = batchInferProject(b.Name);
+        const projName = inferProjectFromName(b.Name);
         if (!s3ByProj[projName]) s3ByProj[projName] = [];
         s3ByProj[projName].push(b.Name);
       }
@@ -2546,7 +2783,7 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
       const ecsArns = ecsClusters.clusterArns || [];
       for (const arn of ecsArns) {
         const clusterName = arn.split('/').pop();
-        const projName = batchInferProject(clusterName);
+        const projName = inferProjectFromName(clusterName);
         try {
           const svcList = await ecsClient.send(new ListServicesCommand({ cluster: clusterName }));
           const svcArns = svcList.serviceArns || [];
@@ -2565,7 +2802,7 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
       const elbCount = elbs.length || 1;
       for (const elb of elbs) {
         const elbTags = elbTagMap[elb.LoadBalancerArn] || null;
-        addResource(batchResolveProject(elbTags, elb.LoadBalancerName), 'ELB', elb.LoadBalancerName,
+        addResource(resolveProject(elbTags, elb.LoadBalancerName), 'ELB', elb.LoadBalancerName,
           elb.Type + ' load balancer', elbCostMtd / elbCount);
       }
 
@@ -2646,7 +2883,7 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
         if (mtd > 0.01 && chk.data && (chk.data[chk.countKey] || []).length === 0) {
           deletedResources.push({
             name: chk.name, type: chk.type,
-            project: batchInferProject(chk.name) !== 'AI Product Studio' ? batchInferProject(chk.name) : 'Career Builder',
+            project: inferProjectFromName(chk.name) !== 'AI Product Studio' ? inferProjectFromName(chk.name) : 'Career Builder',
             monthlySavings: monthly,
             reason: 'No active ' + chk.type + ' found but $' + r2(mtd) + ' charged MTD'
           });
@@ -2687,7 +2924,7 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
       const ec2ByProject = {};
       let ec2TotalCost = 0;
       for (const inst of ec2Instances) {
-        const proj = inst.allTags?.project || inst.allTags?.Project || batchInferProject(inst.name);
+        const proj = inst.allTags?.project || inst.allTags?.Project || inferProjectFromName(inst.name);
         const cost = inst.estimatedMonthlyCost || 0;
         ec2ByProject[proj] = (ec2ByProject[proj] || 0) + cost;
         ec2TotalCost += cost;
@@ -2696,7 +2933,7 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
       const dbpLambdaByProject = {};
       let dbpLambdaTotalCount = 0;
       for (const fn of (lambdaFunctions.Functions || [])) {
-        const proj = batchInferProject(fn.FunctionName);
+        const proj = inferProjectFromName(fn.FunctionName);
         dbpLambdaByProject[proj] = (dbpLambdaByProject[proj] || 0) + 1;
         dbpLambdaTotalCount++;
       }
@@ -2704,7 +2941,7 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
       const dbpS3ByProject = {};
       let dbpS3TotalCount = 0;
       for (const b of (buckets.Buckets || [])) {
-        const proj = batchInferProject(b.Name);
+        const proj = inferProjectFromName(b.Name);
         dbpS3ByProject[proj] = (dbpS3ByProject[proj] || 0) + 1;
         dbpS3TotalCount++;
       }
@@ -2714,8 +2951,8 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
       for (const dist of (distributions.DistributionList?.Items || [])) {
         const originDomain = dist.Origins?.Items?.[0]?.DomainName || '';
         const alias = dist.Aliases?.Items?.[0] || '';
-        const proj = batchInferProject(originDomain) !== 'AI Product Studio'
-          ? batchInferProject(originDomain) : batchInferProject(alias || dist.DomainName);
+        const proj = inferProjectFromName(originDomain) !== 'AI Product Studio'
+          ? inferProjectFromName(originDomain) : inferProjectFromName(alias || dist.DomainName);
         cfByProject[proj] = (cfByProject[proj] || 0) + 1;
         cfTotalCount++;
       }
