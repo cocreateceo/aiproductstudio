@@ -75,6 +75,11 @@ import {
   LookupEventsCommand
 } from '@aws-sdk/client-cloudtrail';
 
+import {
+  PricingClient,
+  GetProductsCommand
+} from '@aws-sdk/client-pricing';
+
 import { gunzipSync } from 'zlib';
 
 const ceClient = new CostExplorerClient({ region: 'us-east-1' });
@@ -86,6 +91,121 @@ const cwClient = new CloudWatchClient({ region: 'us-east-1' });
 const elbClient = new ElasticLoadBalancingV2Client({ region: 'us-east-1' });
 const ecsClient = new ECSClient({ region: 'us-east-1' });
 const ctClient = new CloudTrailClient({ region: 'us-east-1' });
+const pricingClient = new PricingClient({ region: 'us-east-1' }); // Pricing API only available in us-east-1
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+const HOURS_PER_MONTH = 730; // AWS billing standard: 365*24/12
+const DEFAULT_PROJECT = 'AI Product Studio';
+const PRICING_LOCATION = 'US East (N. Virginia)';
+
+// ---------------------------------------------------------------------------
+// Dynamic AWS Pricing (all fetched from AWS Pricing API, cached in-memory)
+// ---------------------------------------------------------------------------
+const priceCache = {};
+
+/** Generic: fetch a single price from AWS Pricing API and cache it.
+ *  For tiered pricing (e.g. CloudFront), picks the lowest-range tier (beginRange=0). */
+async function fetchPrice(cacheKey, serviceCode, filters) {
+  if (priceCache[cacheKey] !== undefined) return priceCache[cacheKey];
+  try {
+    const resp = await pricingClient.send(new GetProductsCommand({
+      ServiceCode: serviceCode,
+      Filters: filters.map(f => ({ Type: 'TERM_MATCH', ...f })),
+      MaxResults: 1,
+    }));
+    if (resp.PriceList?.length > 0) {
+      const product = JSON.parse(resp.PriceList[0]);
+      const onDemand = Object.values(product.terms?.OnDemand || {})[0];
+      const dims = Object.values(onDemand?.priceDimensions || {});
+      // For tiered pricing, pick the first tier (beginRange=0); otherwise use single dimension
+      const dim = dims.length > 1
+        ? dims.find(d => d.beginRange === '0') || dims[0]
+        : dims[0];
+      const rate = parseFloat(dim?.pricePerUnit?.USD || '0');
+      if (rate > 0) { priceCache[cacheKey] = rate; return rate; }
+    }
+  } catch (e) { console.warn(`[Pricing] ${cacheKey}:`, e.message); }
+  priceCache[cacheKey] = 0;
+  return 0;
+}
+
+// EC2 instance on-demand hourly rate
+async function getOnDemandHourlyRate(instanceType) {
+  return fetchPrice(`ec2:${instanceType}`, 'AmazonEC2', [
+    { Field: 'instanceType', Value: instanceType },
+    { Field: 'location', Value: PRICING_LOCATION },
+    { Field: 'operatingSystem', Value: 'Linux' },
+    { Field: 'tenancy', Value: 'Shared' },
+    { Field: 'preInstalledSw', Value: 'NA' },
+    { Field: 'capacitystatus', Value: 'Used' },
+  ]);
+}
+
+// EBS volume $/GB/month by volume type (gp2, gp3, io1, io2, st1, sc1)
+async function getEbsGbMonthlyRate(volumeType) {
+  return fetchPrice(`ebs:${volumeType}`, 'AmazonEC2', [
+    { Field: 'productFamily', Value: 'Storage' },
+    { Field: 'volumeApiName', Value: volumeType },
+    { Field: 'location', Value: PRICING_LOCATION },
+  ]);
+}
+
+// EBS snapshot $/GB/month
+async function getSnapshotGbMonthlyRate() {
+  return fetchPrice('snapshot', 'AmazonEC2', [
+    { Field: 'productFamily', Value: 'Storage Snapshot' },
+    { Field: 'location', Value: PRICING_LOCATION },
+  ]);
+}
+
+// Public IPv4 address $/hr (applies to all public IPs since Feb 2024)
+async function getPublicIpv4HourlyRate() {
+  return fetchPrice('ipv4:public', 'AmazonVPC', [
+    { Field: 'productFamily', Value: 'IP Address' },
+    { Field: 'location', Value: PRICING_LOCATION },
+    { Field: 'group', Value: 'VPCPublicIPv4Address' },
+  ]);
+}
+
+// CloudFront data transfer $/GB (first-tier rate, US edge locations)
+async function getCloudFrontDataTransferRate() {
+  return fetchPrice('cf:datatransfer', 'AmazonCloudFront', [
+    { Field: 'usagetype', Value: 'US-DataTransfer-Out-Bytes' },
+  ]);
+}
+
+// CloudFront HTTPS request rate ($/10K requests, US edge locations)
+async function getCloudFrontRequestRate() {
+  if (priceCache['cf:requests'] !== undefined) return priceCache['cf:requests'];
+  // API returns per-request rate; convert to per-10K-requests for our formula
+  const perReq = await fetchPrice('cf:requests:raw', 'AmazonCloudFront', [
+    { Field: 'usagetype', Value: 'US-Requests-Tier2-HTTPS' },
+  ]);
+  const per10K = perReq > 0 ? perReq * 10000 : 0;
+  priceCache['cf:requests'] = per10K;
+  return per10K;
+}
+
+/** Fetch rates for multiple EC2 instance types in parallel */
+async function fetchInstancePrices(instanceTypes) {
+  const unique = [...new Set(instanceTypes)];
+  await Promise.allSettled(unique.map(t => getOnDemandHourlyRate(t)));
+  return Object.fromEntries(unique.map(t => [t, priceCache[`ec2:${t}`] || 0]));
+}
+
+/** Pre-fetch all resource prices needed by a handler */
+async function fetchAllResourcePrices({ instanceTypes = [], volumeTypes = [] } = {}) {
+  await Promise.allSettled([
+    ...instanceTypes.map(t => getOnDemandHourlyRate(t)),
+    ...volumeTypes.map(t => getEbsGbMonthlyRate(t)),
+    getSnapshotGbMonthlyRate(),
+    getPublicIpv4HourlyRate(),
+    getCloudFrontDataTransferRate(),
+    getCloudFrontRequestRate(),
+  ]);
+}
 
 // ---------------------------------------------------------------------------
 // Shared Project Resolution
@@ -160,7 +280,7 @@ function inferProjectFromName(resourceName) {
       if (pat.test(name)) return proj;
     }
   }
-  return 'AI Product Studio';
+  return DEFAULT_PROJECT;
 }
 
 /** Normalize a resolved project name: map child projects to their parent. */
@@ -266,8 +386,8 @@ function jsonResponse(statusCode, corsHeaders, payload) {
 // CUR (Cost and Usage Report) Reader — reads from S3 instead of CE API ($0.00)
 // ---------------------------------------------------------------------------
 
-const CUR_BUCKET = 'cocreate-cur-reports';
-const CUR_REPORT_NAME = 'cocreate-daily-cost-report';
+const CUR_BUCKET = process.env.CUR_BUCKET || 'cocreate-cur-reports';
+const CUR_REPORT_NAME = process.env.CUR_REPORT_NAME || 'cocreate-daily-cost-report';
 const CUR_PREFIX = 'cur/' + CUR_REPORT_NAME;
 
 /** Parse a CSV line handling quoted fields with commas/newlines inside. */
@@ -832,8 +952,17 @@ async function fetchEC2Instances() {
     const result = await ec2Client.send(new DescribeInstancesCommand({
       Filters: [{ Name: 'instance-state-name', Values: ['running', 'stopped'] }]
     }));
-    const instances = [];
 
+    // Collect all instance types and pre-fetch their pricing in parallel
+    const allTypes = [];
+    for (const res of result.Reservations || []) {
+      for (const inst of res.Instances || []) {
+        if (inst.InstanceType) allTypes.push(inst.InstanceType);
+      }
+    }
+    await fetchInstancePrices(allTypes);
+
+    const instances = [];
     for (const reservation of result.Reservations || []) {
       for (const inst of reservation.Instances || []) {
         const tags = {};
@@ -980,18 +1109,10 @@ function generateSuggestions(serviceDetails, ec2Instances) {
 // 6. handleAwsProjectCosts
 // ---------------------------------------------------------------------------
 
-/** Approximate monthly cost by instance type (on-demand, us-east-1, Linux). */
-const INSTANCE_COST_PER_HOUR = {
-  't2.micro': 0.0116, 't2.small': 0.023, 't2.medium': 0.0464, 't2.large': 0.0928,
-  't3.micro': 0.0104, 't3.small': 0.0208, 't3.medium': 0.0416, 't3.large': 0.0832,
-  't3a.micro': 0.0094, 't3a.small': 0.0188, 't3a.medium': 0.0376, 't3a.large': 0.0752,
-  'm5.large': 0.096, 'm5.xlarge': 0.192, 'm6i.large': 0.096, 'm6i.xlarge': 0.192,
-  'c5.large': 0.085, 'c5.xlarge': 0.17, 'r5.large': 0.126, 'r5.xlarge': 0.252,
-};
-
+/** Monthly cost from dynamically fetched pricing (see getOnDemandHourlyRate above). */
 function estimateMonthlyInstanceCost(instanceType) {
-  const hourly = INSTANCE_COST_PER_HOUR[instanceType] || 0.05; // fallback
-  return r2(hourly * 730); // ~730 hours/month
+  const hourly = priceCache[`ec2:${instanceType}`] || 0;
+  return r2(hourly * HOURS_PER_MONTH);
 }
 
 function inferProjectName(instanceName) {
@@ -1092,6 +1213,10 @@ export async function handleAwsUnusedResources({ body, corsHeaders, ADMIN_PASSWO
       ec2Client.send(new DescribeAddressesCommand({}))
     ]);
 
+    // Pre-fetch pricing for all volume types found
+    const volTypes = [...new Set((volumesResult.Volumes || []).map(v => v.VolumeType).filter(Boolean))];
+    await fetchAllResourcePrices({ volumeTypes: volTypes });
+
     // Unattached volumes
     const volumes = (volumesResult.Volumes || []).map(v => {
       const tags = {};
@@ -1103,7 +1228,7 @@ export async function handleAwsUnusedResources({ body, corsHeaders, ADMIN_PASSWO
         volumeType: v.VolumeType,
         createTime: v.CreateTime ? v.CreateTime.toISOString() : null,
         az: v.AvailabilityZone,
-        estimatedMonthlyCost: r2((v.Size || 0) * 0.10) // ~$0.10/GB/month for gp2
+        estimatedMonthlyCost: r2((v.Size || 0) * (priceCache[`ebs:${v.VolumeType}`] || 0))
       };
     });
 
@@ -1122,7 +1247,7 @@ export async function handleAwsUnusedResources({ body, corsHeaders, ADMIN_PASSWO
           size: s.VolumeSize,
           startTime: s.StartTime ? s.StartTime.toISOString() : null,
           description: s.Description || '',
-          estimatedMonthlyCost: r2((s.VolumeSize || 0) * 0.05) // ~$0.05/GB/month
+          estimatedMonthlyCost: r2((s.VolumeSize || 0) * (priceCache['snapshot'] || 0))
         };
       })
       .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
@@ -1138,7 +1263,7 @@ export async function handleAwsUnusedResources({ body, corsHeaders, ADMIN_PASSWO
           publicIp: a.PublicIp,
           name: tags.Name || a.PublicIp,
           domain: a.Domain,
-          estimatedMonthlyCost: r2(0.005 * 730) // ~$0.005/hr when not associated
+          estimatedMonthlyCost: r2((priceCache['ipv4:public'] || 0) * HOURS_PER_MONTH)
         };
       });
 
@@ -1348,6 +1473,14 @@ export async function handleAwsS3Analysis({ body, corsHeaders, ADMIN_PASSWORD })
 
     for (const bucketName of bucketNames) {
       try {
+        // Detect bucket region dynamically
+        let bucketRegion = 'us-east-1';
+        try {
+          const locResult = await s3Client.send(new GetBucketLocationCommand({ Bucket: bucketName }));
+          bucketRegion = locResult.LocationConstraint || 'us-east-1';
+        } catch (e) { /* default to us-east-1 */ }
+        const regionS3 = new S3Client({ region: bucketRegion });
+
         const analysis = { bucket: bucketName, totalSize: 0, totalObjects: 0, categories: {}, tempFiles: [], largeFiles: [] };
         let continuationToken;
 
@@ -1355,7 +1488,7 @@ export async function handleAwsS3Analysis({ body, corsHeaders, ADMIN_PASSWORD })
           const params = { Bucket: bucketName, MaxKeys: 1000 };
           if (continuationToken) params.ContinuationToken = continuationToken;
 
-          const result = await new S3Client({ region: 'ap-south-1' }).send(new ListObjectsV2Command(params));
+          const result = await regionS3.send(new ListObjectsV2Command(params));
           const contents = result.Contents || [];
 
           for (const obj of contents) {
@@ -1550,6 +1683,13 @@ export async function handleAwsProjectCostsDynamic({ body, corsHeaders, ADMIN_PA
       })).then(entries => Object.fromEntries(entries.filter(([, t]) => t)))
     ]);
 
+    // Pre-fetch CloudFront + IPv4 pricing (needed for cost calculations below)
+    await Promise.allSettled([
+      getCloudFrontDataTransferRate(),
+      getCloudFrontRequestRate(),
+      getPublicIpv4HourlyRate(),
+    ]);
+
     // ── Build project map ──
     const projects = {};
     function getProject(name) {
@@ -1594,8 +1734,9 @@ export async function handleAwsProjectCostsDynamic({ body, corsHeaders, ADMIN_PA
         const requests = reqResult.Datapoints?.[0]?.Sum || 0;
         const bytes = bytesResult.Datapoints?.[0]?.Sum || 0;
         const gbTransfer = bytes / (1024 * 1024 * 1024);
-        // CloudFront pricing: ~$0.085/GB + $0.01/10K requests
-        const estimatedCost = (gbTransfer * 0.085) + (requests / 10000 * 0.01);
+        const cfDataRate = priceCache['cf:datatransfer'] || 0;
+        const cfRequestRate = priceCache['cf:requests'] || 0;
+        const estimatedCost = (gbTransfer * cfDataRate) + (requests / 10000 * cfRequestRate);
         return { dist, requests, bytes, estimatedCost };
       } catch {
         return { dist, requests: 0, bytes: 0, estimatedCost: 0 };
@@ -1609,7 +1750,7 @@ export async function handleAwsProjectCostsDynamic({ body, corsHeaders, ADMIN_PA
       const displayName = alias || dist.DomainName;
       const cfTags = cfTagMap[dist.ARN] || null;
       const projName = normalizeProject(getProjectFromTags(cfTags)
-        || (inferProjectFromName(originDomain) !== 'AI Product Studio'
+        || (inferProjectFromName(originDomain) !== DEFAULT_PROJECT
             ? inferProjectFromName(originDomain)
             : inferProjectFromName(alias || dist.DomainName)));
       const gbStr = (bytes / (1024 * 1024 * 1024)).toFixed(2);
@@ -1796,12 +1937,12 @@ export async function handleAwsProjectCostsDynamic({ body, corsHeaders, ADMIN_PA
     const vpcMtd = serviceCostsMtd['Amazon Virtual Private Cloud'] || 0;
     if (vpcMtd > 5 && activeNats === 0) {
       const activeEips = (eipAddresses.Addresses || []).length;
-      const ipCost = activeEips * 3.65;
+      const ipCost = activeEips * (priceCache['ipv4:public'] || 0) * HOURS_PER_MONTH;
       const natEstimate = r2(Math.max(0, (serviceCosts['Amazon Virtual Private Cloud'] || 0) - ipCost));
       if (natEstimate > 1) {
         // Attribute to largest EC2 project
         const topEc2Proj = Object.entries(projects).filter(([, p]) => p.serviceSet['EC2']).sort((a, b) => b[1].total - a[1].total)[0];
-        deletedResources.push({ name: 'NAT Gateway(s)', type: 'NAT Gateway', project: topEc2Proj ? topEc2Proj[1].name : 'AI Product Studio', monthlySavings: natEstimate, reason: 'No active NAT gateways but VPC charges suggest deleted NATs' });
+        deletedResources.push({ name: 'NAT Gateway(s)', type: 'NAT Gateway', project: topEc2Proj ? topEc2Proj[1].name : DEFAULT_PROJECT, monthlySavings: natEstimate, reason: 'No active NAT gateways but VPC charges suggest deleted NATs' });
       }
     }
 
@@ -1933,7 +2074,7 @@ export async function handleAwsCostDailyByProject({ body, corsHeaders, ADMIN_PAS
       const alias = dist.Aliases?.Items?.[0] || '';
       const distTags = cfTagMap[dist.ARN] || null;
       const proj = normalizeProject(getProjectFromTags(distTags)
-        || (inferProjectFromName(originDomain) !== 'AI Product Studio'
+        || (inferProjectFromName(originDomain) !== DEFAULT_PROJECT
             ? inferProjectFromName(originDomain) : inferProjectFromName(alias || dist.DomainName)));
       cfByProject[proj] = (cfByProject[proj] || 0) + 1;
       cfTotalCount++;
@@ -1987,7 +2128,7 @@ export async function handleAwsCostDailyByProject({ body, corsHeaders, ADMIN_PAS
 
       // EC2 + EC2-Other: distribute by EC2 instance cost
       if (serviceName === 'Amazon Elastic Compute Cloud - Compute' || serviceName === 'EC2 - Other') {
-        if (ec2TotalCost <= 0) return { 'AI Product Studio': cost };
+        if (ec2TotalCost <= 0) return { [DEFAULT_PROJECT]: cost };
         const result = {};
         for (const [proj, projCost] of Object.entries(ec2ByProject)) result[proj] = r2(cost * (projCost / ec2TotalCost));
         return result;
@@ -1995,7 +2136,7 @@ export async function handleAwsCostDailyByProject({ body, corsHeaders, ADMIN_PAS
 
       // VPC & CloudWatch: distribute proportionally by EC2 spend
       if (serviceName === 'Amazon Virtual Private Cloud' || serviceName === 'AmazonCloudWatch') {
-        if (ec2TotalCost <= 0) return { 'AI Product Studio': cost };
+        if (ec2TotalCost <= 0) return { [DEFAULT_PROJECT]: cost };
         const result = {};
         for (const [proj, projCost] of Object.entries(ec2ByProject)) result[proj] = r2(cost * (projCost / ec2TotalCost));
         return result;
@@ -2003,7 +2144,7 @@ export async function handleAwsCostDailyByProject({ body, corsHeaders, ADMIN_PAS
 
       // Lambda
       if (serviceName === 'AWS Lambda') {
-        if (lambdaTotalCount <= 0) return { 'AI Product Studio': cost };
+        if (lambdaTotalCount <= 0) return { [DEFAULT_PROJECT]: cost };
         const result = {};
         for (const [proj, count] of Object.entries(lambdaByProject)) result[proj] = r2(cost * (count / lambdaTotalCount));
         return result;
@@ -2011,7 +2152,7 @@ export async function handleAwsCostDailyByProject({ body, corsHeaders, ADMIN_PAS
 
       // S3
       if (serviceName === 'Amazon Simple Storage Service') {
-        if (s3TotalCount <= 0) return { 'AI Product Studio': cost };
+        if (s3TotalCount <= 0) return { [DEFAULT_PROJECT]: cost };
         const result = {};
         for (const [proj, count] of Object.entries(s3ByProject)) result[proj] = r2(cost * (count / s3TotalCount));
         return result;
@@ -2019,7 +2160,7 @@ export async function handleAwsCostDailyByProject({ body, corsHeaders, ADMIN_PAS
 
       // CloudFront
       if (serviceName === 'Amazon CloudFront') {
-        if (cfTotalCount <= 0) return { 'AI Product Studio': cost };
+        if (cfTotalCount <= 0) return { [DEFAULT_PROJECT]: cost };
         const result = {};
         for (const [proj, count] of Object.entries(cfByProject)) result[proj] = r2(cost * (count / cfTotalCount));
         return result;
@@ -2027,7 +2168,7 @@ export async function handleAwsCostDailyByProject({ body, corsHeaders, ADMIN_PAS
 
       // ELB: distribute by load balancer tags/names
       if (serviceName === 'Amazon Elastic Load Balancing') {
-        if (elbTotalCount <= 0) return { 'AI Product Studio': cost };
+        if (elbTotalCount <= 0) return { [DEFAULT_PROJECT]: cost };
         const result = {};
         for (const [proj, count] of Object.entries(elbByProject)) result[proj] = r2(cost * (count / elbTotalCount));
         return result;
@@ -2036,7 +2177,7 @@ export async function handleAwsCostDailyByProject({ body, corsHeaders, ADMIN_PAS
       // RDS, ElastiCache, ECR, CodeBuild — use resource-count maps
       if (svcResourceMaps[serviceName]) {
         const { map, total } = svcResourceMaps[serviceName];
-        if (total <= 0) return { 'AI Product Studio': cost };
+        if (total <= 0) return { [DEFAULT_PROJECT]: cost };
         const result = {};
         for (const [proj, count] of Object.entries(map)) result[proj] = r2(cost * (count / total));
         return result;
@@ -2049,7 +2190,7 @@ export async function handleAwsCostDailyByProject({ body, corsHeaders, ADMIN_PAS
       }
 
       // Default: attribute to AI Product Studio
-      return { 'AI Product Studio': cost };
+      return { [DEFAULT_PROJECT]: cost };
     }
 
     // Process daily data
@@ -2337,7 +2478,9 @@ export async function handleAwsActivityEmailReport({ body, corsHeaders, ADMIN_PA
     const costDiff = r2(yesterday.total - dayBefore.total);
     const costDiffPct = dayBefore.total > 0 ? r2((costDiff / dayBefore.total) * 100) : 0;
     const daysElapsed = daysBetween(mtdStart, todayStr) || 1;
-    const projectedMonth = r2((mtd.total / daysElapsed) * 30);
+    const nowD = new Date(todayStr + 'T00:00:00Z');
+    const daysInMonth = new Date(Date.UTC(nowD.getUTCFullYear(), nowD.getUTCMonth() + 1, 0)).getUTCDate();
+    const projectedMonth = r2((mtd.total / daysElapsed) * daysInMonth);
 
     // Top 5 services by MTD cost
     const topServices = Object.entries(mtd.byService)
@@ -2357,34 +2500,34 @@ export async function handleAwsActivityEmailReport({ body, corsHeaders, ADMIN_PA
     }
     svcDeltas.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
 
+    // ── Pre-fetch dynamic pricing for resource types found ──
+    const batchVolTypes = [...new Set((volumesResult.Volumes || []).map(v => v.VolumeType).filter(Boolean))];
+    await fetchAllResourcePrices({ volumeTypes: batchVolTypes });
+
     // ── Parse unused resources ──
     const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const unusedVolumes = (volumesResult.Volumes || []).map(v => {
       const tags = {}; for (const t of v.Tags || []) tags[t.Key] = t.Value;
-      return { id: v.VolumeId, name: tags.Name || v.VolumeId, size: v.Size, type: v.VolumeType, monthlyCost: r2((v.Size || 0) * 0.10) };
+      return { id: v.VolumeId, name: tags.Name || v.VolumeId, size: v.Size, type: v.VolumeType, monthlyCost: r2((v.Size || 0) * (priceCache[`ebs:${v.VolumeType}`] || 0)) };
     });
     const oldSnapshots = (snapshotsResult.Snapshots || [])
       .filter(s => s.StartTime && new Date(s.StartTime) < thirtyDaysAgo)
       .map(s => {
         const tags = {}; for (const t of s.Tags || []) tags[t.Key] = t.Value;
-        return { id: s.SnapshotId, name: tags.Name || s.SnapshotId, size: s.VolumeSize, age: Math.floor((Date.now() - new Date(s.StartTime).getTime()) / 86400000) + 'd', monthlyCost: r2((s.VolumeSize || 0) * 0.05) };
+        return { id: s.SnapshotId, name: tags.Name || s.SnapshotId, size: s.VolumeSize, age: Math.floor((Date.now() - new Date(s.StartTime).getTime()) / 86400000) + 'd', monthlyCost: r2((s.VolumeSize || 0) * (priceCache['snapshot'] || 0)) };
       });
     const unusedEIPs = (addressesResult.Addresses || [])
       .filter(a => !a.AssociationId)
       .map(a => {
         const tags = {}; for (const t of a.Tags || []) tags[t.Key] = t.Value;
-        return { id: a.AllocationId, ip: a.PublicIp, name: tags.Name || a.PublicIp, monthlyCost: r2(0.005 * 730) };
+        return { id: a.AllocationId, ip: a.PublicIp, name: tags.Name || a.PublicIp, monthlyCost: r2((priceCache['ipv4:public'] || 0) * HOURS_PER_MONTH) };
       });
     const totalWaste = r2(unusedVolumes.reduce((s, v) => s + v.monthlyCost, 0) + oldSnapshots.reduce((s, v) => s + v.monthlyCost, 0) + unusedEIPs.reduce((s, v) => s + v.monthlyCost, 0));
     const totalUnused = unusedVolumes.length + oldSnapshots.length + unusedEIPs.length;
 
-    // ── Deleted resources & savings ──
-    const deletedResources = [
-      { name: 'cocreate-ai', type: 'EC2 Instance', deletedDate: '2026-02-23', monthlySavings: 30.37, reason: 'Unused - replaced by cocreate-ai-v2' },
-      { name: 'E14I9XAUA0S9U2', type: 'CloudFront Dist', deletedDate: '2026-02-23', monthlySavings: 0.50, reason: 'Orphaned distribution' },
-      { name: 'EZ36TIJU0ARM5', type: 'CloudFront Dist', deletedDate: '2026-02-23', monthlySavings: 0.50, reason: 'Orphaned distribution' }
-    ];
-    const totalSavings = r2(deletedResources.reduce((s, d) => s + d.monthlySavings, 0));
+    // ── Deleted resources & savings (detected dynamically from CloudTrail below) ──
+    const deletedResources = [];
+    const totalSavings = 0;
 
     // ── Parse CloudTrail events ──
     const NOISY = new Set([
@@ -2671,6 +2814,13 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
       safeImport('@aws-sdk/client-ecr', m => new m.ECRClient({ region: 'us-east-1' }).send(new m.DescribeRepositoriesCommand({})))
     ]);
 
+    // Pre-fetch dynamic pricing (CloudFront, IPv4) before cost calculations
+    await Promise.allSettled([
+      getCloudFrontDataTransferRate(),
+      getCloudFrontRequestRate(),
+      getPublicIpv4HourlyRate(),
+    ]);
+
     const response = { success: true, dataSource: useCur ? 'CUR' : 'CostExplorerAPI' };
 
     // ── Section 1: Summary ──
@@ -2917,7 +3067,9 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
           const requests = reqResult.Datapoints?.[0]?.Sum || 0;
           const bytes = bytesResult.Datapoints?.[0]?.Sum || 0;
           const gbTransfer = bytes / (1024 * 1024 * 1024);
-          return { dist, requests, bytes, estimatedCost: (gbTransfer * 0.085) + (requests / 10000 * 0.01) };
+          const cfdr = priceCache['cf:datatransfer'] || 0;
+          const cfrr = priceCache['cf:requests'] || 0;
+          return { dist, requests, bytes, estimatedCost: (gbTransfer * cfdr) + (requests / 10000 * cfrr) };
         } catch { return { dist, requests: 0, bytes: 0, estimatedCost: 0 }; }
       });
       const cfMetrics = await Promise.all(cfMetricPromises);
@@ -2927,7 +3079,7 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
         const displayName = alias || dist.DomainName;
         const cfTags = cfTagMap[dist.ARN] || null;
         const projName = normalizeProject(getProjectFromTags(cfTags)
-          || (inferProjectFromName(originDomain) !== 'AI Product Studio'
+          || (inferProjectFromName(originDomain) !== DEFAULT_PROJECT
               ? inferProjectFromName(originDomain) : inferProjectFromName(alias || dist.DomainName)));
         const gbStr = (bytes / (1024 * 1024 * 1024)).toFixed(2);
         const reqStr = requests > 1000 ? (requests / 1000).toFixed(1) + 'K' : requests.toString();
@@ -3095,11 +3247,11 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
       const vpcMtd = serviceCostsMtd['Amazon Virtual Private Cloud'] || 0;
       if (vpcMtd > 5 && activeNats === 0) {
         const activeEips = (eipAddresses.Addresses || []).length;
-        const ipCost = activeEips * 3.65;
+        const ipCost = activeEips * (priceCache['ipv4:public'] || 0) * HOURS_PER_MONTH;
         const natEstimate = r2(Math.max(0, (serviceCosts['Amazon Virtual Private Cloud'] || 0) - ipCost));
         if (natEstimate > 1) {
           const topEc2Proj = Object.entries(projects).filter(([, p]) => p.serviceSet['EC2']).sort((a, b) => b[1].total - a[1].total)[0];
-          deletedResources.push({ name: 'NAT Gateway(s)', type: 'NAT Gateway', project: topEc2Proj ? topEc2Proj[1].name : 'AI Product Studio',
+          deletedResources.push({ name: 'NAT Gateway(s)', type: 'NAT Gateway', project: topEc2Proj ? topEc2Proj[1].name : DEFAULT_PROJECT,
             monthlySavings: natEstimate, reason: 'No active NAT gateways but VPC charges suggest deleted NATs' });
         }
       }
@@ -3156,7 +3308,7 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
         const alias = dist.Aliases?.Items?.[0] || '';
         const distTags = cfTagMap[dist.ARN] || null;
         const proj = normalizeProject(getProjectFromTags(distTags)
-          || (inferProjectFromName(originDomain) !== 'AI Product Studio'
+          || (inferProjectFromName(originDomain) !== DEFAULT_PROJECT
               ? inferProjectFromName(originDomain) : inferProjectFromName(alias || dist.DomainName)));
         cfByProject[proj] = (cfByProject[proj] || 0) + 1;
         cfTotalCount++;
@@ -3209,7 +3361,7 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
 
         // EC2 + EC2-Other: distribute by instance cost
         if (serviceName === 'Amazon Elastic Compute Cloud - Compute' || serviceName === 'EC2 - Other') {
-          if (ec2TotalCost <= 0) return { 'AI Product Studio': cost };
+          if (ec2TotalCost <= 0) return { [DEFAULT_PROJECT]: cost };
           const result = {};
           for (const [proj, projCost] of Object.entries(ec2ByProject)) result[proj] = r2(cost * (projCost / ec2TotalCost));
           return result;
@@ -3217,26 +3369,26 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
 
         // VPC & CloudWatch: distribute proportionally by EC2 spend
         if (serviceName === 'Amazon Virtual Private Cloud' || serviceName === 'AmazonCloudWatch') {
-          if (ec2TotalCost <= 0) return { 'AI Product Studio': cost };
+          if (ec2TotalCost <= 0) return { [DEFAULT_PROJECT]: cost };
           const result = {};
           for (const [proj, projCost] of Object.entries(ec2ByProject)) result[proj] = r2(cost * (projCost / ec2TotalCost));
           return result;
         }
 
         if (serviceName === 'AWS Lambda') {
-          if (dbpLambdaTotalCount <= 0) return { 'AI Product Studio': cost };
+          if (dbpLambdaTotalCount <= 0) return { [DEFAULT_PROJECT]: cost };
           const result = {};
           for (const [proj, count] of Object.entries(dbpLambdaByProject)) result[proj] = r2(cost * (count / dbpLambdaTotalCount));
           return result;
         }
         if (serviceName === 'Amazon Simple Storage Service') {
-          if (dbpS3TotalCount <= 0) return { 'AI Product Studio': cost };
+          if (dbpS3TotalCount <= 0) return { [DEFAULT_PROJECT]: cost };
           const result = {};
           for (const [proj, count] of Object.entries(dbpS3ByProject)) result[proj] = r2(cost * (count / dbpS3TotalCount));
           return result;
         }
         if (serviceName === 'Amazon CloudFront') {
-          if (cfTotalCount <= 0) return { 'AI Product Studio': cost };
+          if (cfTotalCount <= 0) return { [DEFAULT_PROJECT]: cost };
           const result = {};
           for (const [proj, count] of Object.entries(cfByProject)) result[proj] = r2(cost * (count / cfTotalCount));
           return result;
@@ -3244,7 +3396,7 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
 
         // ELB: distribute by load balancer tags/names
         if (serviceName === 'Amazon Elastic Load Balancing') {
-          if (elbTotalCount <= 0) return { 'AI Product Studio': cost };
+          if (elbTotalCount <= 0) return { [DEFAULT_PROJECT]: cost };
           const result = {};
           for (const [proj, count] of Object.entries(elbByProject)) result[proj] = r2(cost * (count / elbTotalCount));
           return result;
@@ -3253,7 +3405,7 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
         // RDS, ElastiCache, ECR, CodeBuild
         if (dbpSvcResourceMaps[serviceName]) {
           const { map, total } = dbpSvcResourceMaps[serviceName];
-          if (total <= 0) return { 'AI Product Studio': cost };
+          if (total <= 0) return { [DEFAULT_PROJECT]: cost };
           const result = {};
           for (const [proj, count] of Object.entries(map)) result[proj] = r2(cost * (count / total));
           return result;
@@ -3265,7 +3417,7 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
           return { [inferProjectFromName(short)]: cost };
         }
 
-        return { 'AI Product Studio': cost };
+        return { [DEFAULT_PROJECT]: cost };
       }
 
       const dates = [];
@@ -3330,6 +3482,10 @@ export async function handleAwsCostStorageBatch({ body, corsHeaders, ADMIN_PASSW
 
     const response = { success: true };
 
+    // Pre-fetch dynamic pricing for all resource types found
+    const resVolTypes = [...new Set((volumesResult.Volumes || []).map(v => v.VolumeType).filter(Boolean))];
+    await fetchAllResourcePrices({ volumeTypes: resVolTypes });
+
     // ── Section 1: Unused Resources ──
     try {
       const volumes = (volumesResult.Volumes || []).map(v => {
@@ -3338,7 +3494,7 @@ export async function handleAwsCostStorageBatch({ body, corsHeaders, ADMIN_PASSW
         return {
           volumeId: v.VolumeId, name: tags.Name || v.VolumeId, size: v.Size,
           volumeType: v.VolumeType, createTime: v.CreateTime ? v.CreateTime.toISOString() : null,
-          az: v.AvailabilityZone, estimatedMonthlyCost: r2((v.Size || 0) * 0.10)
+          az: v.AvailabilityZone, estimatedMonthlyCost: r2((v.Size || 0) * (priceCache[`ebs:${v.VolumeType}`] || 0))
         };
       });
 
@@ -3352,7 +3508,7 @@ export async function handleAwsCostStorageBatch({ body, corsHeaders, ADMIN_PASSW
           return {
             snapshotId: s.SnapshotId, name: tags.Name || s.SnapshotId, volumeId: s.VolumeId,
             size: s.VolumeSize, startTime: s.StartTime ? s.StartTime.toISOString() : null,
-            description: s.Description || '', estimatedMonthlyCost: r2((s.VolumeSize || 0) * 0.05)
+            description: s.Description || '', estimatedMonthlyCost: r2((s.VolumeSize || 0) * (priceCache['snapshot'] || 0))
           };
         })
         .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
@@ -3364,7 +3520,7 @@ export async function handleAwsCostStorageBatch({ body, corsHeaders, ADMIN_PASSW
           for (const tag of a.Tags || []) tags[tag.Key] = tag.Value;
           return {
             allocationId: a.AllocationId, publicIp: a.PublicIp, name: tags.Name || a.PublicIp,
-            domain: a.Domain, estimatedMonthlyCost: r2(0.005 * 730)
+            domain: a.Domain, estimatedMonthlyCost: r2((priceCache['ipv4:public'] || 0) * HOURS_PER_MONTH)
           };
         });
 
@@ -3392,16 +3548,22 @@ export async function handleAwsCostStorageBatch({ body, corsHeaders, ADMIN_PASSW
 
     // ── Section 3: S3 Analysis ──
     try {
+      // Build region map from Section 2 bucketsList (already has dynamic regions)
+      const bucketRegionMap = {};
+      for (const b of (response.s3Buckets?.buckets || [])) {
+        bucketRegionMap[b.name] = b.region || 'us-east-1';
+      }
       const bucketNames = (bucketsResult.Buckets || []).map(b => b.Name);
       const analyses = [];
       for (const bucketName of bucketNames) {
         try {
+          const regionS3 = new S3Client({ region: bucketRegionMap[bucketName] || 'us-east-1' });
           const analysis = { bucket: bucketName, totalSize: 0, totalObjects: 0, categories: {}, tempFiles: [], largeFiles: [] };
           let continuationToken;
           do {
             const params = { Bucket: bucketName, MaxKeys: 1000 };
             if (continuationToken) params.ContinuationToken = continuationToken;
-            const result = await new S3Client({ region: 'ap-south-1' }).send(new ListObjectsV2Command(params));
+            const result = await regionS3.send(new ListObjectsV2Command(params));
             const contents = result.Contents || [];
             for (const obj of contents) {
               const key = obj.Key || '';
