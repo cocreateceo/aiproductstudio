@@ -11,8 +11,7 @@
 import { getBucket, getDeployedUrl, fetchTmuxDeployments, syncDeploymentsToDynamo, handleAdminCostsSummary } from './index.mjs';
 
 const NOTIFICATION_EMAIL = process.env.NOTIFICATION_EMAIL;
-// Use NOTIFICATION_EMAIL until cocreateidea.com domain is verified in SES, then switch to FROM_EMAIL
-const FROM_EMAIL = NOTIFICATION_EMAIL;
+const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@cocreateidea.com';
 
 /**
  * Compute cost data for a single user (pure data, no HTTP wrapping).
@@ -1079,8 +1078,8 @@ export async function handleSendAdminSummaryReport({ body, corsHeaders, S3_REGIO
   try {
     const { SESClient, SendEmailCommand } = await import('@aws-sdk/client-ses');
     const ses = new SESClient({ region: 'us-east-1' });
-    const adminEmail = 'varadhg@gmail.com';
-    const ccEmail = 'vinocse115@gmail.com';
+    const adminEmail = 'CEO@cocreateidea.com';
+    const ccEmail = 'info@cocreateidea.com';
 
     const summaryData = await computeAdminSummaryData({ S3_REGION, ADMIN_PASSWORD, listApplications });
     const html = generateAdminSummaryHtml(summaryData);

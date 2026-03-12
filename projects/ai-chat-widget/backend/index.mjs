@@ -18,7 +18,7 @@ import * as dynamoService from './dynamodb-service.mjs';
 // Configuration
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const NOTIFICATION_EMAIL = process.env.NOTIFICATION_EMAIL || 'varadhg@gmail.com';
+const NOTIFICATION_EMAIL = process.env.NOTIFICATION_EMAIL || 'CEO@cocreateidea.com';
 const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@cocreateidea.com';
 
 // S3 bucket for storing all data (must exist in cocreate account us-east-1)
