@@ -2142,6 +2142,9 @@ export const handler = async (event) => {
           name: applicantName,
           reason: reviewNotes || undefined,
         }).catch(err => console.error('Rejection email error:', err.message));
+      } else if (applicantEmail && status === 'deactivated') {
+        const { html, text, subject } = renderAccountDeactivated({ name: applicantName });
+        sendTemplatedEmail(applicantEmail, subject, html, text).catch(e => console.error('Deactivation email failed:', e.message));
       }
 
       return {
@@ -3343,6 +3346,97 @@ export const handler = async (event) => {
           statusCode: 404,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           body: JSON.stringify({ success: false, error: 'Build not found' })
+        };
+      }
+    }
+
+    // ========== BUILD STATUS UPDATE (deploy/fail notifications) ==========
+    if (action === 'update-build-status') {
+      const { jobId, status: buildStatus, guid, projectName, deploymentUrl, errorMessage } = body;
+
+      if (!jobId || !buildStatus) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'jobId and status are required' })
+        };
+      }
+
+      try {
+        const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
+        const s3 = new S3Client({ region: S3_REGION });
+
+        // Update the progress file with new status
+        let progressData = {};
+        try {
+          const progressResult = await s3.send(new GetObjectCommand({
+            Bucket: S3_BUCKET,
+            Key: `progress/${jobId}.json`
+          }));
+          progressData = JSON.parse(await progressResult.Body.transformToString());
+        } catch (e) {
+          console.warn('Could not read progress file for', jobId);
+        }
+
+        progressData.status = buildStatus;
+        progressData.updatedAt = new Date().toISOString();
+        if (deploymentUrl) progressData.deploymentUrl = deploymentUrl;
+        if (errorMessage) progressData.errorMessage = errorMessage;
+
+        await s3.send(new PutObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: `progress/${jobId}.json`,
+          Body: JSON.stringify(progressData, null, 2),
+          ContentType: 'application/json'
+        }));
+
+        // Resolve applicant info from the progress data or the request body
+        const applicantEmail = progressData.clientEmail || body.applicantEmail;
+        const applicantName = progressData.clientName || body.applicantName || 'Partner';
+
+        // Send deployment success email
+        if ((buildStatus === 'completed' || buildStatus === 'deployed') && applicantEmail) {
+          const { html, text, subject } = renderProjectDeployed({
+            name: applicantName,
+            projectName: projectName || progressData.projectName || 'Your Project',
+            deploymentUrl: deploymentUrl || progressData.deploymentUrl || '',
+            guid: guid || progressData.guid || ''
+          });
+          sendTemplatedEmail(applicantEmail, subject, html, text).catch(e => console.error('Deploy notification failed:', e.message));
+        }
+
+        // Send build failed emails
+        if (buildStatus === 'failed') {
+          if (applicantEmail) {
+            const { html, text, subject } = renderBuildFailedUser({
+              name: applicantName,
+              projectName: projectName || progressData.projectName || 'Your Project',
+              errorSummary: errorMessage || 'An unexpected error occurred during the build process.'
+            });
+            sendTemplatedEmail(applicantEmail, subject, html, text).catch(e => console.error('Build failed user email error:', e.message));
+          }
+          const adminEmail = renderBuildFailedAdmin({
+            userName: applicantName,
+            userEmail: applicantEmail || 'unknown',
+            guid: guid || progressData.guid || '',
+            projectName: projectName || progressData.projectName || 'Unknown Project',
+            jobId,
+            errorDetails: errorMessage || 'No error details available.'
+          });
+          sendToAdmins(adminEmail.subject, adminEmail.html, adminEmail.text).catch(e => console.error('Build failed admin email error:', e.message));
+        }
+
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: true, status: buildStatus })
+        };
+      } catch (error) {
+        console.error('Update build status error:', error.message);
+        return {
+          statusCode: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: error.message })
         };
       }
     }
