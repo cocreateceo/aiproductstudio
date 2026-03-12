@@ -27,6 +27,9 @@ const NOTIFICATION_EMAIL = process.env.NOTIFICATION_EMAIL; // Must be set and ve
 const S3_BUCKET = process.env.S3_BUCKET || 'cocreate-applications-data';
 const S3_REGION = process.env.AWS_REGION || 'us-east-1';
 
+import { EMAIL_CONFIG, ADMIN_EMAILS, renderAdminNewApplication, renderApplicantAcknowledgment, renderApplicantApproved, renderApplicantRejected, renderUserWelcome, renderPasswordResetLink, renderPasswordChanged, renderNewLoginAlert, renderProjectDeployed, renderBuildFailedUser, renderBuildFailedAdmin, renderAccountDeactivated, renderSessionExpiryReminder, renderWeeklyDigest, renderReEngagement } from './email-templates.mjs';
+import { sendTemplatedEmail, sendToAdmins, sendTemplate, sendTemplateToAdmins, isResetRateLimited } from './email-service.mjs';
+
 // System prompt for the AI Product Studio chat agent with guardrails
 const SYSTEM_PROMPT = `You are a friendly and professional AI assistant for AI Product Studio - a venture studio that partners with business founders to build AI-powered products.
 
@@ -333,108 +336,20 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-// Send Email via AWS SES
+// Send Email via AWS SES (new lead from chat)
 async function sendEmail(visitorInfo, messages, aiResponse, clientIP) {
-  const { SESClient, SendEmailCommand } = await import('@aws-sdk/client-ses');
-  const ses = new SESClient({ region: 'us-east-1' });
-
-  // Format conversation
-  const conversationHtml = messages.map(m => {
-    const role = m.role === 'user' ? '👤 Visitor' : '🤖 AI';
-    const bgColor = m.role === 'user' ? '#e3f2fd' : '#f5f5f5';
-    return `<div style="background: ${bgColor}; padding: 12px; margin: 8px 0; border-radius: 8px;">
-      <strong>${role}:</strong><br/>
-      ${m.content.replace(/\n/g, '<br/>')}
-    </div>`;
-  }).join('');
-
-  const emailHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: linear-gradient(135deg, #6366f1, #06b6d4); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
-    .content { background: #fff; border: 1px solid #e0e0e0; padding: 20px; border-radius: 0 0 8px 8px; }
-    .info-box { background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; }
-    .label { font-weight: bold; color: #6366f1; }
-    .conversation { margin-top: 20px; }
-    .ai-response { background: #e8f5e9; padding: 15px; border-radius: 8px; border-left: 4px solid #4caf50; margin-top: 15px; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h2 style="margin: 0;">🚀 New AI Product Studio Lead!</h2>
-      <p style="margin: 5px 0 0 0; opacity: 0.9;">Someone is interested in partnering with you</p>
-    </div>
-    <div class="content">
-      <div class="info-box">
-        <p><span class="label">👤 Name:</span> ${visitorInfo.name || 'Not provided'}</p>
-        <p><span class="label">📧 Email:</span> ${visitorInfo.email || 'Not provided'}</p>
-        <p><span class="label">📱 Phone:</span> ${visitorInfo.phone || 'Not provided'}</p>
-        <p><span class="label">🌐 Page:</span> ${visitorInfo.page || 'Unknown'}</p>
-        <p><span class="label">🖥️ IP:</span> ${clientIP || 'Unknown'}</p>
-        <p><span class="label">⏰ Time:</span> ${new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })} EST</p>
-      </div>
-
-      <div class="conversation">
-        <h3>💬 Full Conversation:</h3>
-        ${conversationHtml}
-      </div>
-
-      <div class="ai-response">
-        <h4 style="margin-top: 0;">🤖 Latest AI Response:</h4>
-        ${aiResponse.replace(/\n/g, '<br/>')}
-      </div>
-    </div>
-  </div>
-</body>
-</html>`;
-
-  const emailText = `
-NEW AI PRODUCT STUDIO LEAD!
-
-Name: ${visitorInfo.name || 'Not provided'}
-Email: ${visitorInfo.email || 'Not provided'}
-Phone: ${visitorInfo.phone || 'Not provided'}
-Page: ${visitorInfo.page || 'Unknown'}
-IP: ${clientIP || 'Unknown'}
-Time: ${new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })} EST
-
-CONVERSATION:
-${messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n')}
-
-AI RESPONSE:
-${aiResponse}
-`;
-
   try {
-    const result = await ses.send(new SendEmailCommand({
-      Source: NOTIFICATION_EMAIL,
-      Destination: {
-        ToAddresses: [NOTIFICATION_EMAIL]
-      },
-      Message: {
-        Subject: {
-          Data: `🚀 New Lead: ${visitorInfo.name || 'Anonymous'} - AI Product Studio`,
-          Charset: 'UTF-8'
-        },
-        Body: {
-          Html: {
-            Data: emailHtml,
-            Charset: 'UTF-8'
-          },
-          Text: {
-            Data: emailText,
-            Charset: 'UTF-8'
-          }
-        }
-      }
-    }));
-    console.log('Email sent successfully, MessageId:', result.MessageId);
-    return true;
+    const { html, text, subject } = renderAdminNewApplication({
+      name: visitorInfo.name || 'Not provided',
+      email: visitorInfo.email || 'Not provided',
+      company: visitorInfo.company || undefined,
+      role: visitorInfo.role || undefined,
+      message: `Page: ${visitorInfo.page || 'Unknown'} | IP: ${clientIP || 'Unknown'} | Time: ${new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })} EST`,
+      applicationId: undefined,
+    });
+    const result = await sendToAdmins(subject, html, text);
+    console.log('Email sent successfully:', result.messageId || result.error);
+    return result.success;
   } catch (error) {
     console.error('Email send error:', error.message);
     return false;
@@ -443,110 +358,30 @@ ${aiResponse}
 
 // Send Form Submission Email via AWS SES
 async function sendFormSubmissionEmail(visitorInfo, formContent, clientIP) {
-  const { SESClient, SendEmailCommand } = await import('@aws-sdk/client-ses');
-  const ses = new SESClient({ region: 'us-east-1' });
-
-  // Parse form content - it's formatted as key: value pairs
-  const formLines = formContent.split('\n').filter(line => line.includes(':'));
-  const formDataHtml = formLines.map(line => {
-    const [key, ...valueParts] = line.split(':');
-    const value = valueParts.join(':').trim();
-    if (key && value) {
-      return `<tr>
-        <td style="padding: 10px; border-bottom: 1px solid #e0e0e0; font-weight: bold; color: #6366f1; width: 200px;">${key.trim()}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">${value}</td>
-      </tr>`;
-    }
-    return '';
-  }).join('');
-
-  const emailHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-    .container { max-width: 700px; margin: 0 auto; padding: 20px; }
-    .header { background: linear-gradient(135deg, #10b981, #06b6d4); color: white; padding: 25px; border-radius: 8px 8px 0 0; text-align: center; }
-    .content { background: #fff; border: 1px solid #e0e0e0; padding: 25px; border-radius: 0 0 8px 8px; }
-    .info-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-    .section-title { background: #f8f9fa; padding: 12px; font-weight: bold; color: #374151; border-left: 4px solid #6366f1; margin: 20px 0 10px 0; }
-    .footer { margin-top: 25px; padding: 15px; background: #f0fdf4; border-radius: 8px; border-left: 4px solid #10b981; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h2 style="margin: 0;">🎉 New Partnership Application!</h2>
-      <p style="margin: 10px 0 0 0; opacity: 0.9;">Someone wants to partner with AI Product Studio</p>
-    </div>
-    <div class="content">
-      <div class="section-title">📋 Application Details</div>
-      <table class="info-table">
-        ${formDataHtml}
-      </table>
-
-      <div class="section-title">📍 Submission Info</div>
-      <table class="info-table">
-        <tr>
-          <td style="padding: 10px; border-bottom: 1px solid #e0e0e0; font-weight: bold; color: #6366f1; width: 200px;">🖥️ IP Address</td>
-          <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">${clientIP || 'Unknown'}</td>
-        </tr>
-        <tr>
-          <td style="padding: 10px; border-bottom: 1px solid #e0e0e0; font-weight: bold; color: #6366f1;">⏰ Submitted At</td>
-          <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">${new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })} EST</td>
-        </tr>
-        <tr>
-          <td style="padding: 10px; border-bottom: 1px solid #e0e0e0; font-weight: bold; color: #6366f1;">🌐 Page</td>
-          <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">${visitorInfo.page || 'Apply Page'}</td>
-        </tr>
-      </table>
-
-      <div class="footer">
-        <strong>✅ Next Steps:</strong><br/>
-        Review this application and reach out to the applicant within 24 hours.
-      </div>
-    </div>
-  </div>
-</body>
-</html>`;
-
-  const emailText = `
-NEW PARTNERSHIP APPLICATION!
-
-${formContent}
-
----
-IP: ${clientIP || 'Unknown'}
-Time: ${new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })} EST
-Page: ${visitorInfo.page || 'Apply Page'}
-`;
-
   try {
-    const result = await ses.send(new SendEmailCommand({
-      Source: NOTIFICATION_EMAIL,
-      Destination: {
-        ToAddresses: [NOTIFICATION_EMAIL]
-      },
-      Message: {
-        Subject: {
-          Data: `🎉 New Partnership Application: ${visitorInfo.name || 'New Applicant'}`,
-          Charset: 'UTF-8'
-        },
-        Body: {
-          Html: {
-            Data: emailHtml,
-            Charset: 'UTF-8'
-          },
-          Text: {
-            Data: emailText,
-            Charset: 'UTF-8'
-          }
-        }
+    // Parse form content - it's formatted as key: value pairs
+    const formFields = {};
+    const formLines = formContent.split('\n').filter(line => line.includes(':'));
+    for (const line of formLines) {
+      const [key, ...valueParts] = line.split(':');
+      const value = valueParts.join(':').trim();
+      if (key && value) {
+        const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '_');
+        formFields[normalizedKey] = value;
       }
-    }));
-    console.log('Form submission email sent, MessageId:', result.MessageId);
-    return true;
+    }
+
+    const { html, text, subject } = renderAdminNewApplication({
+      name: visitorInfo.name || formFields.name || 'New Applicant',
+      email: visitorInfo.email || formFields.email || 'Not provided',
+      company: visitorInfo.company || formFields.company || undefined,
+      role: visitorInfo.role || formFields.role || undefined,
+      message: `Page: ${visitorInfo.page || 'Apply Page'} | IP: ${clientIP || 'Unknown'} | Time: ${new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })} EST`,
+      applicationId: undefined,
+    });
+    const result = await sendToAdmins(subject, html, text);
+    console.log('Form submission email sent:', result.messageId || result.error);
+    return result.success;
   } catch (error) {
     console.error('Form submission email error:', error.message);
     return false;
@@ -555,9 +390,6 @@ Page: ${visitorInfo.page || 'Apply Page'}
 
 // Send Confirmation Email to Applicant via AWS SES
 async function sendApplicantConfirmationEmail(visitorInfo, formContent) {
-  const { SESClient, SendEmailCommand } = await import('@aws-sdk/client-ses');
-  const ses = new SESClient({ region: 'us-east-1' });
-
   const applicantEmail = visitorInfo.email;
   if (!applicantEmail) {
     console.log('No applicant email provided, skipping confirmation email');
@@ -565,151 +397,12 @@ async function sendApplicantConfirmationEmail(visitorInfo, formContent) {
   }
 
   const applicantName = visitorInfo.name || 'Partner';
-  const schedulerUrl = 'https://cocreate-app.com/scheduler.html';
-
-  const emailHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center; }
-    .header h1 { margin: 0; font-size: 28px; }
-    .header p { margin: 10px 0 0 0; opacity: 0.9; font-size: 16px; }
-    .content { background: #fff; border: 1px solid #e0e0e0; border-top: none; padding: 30px; border-radius: 0 0 12px 12px; }
-    .welcome { font-size: 18px; color: #374151; margin-bottom: 20px; }
-    .cta-box { background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 25px; border-radius: 12px; text-align: center; margin: 25px 0; }
-    .cta-box h2 { margin: 0 0 10px 0; font-size: 22px; }
-    .cta-box p { margin: 0 0 20px 0; opacity: 0.9; }
-    .cta-button { display: inline-block; background: white; color: #059669; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; }
-    .cta-button:hover { background: #f0fdf4; }
-    .steps { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
-    .steps h3 { margin: 0 0 15px 0; color: #374151; }
-    .step { display: flex; align-items: flex-start; margin: 12px 0; }
-    .step-number { background: #6366f1; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; flex-shrink: 0; }
-    .step-text { color: #4b5563; }
-    .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center; color: #6b7280; font-size: 14px; }
-    .social-links { margin: 15px 0; }
-    .social-links a { color: #6366f1; text-decoration: none; margin: 0 10px; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>Welcome to CoCreate!</h1>
-      <p>Your application has been received</p>
-    </div>
-    <div class="content">
-      <p class="welcome">Hi ${applicantName},</p>
-
-      <p>Thank you for applying to partner with CoCreate! We're excited about the possibility of building something amazing together.</p>
-
-      <p>Your application has been received and our team will review it within <strong>24 hours</strong>.</p>
-
-      <div class="cta-box">
-        <h2>📅 Schedule Your Discovery Call</h2>
-        <p>Want to fast-track your application? Book a call with our founding team!</p>
-        <a href="${schedulerUrl}" class="cta-button">Book Your Call Now</a>
-      </div>
-
-      <div class="steps">
-        <h3>What happens next?</h3>
-        <div class="step">
-          <div class="step-number">1</div>
-          <div class="step-text"><strong>Application Review</strong> - Our team reviews your application (24 hours)</div>
-        </div>
-        <div class="step">
-          <div class="step-number">2</div>
-          <div class="step-text"><strong>Discovery Call</strong> - We schedule a call to discuss your vision</div>
-        </div>
-        <div class="step">
-          <div class="step-number">3</div>
-          <div class="step-text"><strong>Partnership Agreement</strong> - We finalize terms and kick off your build</div>
-        </div>
-        <div class="step">
-          <div class="step-number">4</div>
-          <div class="step-text"><strong>Product Launch</strong> - Your AI product goes live in 2 weeks!</div>
-        </div>
-      </div>
-
-      <p>If you have any questions in the meantime, simply reply to this email or reach out to us at <a href="mailto:hello@cocreateidea.com">hello@cocreateidea.com</a>.</p>
-
-      <p>We look forward to building with you!</p>
-
-      <p><strong>The CoCreate Team</strong></p>
-
-      <div class="footer">
-        <p>CoCreate - AI Product Studio</p>
-        <p>Building AI products in 2 weeks</p>
-        <div class="social-links">
-          <a href="https://cocreate-app.com">Website</a> |
-          <a href="https://cocreate-app.com/about.html">About Us</a> |
-          <a href="${schedulerUrl}">Book a Call</a>
-        </div>
-        <p style="font-size: 12px; margin-top: 15px;">
-          You received this email because you submitted a partnership application at cocreate-app.com
-        </p>
-      </div>
-    </div>
-  </div>
-</body>
-</html>`;
-
-  const emailText = `
-Hi ${applicantName},
-
-Thank you for applying to partner with CoCreate! We're excited about the possibility of building something amazing together.
-
-Your application has been received and our team will review it within 24 hours.
-
-📅 SCHEDULE YOUR DISCOVERY CALL
-Want to fast-track your application? Book a call with our founding team:
-${schedulerUrl}
-
-WHAT HAPPENS NEXT?
-1. Application Review - Our team reviews your application (24 hours)
-2. Discovery Call - We schedule a call to discuss your vision
-3. Partnership Agreement - We finalize terms and kick off your build
-4. Product Launch - Your AI product goes live in 2 weeks!
-
-If you have any questions, reply to this email or reach out to hello@cocreateidea.com
-
-We look forward to building with you!
-
-The CoCreate Team
----
-CoCreate - AI Product Studio
-Building AI products in 2 weeks
-https://cocreate-app.com
-`;
 
   try {
-    const result = await ses.send(new SendEmailCommand({
-      Source: NOTIFICATION_EMAIL,
-      Destination: {
-        ToAddresses: [applicantEmail]
-      },
-      ReplyToAddresses: [NOTIFICATION_EMAIL],
-      Message: {
-        Subject: {
-          Data: `Welcome to CoCreate! Your Application is Received`,
-          Charset: 'UTF-8'
-        },
-        Body: {
-          Html: {
-            Data: emailHtml,
-            Charset: 'UTF-8'
-          },
-          Text: {
-            Data: emailText,
-            Charset: 'UTF-8'
-          }
-        }
-      }
-    }));
-    console.log('Applicant confirmation email sent to:', applicantEmail, 'MessageId:', result.MessageId);
-    return true;
+    const { html, text, subject } = renderApplicantAcknowledgment({ name: applicantName });
+    const result = await sendTemplatedEmail(applicantEmail, subject, html, text);
+    console.log('Applicant confirmation email sent to:', applicantEmail, result.messageId || result.error);
+    return result.success;
   } catch (error) {
     console.error('Applicant confirmation email error:', error.message);
     return false;
@@ -2433,6 +2126,24 @@ export const handler = async (event) => {
       }
 
       const updatedApp = await updateApplicationStatus(s3Key, status, reviewNotes);
+
+      // Send approval/rejection email to applicant (fire-and-forget)
+      const applicantEmail = updatedApp.visitorInfo?.email || updatedApp.formData?.email;
+      const applicantName = updatedApp.visitorInfo?.name || updatedApp.formData?.name || 'Partner';
+      if (applicantEmail && status === 'approved') {
+        sendTemplate(applicantEmail, renderApplicantApproved, {
+          name: applicantName,
+          guid: updatedApp.guid,
+          builderSessionUrl: updatedApp.sessionLink,
+          deploymentUrl: updatedApp.deploymentUrl,
+        }).catch(err => console.error('Approval email error:', err.message));
+      } else if (applicantEmail && status === 'rejected') {
+        sendTemplate(applicantEmail, renderApplicantRejected, {
+          name: applicantName,
+          reason: reviewNotes || undefined,
+        }).catch(err => console.error('Rejection email error:', err.message));
+      }
+
       return {
         statusCode: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
