@@ -2563,6 +2563,19 @@ export const handler = async (event) => {
           ContentType: 'application/json'
         }));
 
+        // Send welcome email (fire-and-forget)
+        sendTemplate(email, renderUserWelcome, { name: app.visitorInfo?.name || app.formData?.fullName || '', guid }).catch(e => console.error('Welcome email failed:', e.message));
+
+        // Create email-index entry for forgot-password lookup
+        const crypto = await import('crypto');
+        const emailHash = crypto.createHash('sha256').update(email.toLowerCase().trim()).digest('hex');
+        await s3.send(new PutObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: `email-index/${emailHash}.json`,
+          Body: JSON.stringify({ guid, email: email.toLowerCase().trim() }),
+          ContentType: 'application/json'
+        }));
+
         return {
           statusCode: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -2636,6 +2649,38 @@ export const handler = async (event) => {
           Body: JSON.stringify(sessions),
           ContentType: 'application/json'
         }));
+
+        // Track login IP and send new-login alert if needed (fire-and-forget)
+        (async () => {
+          try {
+            const clientIp = event.requestContext?.http?.sourceIp || event.headers?.['X-Forwarded-For']?.split(',')[0]?.trim() || 'Unknown';
+            let loginHistory = { logins: [] };
+            try {
+              const histResult = await s3.send(new GetObjectCommand({ Bucket: S3_BUCKET, Key: `users/${guid}/login-history.json` }));
+              loginHistory = JSON.parse(await histResult.Body.transformToString());
+            } catch (e) { /* No login history yet */ }
+
+            const isNewIp = !loginHistory.logins.some(l => l.ip === clientIp);
+            const isFirstLogin = loginHistory.logins.length === 0;
+
+            loginHistory.logins.push({ ip: clientIp, timestamp: now.toISOString() });
+            loginHistory.logins = loginHistory.logins.slice(-10);
+
+            await s3.send(new PutObjectCommand({
+              Bucket: S3_BUCKET,
+              Key: `users/${guid}/login-history.json`,
+              Body: JSON.stringify(loginHistory),
+              ContentType: 'application/json'
+            }));
+
+            if (isNewIp && !isFirstLogin) {
+              const name = credentials.name || email.split('@')[0];
+              sendTemplate(email, renderNewLoginAlert, { name, guid, ip: clientIp, timestamp: now.toISOString() }).catch(e => console.error('New login alert email failed:', e.message));
+            }
+          } catch (e) {
+            console.error('Login IP tracking failed:', e.message);
+          }
+        })();
 
         return {
           statusCode: 200,
@@ -2934,6 +2979,156 @@ export const handler = async (event) => {
           Body: JSON.stringify(credentials),
           ContentType: 'application/json'
         }));
+
+        // Send password-changed confirmation (fire-and-forget)
+        const name = credentials.name || credentials.email?.split('@')[0] || '';
+        sendTemplate(credentials.email, renderPasswordChanged, { name }).catch(e => console.error('Password changed email failed:', e.message));
+
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: true })
+        };
+      } catch (error) {
+        return {
+          statusCode: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: error.message })
+        };
+      }
+    }
+
+    // Forgot password
+    if (action === 'forgot-password') {
+      const { email } = body;
+      const successResponse = {
+        statusCode: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ success: true, message: 'If an account exists with that email, a reset link has been sent.' })
+      };
+
+      if (!email) return successResponse;
+
+      try {
+        if (await isResetRateLimited(email)) return successResponse;
+
+        const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
+        const crypto = await import('crypto');
+        const s3 = new S3Client({ region: S3_REGION });
+
+        // Look up GUID from email-index
+        const emailHash = crypto.createHash('sha256').update(email.toLowerCase().trim()).digest('hex');
+        let emailIndex;
+        try {
+          const result = await s3.send(new GetObjectCommand({ Bucket: S3_BUCKET, Key: `email-index/${emailHash}.json` }));
+          emailIndex = JSON.parse(await result.Body.transformToString());
+        } catch (e) {
+          return successResponse; // Email not found, return success anyway
+        }
+
+        const guid = emailIndex.guid;
+
+        // Generate reset token
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const now = new Date();
+        const expiresAt = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour
+
+        await s3.send(new PutObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: `users/${guid}/reset-token.json`,
+          Body: JSON.stringify({ token: resetToken, email: email.toLowerCase().trim(), createdAt: now.toISOString(), expiresAt: expiresAt.toISOString() }),
+          ContentType: 'application/json'
+        }));
+
+        // Get user name for the email
+        let name = '';
+        try {
+          const profileResult = await s3.send(new GetObjectCommand({ Bucket: S3_BUCKET, Key: `users/${guid}/profile.json` }));
+          const profile = JSON.parse(await profileResult.Body.transformToString());
+          name = profile.name || '';
+        } catch (e) { /* No profile */ }
+
+        // Send reset email (fire-and-forget)
+        sendTemplate(email, renderPasswordResetLink, { name, guid, resetToken }).catch(e => console.error('Reset email failed:', e.message));
+
+        return successResponse;
+      } catch (error) {
+        console.error('Forgot password error:', error.message);
+        return successResponse; // Always return success
+      }
+    }
+
+    // Reset password
+    if (action === 'reset-password') {
+      const { guid, resetToken, newPassword } = body;
+      if (!guid || !resetToken || !newPassword) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'All fields are required' })
+        };
+      }
+      if (newPassword.length < 6) {
+        return {
+          statusCode: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'Password must be at least 6 characters' })
+        };
+      }
+
+      try {
+        const { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectCommand } = await import('@aws-sdk/client-s3');
+        const bcrypt = (await import('bcryptjs')).default;
+        const s3 = new S3Client({ region: S3_REGION });
+
+        // Read and verify reset token
+        let storedToken;
+        try {
+          const result = await s3.send(new GetObjectCommand({ Bucket: S3_BUCKET, Key: `users/${guid}/reset-token.json` }));
+          storedToken = JSON.parse(await result.Body.transformToString());
+        } catch (e) {
+          return {
+            statusCode: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ success: false, error: 'Invalid or expired reset token' })
+          };
+        }
+
+        if (storedToken.token !== resetToken || new Date(storedToken.expiresAt) < new Date()) {
+          return {
+            statusCode: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ success: false, error: 'Invalid or expired reset token' })
+          };
+        }
+
+        // Update password
+        const credResult = await s3.send(new GetObjectCommand({ Bucket: S3_BUCKET, Key: `users/${guid}/credentials.json` }));
+        const credentials = JSON.parse(await credResult.Body.transformToString());
+        credentials.passwordHash = await bcrypt.hash(newPassword, 10);
+
+        await s3.send(new PutObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: `users/${guid}/credentials.json`,
+          Body: JSON.stringify(credentials),
+          ContentType: 'application/json'
+        }));
+
+        // Delete reset token (single-use)
+        await s3.send(new DeleteObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: `users/${guid}/reset-token.json`
+        }));
+
+        // Send password-changed confirmation (fire-and-forget)
+        let name = '';
+        try {
+          const profileResult = await s3.send(new GetObjectCommand({ Bucket: S3_BUCKET, Key: `users/${guid}/profile.json` }));
+          const profile = JSON.parse(await profileResult.Body.transformToString());
+          name = profile.name || '';
+        } catch (e) { /* No profile */ }
+
+        sendTemplate(storedToken.email, renderPasswordChanged, { name }).catch(e => console.error('Password changed email failed:', e.message));
 
         return {
           statusCode: 200,
