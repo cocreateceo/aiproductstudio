@@ -1078,7 +1078,7 @@ export async function handleSendAdminSummaryReport({ body, corsHeaders, S3_REGIO
   try {
     const { SESClient, SendEmailCommand } = await import('@aws-sdk/client-ses');
     const ses = new SESClient({ region: 'us-east-1' });
-    const adminEmail = 'CEO@cocreateidea.com';
+    const adminEmails = ['CEO@cocreateidea.com', 'COO@cocreateidea.com', 'CTO@cocreateidea.com'];
     const ccEmail = 'info@cocreateidea.com';
 
     const summaryData = await computeAdminSummaryData({ S3_REGION, ADMIN_PASSWORD, listApplications });
@@ -1086,9 +1086,9 @@ export async function handleSendAdminSummaryReport({ body, corsHeaders, S3_REGIO
     const text = generateAdminSummaryText(summaryData);
 
     const result = await ses.send(new SendEmailCommand({
-      Source: adminEmail,
-      Destination: { ToAddresses: [adminEmail, ccEmail] },
-      ReplyToAddresses: [adminEmail],
+      Source: 'noreply@cocreateidea.com',
+      Destination: { ToAddresses: adminEmails, CcAddresses: [ccEmail] },
+      ReplyToAddresses: ['CEO@cocreateidea.com'],
       Message: {
         Subject: {
           Data: `Admin Cost Summary - ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
@@ -1101,7 +1101,7 @@ export async function handleSendAdminSummaryReport({ body, corsHeaders, S3_REGIO
       }
     }));
 
-    console.log('[Admin Summary] Sent admin summary to:', adminEmail, '+', ccEmail, 'MessageId:', result.MessageId);
+    console.log('[Admin Summary] Sent admin summary to:', adminEmails.join(', '), '+ CC:', ccEmail, 'MessageId:', result.MessageId);
 
     return {
       statusCode: 200,
