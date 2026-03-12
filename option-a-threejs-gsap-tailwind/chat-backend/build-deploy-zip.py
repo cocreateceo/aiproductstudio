@@ -12,9 +12,11 @@ def longpath(p):
     return abs_p
 
 with zipfile.ZipFile(zippath, 'w', zipfile.ZIP_DEFLATED) as zf:
-    # Add root index.mjs
-    zf.write('index.mjs', 'index.mjs')
-    print('Added: index.mjs')
+    # Add root .mjs files
+    for f in ['index.mjs', 'email-templates.mjs', 'email-service.mjs']:
+        if os.path.exists(f):
+            zf.write(f, f)
+            print(f'Added: {f}')
 
     # Add aws-costs/index.mjs
     zf.write('aws-costs/index.mjs', 'aws-costs/index.mjs')
