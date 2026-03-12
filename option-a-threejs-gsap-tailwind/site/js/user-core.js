@@ -1482,6 +1482,22 @@
             return;
         }
 
+        // Check for unsubscribe parameter (e.g., ?unsubscribe=weeklyDigest)
+        const unsubscribeParam = new URLSearchParams(window.location.search).get('unsubscribe');
+        if (unsubscribeParam && currentGuid) {
+            apiCall('update-email-preferences', { guid: currentGuid, preferences: { [unsubscribeParam]: false } })
+                .then(function(result) {
+                    if (result.success) {
+                        showToast('You have been unsubscribed.', 'success');
+                    } else {
+                        showToast(result.error || 'Failed to unsubscribe.', 'error');
+                    }
+                })
+                .catch(function() {
+                    showToast('Failed to unsubscribe. Please try again.', 'error');
+                });
+        }
+
         try {
             // First check if user exists
             const checkResult = await checkUser(currentGuid);
