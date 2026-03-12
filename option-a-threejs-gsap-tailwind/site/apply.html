@@ -862,6 +862,41 @@ Example: I'm a restaurant consultant and I want to build an AI tool that helps r
         const originalBtnText = submitBtn.innerHTML;
         let isSubmitting = false;
 
+        // Toast notification system
+        function showToast(message, type = 'error') {
+            // Remove existing toast if any
+            const existing = document.getElementById('toast-notification');
+            if (existing) existing.remove();
+
+            const toast = document.createElement('div');
+            toast.id = 'toast-notification';
+            const bgColor = type === 'error' ? 'rgba(239, 68, 68, 0.95)' : type === 'success' ? 'rgba(34, 197, 94, 0.95)' : 'rgba(196, 103, 26, 0.95)';
+            toast.style.cssText = `
+                position: fixed; top: 24px; right: 24px; z-index: 9999;
+                max-width: 420px; padding: 16px 20px; border-radius: 12px;
+                background: ${bgColor}; color: white;
+                font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; line-height: 1.5;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.3); backdrop-filter: blur(8px);
+                display: flex; align-items: flex-start; gap: 12px;
+                transform: translateX(120%); transition: transform 0.3s ease;
+            `;
+            const icon = type === 'error' ? '&#10006;' : type === 'success' ? '&#10004;' : '&#9888;';
+            toast.innerHTML = `
+                <span style="font-size: 18px; flex-shrink: 0; margin-top: 1px;">${icon}</span>
+                <span style="flex: 1;">${message}</span>
+                <button onclick="this.parentElement.style.transform='translateX(120%)';setTimeout(()=>this.parentElement.remove(),300)"
+                    style="background:none;border:none;color:white;font-size:18px;cursor:pointer;padding:0;margin:-4px -4px 0 0;opacity:0.8;flex-shrink:0;">&times;</button>
+            `;
+            document.body.appendChild(toast);
+            requestAnimationFrame(() => { toast.style.transform = 'translateX(0)'; });
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.style.transform = 'translateX(120%)';
+                    setTimeout(() => toast.remove(), 300);
+                }
+            }, 6000);
+        }
+
         // Handle validation results from AI agent
         function handleValidationResult(fields) {
             // Clear all previous errors
@@ -947,7 +982,11 @@ Example: I'm a restaurant consultant and I want to build an AI tool that helps r
                     window.location.href = `https://calendly.com/cocreateceo/30min?${calendlyParams.toString()}`;
                 } else {
                     // Validation failed - show errors
-                    handleValidationResult(result.fields);
+                    if (result.error) {
+                        showToast(result.error, 'warning');
+                    } else if (result.fields) {
+                        handleValidationResult(result.fields);
+                    }
 
                     // Reset button for retry
                     isSubmitting = false;
@@ -958,7 +997,7 @@ Example: I'm a restaurant consultant and I want to build an AI tool that helps r
                 }
             } catch (error) {
                 console.error('Form submission error:', error);
-                alert('There was an error submitting your application. Please try again or contact us directly.');
+                showToast('There was an error submitting your application. Please try again or contact us directly.');
 
                 // Reset button on error
                 isSubmitting = false;

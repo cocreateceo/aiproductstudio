@@ -2039,6 +2039,212 @@ async function chatWithOpenAI(messages, hasContactInfo, screenshot = null) {
   }
 }
 
+// Form validation prompt for AI-powered form validation
+const FORM_VALIDATION_PROMPT = `You are a form validation agent. You receive form data as JSON and validate specific fields.
+
+VALIDATION RULES:
+
+1. NAME - Validate for:
+   - Must be at least 2 characters
+   - No numbers allowed
+   - Detect gibberish (asdf, qwerty, aasdjf, fghj, etc.)
+   - Detect fake names (test, admin, user, none, fake)
+   - Detect keyboard mashing patterns
+   If invalid: set valid=false, KEEP the original value in "value", provide helpful error message
+
+2. EMAIL - Validate for:
+   - Must be valid email format (name@domain.com)
+   - Detect gibberish emails (asdf@asdf.com)
+   - Detect obviously fake domains (test.com, fake.com, example.com)
+   - Detect disposable email providers (tempmail, guerrillamail, mailinator, etc.)
+   If invalid: set valid=false, KEEP the original value in "value", provide helpful error message
+
+3. PRODUCT IDEA - Validate for:
+   REJECT if:
+   - Gibberish, random text, keyboard mashing (asdfasdf, xyz123)
+   - Off-topic text (weather, food, unrelated personal topics)
+   - Placeholder text (TBD, test, n/a, lorem ipsum, "will fill later")
+   - Too vague with no clear problem/solution ("an app", "something with AI", "a platform")
+   - Doesn't describe what problem it solves or who it helps
+   - Fantasy/unrealistic ideas with no feasible path ("teleportation device", "mind reading app")
+   - Just a buzzword combo with no substance ("AI blockchain metaverse solution")
+
+   ACCEPT if:
+   - Describes a specific product/service concept
+   - Identifies a problem it solves OR a target audience it helps
+   - Is feasible with current technology (even if ambitious)
+   - Brief is OK if clear: "AI tool to help restaurants price their menu based on costs and competition"
+
+   If invalid: set valid=false, KEEP the original value in "value", provide helpful error explaining what's missing (e.g., "Please describe what problem your product solves and who it helps")
+
+OTHER FIELDS: Pass through unchanged with just "value" property.
+
+RESPONSE FORMAT: Return ONLY valid JSON matching this structure:
+{
+  "success": true/false,
+  "fields": {
+    "name": { "valid": true, "value": "John Smith" },
+    "email": { "valid": true, "value": "john@company.com" },
+    "productIdea": { "valid": true, "value": "An AI tool for..." },
+    "phone": { "value": "+1 555..." },
+    "linkedin": { "value": "..." },
+    ... (all other fields with just "value")
+  }
+}
+
+Set "success": true ONLY if ALL 3 core validations (name, email, productIdea) pass.
+Return ONLY the JSON. No explanation text before or after.`;
+
+// Handle form validation using AI agent
+async function handleFormValidation(formData, visitorInfo, clientIP) {
+  const userMessage = `Validate this form data and return JSON response:
+${JSON.stringify(formData, null, 2)}`;
+
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: FORM_VALIDATION_PROMPT,
+      messages: [{ role: 'user', content: userMessage }]
+    });
+
+    // Parse AI response
+    const responseText = response.content[0].text.trim();
+    let validationResult;
+
+    try {
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        validationResult = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('No JSON found in response');
+      }
+    } catch (parseError) {
+      console.error('Failed to parse AI validation response:', parseError.message);
+      console.error('Raw response:', responseText);
+      return {
+        success: false,
+        error: 'Validation service error - please try again'
+      };
+    }
+
+    if (!validationResult.success) {
+      console.log('Form validation failed:', validationResult.fields);
+      return {
+        success: false,
+        fields: validationResult.fields
+      };
+    }
+
+    // Validation passed → check for duplicate, save to S3, send emails
+    console.log('Form validation passed, saving application...');
+
+    const { S3Client, ListObjectsV2Command, PutObjectCommand } = await import('@aws-sdk/client-s3');
+    const s3 = new S3Client({ region: S3_REGION });
+
+    // Check for duplicate email submission
+    const email = formData.email?.toLowerCase();
+    if (email) {
+      const userFolder = email.replace(/@/g, '_at_').replace(/\./g, '_').replace(/[^a-z0-9_-]/g, '');
+      try {
+        const existingApps = await s3.send(new ListObjectsV2Command({
+          Bucket: S3_BUCKET,
+          Prefix: `applications/${userFolder}/`,
+          MaxKeys: 1
+        }));
+        if (existingApps.Contents && existingApps.Contents.length > 0) {
+          console.log('Duplicate application detected for:', email);
+          return {
+            success: false,
+            fields: validationResult.fields,
+            error: 'An application with this email already exists. Our team will be in touch soon!'
+          };
+        }
+      } catch (err) {
+        // Ignore errors, proceed with save
+      }
+    }
+
+    // Save to S3
+    const timestamp = new Date().toISOString();
+    const dateFolder = timestamp.split('T')[0];
+    let userFolder = 'anonymous';
+    if (email) {
+      userFolder = email.replace(/@/g, '_at_').replace(/\./g, '_').replace(/[^a-z0-9_-]/g, '');
+    } else if (formData.name) {
+      userFolder = formData.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_-]/g, '');
+    }
+
+    const randomSuffix = Math.random().toString(36).substring(2, 8);
+    const filename = `${timestamp.replace(/[:.]/g, '-')}_${randomSuffix}.json`;
+    const s3Key = `applications/${userFolder}/${dateFolder}/${filename}`;
+
+    const applicationData = {
+      submittedAt: timestamp,
+      submittedAtEST: new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }),
+      status: 'pending',
+      source: 'direct-form',
+      visitorInfo: {
+        name: formData.name || null,
+        email: formData.email || null,
+        phone: formData.phone || null,
+        ...visitorInfo
+      },
+      clientIP: clientIP || 'Unknown',
+      formData: formData
+    };
+
+    await s3.send(new PutObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: s3Key,
+      Body: JSON.stringify(applicationData, null, 2),
+      ContentType: 'application/json'
+    }));
+
+    console.log('Application saved to S3:', s3Key);
+
+    // Send admin notification email using new template system
+    try {
+      const emailData = {
+        name: formData.name || 'Not provided',
+        email: formData.email || 'Not provided',
+        productIdea: formData.productIdea || 'Not provided',
+        source: 'Direct Form',
+        s3Key
+      };
+      await sendTemplateToAdmins(renderAdminNewApplication, emailData);
+      console.log('Admin notification email sent');
+    } catch (emailError) {
+      console.error('Admin email notification failed:', emailError.message);
+    }
+
+    // Send applicant acknowledgment email
+    try {
+      if (formData.email) {
+        await sendTemplate(formData.email, renderApplicantAcknowledgment, {
+          name: formData.name || 'Applicant'
+        });
+        console.log('Applicant acknowledgment email sent');
+      }
+    } catch (emailError) {
+      console.error('Applicant acknowledgment email failed:', emailError.message);
+    }
+
+    return {
+      success: true,
+      fields: validationResult.fields,
+      message: 'Application submitted successfully'
+    };
+
+  } catch (error) {
+    console.error('Form validation error:', error);
+    return {
+      success: false,
+      error: 'Validation service error - please try again'
+    };
+  }
+}
+
 // Main handler
 export const handler = async (event) => {
   // Handle CORS preflight
@@ -2066,6 +2272,16 @@ export const handler = async (event) => {
     const clientIP = event.requestContext?.http?.sourceIp ||
                      event.headers?.['x-forwarded-for']?.split(',')[0] ||
                      'Unknown';
+
+    // ========== FORM VALIDATION ENDPOINT ==========
+    if (body.mode === 'validate') {
+      const result = await handleFormValidation(body.formData, visitorInfo, clientIP);
+      return {
+        statusCode: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify(result)
+      };
+    }
 
     // ========== ADMIN ENDPOINTS ==========
 
