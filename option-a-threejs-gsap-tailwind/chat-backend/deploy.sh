@@ -77,8 +77,8 @@ EOF
         --role $ROLE_ARN \
         --handler index.handler \
         --zip-file fileb://function.zip \
-        --timeout 30 \
-        --memory-size 256 \
+        --timeout 90 \
+        --memory-size 1536 \
         --environment "Variables={ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY},OPENAI_API_KEY=${OPENAI_API_KEY},SMS_PHONE_NUMBERS=${SMS_PHONE_NUMBERS:-}}" \
         --profile $PROFILE \
         --region $REGION

@@ -216,41 +216,37 @@ async function fetchAllResourcePrices({ instanceTypes = [], volumeTypes = [] } =
  * Used as fallback when AWS resource tags are not set.
  * New projects should use AWS resource tags (project=<name>) instead.
  */
+/**
+ * PROJECT_PATTERNS — explicit patterns for projects that can't be auto-detected.
+ * Most projects are now auto-detected from deployment naming conventions
+ * (e.g., "{app}-production-*"). Only add patterns here for resources that
+ * don't follow standard naming or need special grouping.
+ */
 const PROJECT_PATTERNS = {
   'Career Builder': [/^careers?[-_]/i, /careers-production/i],
   'CoCreate AI':    [/^cocreate[-_]ai/i],
   'Tmux Builder':   [
     /^tmux[-_]/i, /tmux-builder/i,
-    // Tmux Builder deployed projects (cocreate-{user}-{slug} pattern)
+    // Tmux Builder deployed projects follow cocreate-{user}-{slug} pattern
     /^cocreate-[a-z0-9]{4,8}-/i,
-    // Tmux Builder demo sites (name-TIMESTAMP pattern)
-    /^animation[-_]site/i, /^aqua[-_]paradise/i, /^biolumina/i, /^blade[-_]barbershop/i,
-    /^circuitcore/i, /^cookhub/i, /^cropion/i, /^elite[-_]cuts/i, /^fish[-_]shop/i,
-    /^glamour[-_]studio/i, /^growthpulse/i, /^kids[-_]cartoon/i, /^launchpad[-_]mvp/i,
-    /^luxe[-_]ecommerce/i, /^mobileshop/i, /^mvp[-_]/i, /^nexus[-_]?test/i,
-    /^nexusdigital/i, /^oakwood[-_]school/i, /^petshop/i, /^prestige[-_]motors/i,
-    /^restaurant[-_]/i, /^shimmer[-_]demo/i, /^showcase[-_]site/i, /^swiftride/i,
-    /^taskflow[-_]todo/i, /^todo[-_]app/i, /^toonworld/i, /^toybox/i,
-    // Tmux Builder infra & sub-projects
-    /^agentcore[-_]/i, /^eis[-_]dynamics/i, /^ai[-_]office/i, /^weather[-_]/i,
-    /^hr[-_]chatbot/i, /^safex[-_]/i, /^petinsure/i, /^pred[-_]maint/i,
-    /^dwh[-_]/i, /^sempra/i, /^sunware[-_]digimarket/i,
-    /^ui[-_]js[-_]api/i, /^ui[-_]wss/i, /^devgenius/i, /^dev[-_]swc/i,
-    /^genius[-_]app/i, /^vyli/i, /^ed[-_]cloud/i, /^edgedata/i,
-    // EC2 instances created via Tmux Builder
-    /^flow[-_ ]pipeline/i, /^rcm[-_ ]smart/i, /^ash[-_ ]test/i,
     // EC2 origin patterns (CloudFront → EC2)
     /^ec2-\d+/i
   ],
-  'Vedic Astro':    [/^vedic[-_]?astro/i, /^vedic[-_]/i, /vedics\.net/i, /^10x\.vedics/i, /vedic[-_]wellness/i],
+  'Vedic Astro':    [/^vedic[-_]?astro/i, /vedics\.net/i, /^10x\.vedics/i, /vedic[-_]wellness/i],
   'AI Product Studio': [/^cocreateidea/i, /^cocreate[-_]app/i, /ai[-_]product[-_]studio/i, /^cocreate[-_]applications/i, /^aws[-_]cost[-_](dashboard|reports|analyzer)/i]
 };
 
 /**
- * Projects created by Tmux Builder should roll up under "Tmux Builder".
- * Map tag values from sub-projects to the parent project name.
+ * Auto-detected project name corrections.
+ * SST/CloudFormation may truncate app names. Map detected names to display names.
+ * Also maps child/sub-project tag values to their parent project.
  */
-const CHILD_PROJECT_MAP = {
+const PROJECT_NAME_FIXES = {
+  // Truncated SST names (CloudFormation has character limits)
+  'vedic transfor': 'Vedic Transform',
+  'vedic transf': 'Vedic Transform',
+  'medical ai': 'Medical AI',
+  // Child projects that should roll up to parents (tag values → parent)
   'aws-agentcore': 'Tmux Builder',
   'ai_office_assistant': 'Tmux Builder',
   'eis-dynamics-poc': 'Tmux Builder',
@@ -272,20 +268,42 @@ function getProjectFromTags(tags) {
   return tags.project || tags.Project || tags.application || tags.Application || tags.app || null;
 }
 
-/** Fallback: infer project from resource name using regex patterns. */
+/** Fallback: infer project from resource name using regex patterns + auto-detection. */
 function inferProjectFromName(resourceName) {
   const name = (resourceName || '').toLowerCase();
+  // 1. Check explicit patterns first (for resources that need special grouping)
   for (const [proj, patterns] of Object.entries(PROJECT_PATTERNS)) {
     for (const pat of patterns) {
       if (pat.test(name)) return proj;
     }
   }
+  // 2. Auto-detect from deployment naming conventions
+  //    SST/Serverless: "{app}-production-*", "{app}-staging-*", "{app}-dev-*"
+  const envSuffixes = /[-_](production|staging|dev|test|prod)[-_]/i;
+  const envMatch = name.match(envSuffixes);
+  if (envMatch) {
+    const appName = name.slice(0, envMatch.index);
+    if (appName && appName.length >= 3) {
+      const titleCase = appName.split(/[-_]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      return PROJECT_NAME_FIXES[appName] || titleCase;
+    }
+  }
+  // 3. Auto-detect from common resource suffixes: "{app}-server", "{app}-api", "{app}-backend"
+  const resSuffixes = /[-_](server|api|backend|frontend|worker|app|web|wss|wss-server)$/i;
+  const resMatch = name.match(resSuffixes);
+  if (resMatch) {
+    const appName = name.slice(0, resMatch.index);
+    if (appName && appName.length >= 3) {
+      const titleCase = appName.split(/[-_]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      return PROJECT_NAME_FIXES[appName] || titleCase;
+    }
+  }
   return DEFAULT_PROJECT;
 }
 
-/** Normalize a resolved project name: map child projects to their parent. */
+/** Normalize a resolved project name: fix truncations and map child projects to parents. */
 function normalizeProject(name) {
-  return CHILD_PROJECT_MAP[(name || '').toLowerCase()] || name;
+  return PROJECT_NAME_FIXES[(name || '').toLowerCase()] || name;
 }
 
 /** Unified resolver: tags first, then name-based fallback. Normalizes child projects. */
@@ -973,7 +991,7 @@ async function fetchEC2Instances() {
         const instanceName = tags.Name || tags.name || inst.InstanceId;
         const instanceType = inst.InstanceType;
         const state = inst.State?.Name || 'unknown';
-        const project = tags.Project || tags.project || tags.Application || tags.app || inferProjectName(instanceName);
+        const project = resolveProject(inst.Tags || [], instanceName);
         const monthlyCost = state === 'running' ? estimateMonthlyInstanceCost(instanceType) : 0;
 
         instances.push({
@@ -1115,37 +1133,7 @@ function estimateMonthlyInstanceCost(instanceType) {
   return r2(hourly * HOURS_PER_MONTH);
 }
 
-function inferProjectName(instanceName) {
-  if (!instanceName) return 'Unknown';
-  const name = instanceName.toLowerCase().trim();
-
-  // Common patterns: "project-name-suffix" or "project-name"
-  // Strip common suffixes like -server, -api, -web, -worker, -prod, -staging, -dev
-  const suffixes = ['-server', '-api', '-web', '-worker', '-prod', '-staging', '-dev', '-test',
-                    '-wss-server', '-wss', '-backend', '-frontend', '-app'];
-
-  let project = name;
-  for (const suffix of suffixes) {
-    if (project.endsWith(suffix)) {
-      project = project.slice(0, -suffix.length);
-      break;
-    }
-  }
-
-  // Also try splitting by common delimiter patterns for compound names
-  // e.g. "tmux-builder-cocreateceo" → "tmux-builder"
-  // Check if the last segment looks like an org/user identifier
-  const parts = project.split('-');
-  if (parts.length >= 3) {
-    const lastPart = parts[parts.length - 1];
-    // If last part looks like an org identifier (>8 chars, no numbers), strip it
-    if (lastPart.length > 8 && !/\d/.test(lastPart)) {
-      project = parts.slice(0, -1).join('-');
-    }
-  }
-
-  return project || 'Unknown';
-}
+// inferProjectName removed — use resolveProject() or inferProjectFromName() instead
 
 /**
  * Returns EC2 instances grouped by project name with estimated monthly costs.
@@ -1161,7 +1149,7 @@ export async function handleAwsProjectCosts({ body, corsHeaders, ADMIN_PASSWORD 
     // Group instances by inferred project name
     const projectMap = {};
     for (const inst of instances) {
-      const projectName = inferProjectName(inst.name);
+      const projectName = resolveProject(inst.allTags || [], inst.name);
       if (!projectMap[projectName]) {
         projectMap[projectName] = { name: projectName, instances: [], estimatedMonthlyCost: 0, instanceCount: 0 };
       }
@@ -3088,12 +3076,14 @@ export async function handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PAS
 
       // Lambda
       const lambdaByProj = {};
+      console.log('[Batch] Lambda functions count:', lambdaFns.length);
       for (const fn of lambdaFns) {
         const fnTags = lambdaTagMap[fn.FunctionArn] || null;
         const projName = resolveProject(fnTags, fn.FunctionName);
         if (!lambdaByProj[projName]) lambdaByProj[projName] = [];
         lambdaByProj[projName].push(fn.FunctionName);
       }
+      console.log('[Batch] Lambda by project:', JSON.stringify(Object.fromEntries(Object.entries(lambdaByProj).map(([k,v]) => [k, v.length]))));
       const lambdaCostMtd = serviceCosts['AWS Lambda'] || 0;
       const totalLambdaFns = lambdaFns.length || 1;
       for (const [projName, fns] of Object.entries(lambdaByProj)) {

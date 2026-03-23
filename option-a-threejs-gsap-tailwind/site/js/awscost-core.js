@@ -11,6 +11,9 @@
         ? AppConfig.api.chat
         : 'https://mcndu8ynsa.execute-api.us-east-1.amazonaws.com/prod/';
 
+    // Lambda Function URL for heavy batch calls (no 30s API Gateway timeout limit)
+    const BATCH_API_URL = 'https://2jeprn5g4yodsr3sa43fwbasgu0pfoah.lambda-url.us-east-1.on.aws/';
+
     // ── State ───────────────────────────────────────────────────
     let adminPassword = '';
     let summaryData = null;
@@ -236,13 +239,14 @@
 
         try {
             // Batch: 2 calls instead of 10 (shared AWS data fetched once server-side)
+            // Uses Lambda Function URL directly to avoid API Gateway 30s timeout
             var results = await Promise.all([
-                fetch(API_URL, {
+                fetch(BATCH_API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'aws-cost-dashboard-batch', password: adminPassword, startDate: startDate, endDate: endDate })
                 }).then(function (r) { return r.json(); }),
-                fetch(API_URL, {
+                fetch(BATCH_API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'aws-cost-storage-batch', password: adminPassword })
@@ -1693,267 +1697,9 @@
         return '<span style="display:inline-block;padding:3px 10px;border-radius:6px;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.03em;background:' + s.bg + ';color:' + s.color + ';min-width:70px;text-align:center">' + s.label + '</span>';
     }
 
-    /**
-     * Transform the admin summary response + EC2 instance data into a unified
-     * projects array that includes ALL infrastructure resources mapped to projects.
-     */
-    function buildProjectCostData(res) {
-        if (!res || !res.success) return { projects: [] };
-
-        var projects = [];
-
-        // 1. AI Product Studio infra (from admin summary)
-        var aiCosts = res.aiProductStudioCosts || [];
-        if (aiCosts.length > 0) {
-            var aiTotal = res.aiProductStudioTotal || aiCosts.reduce(function (s, r) { return s + (r.monthlyCost || 0); }, 0);
-            var prevAiTotal = res.prevAiProductStudioTotal || null;
-            var aiServices = [];
-            var aiServiceSet = {};
-            aiCosts.forEach(function (r) {
-                if (!aiServiceSet[r.service]) aiServiceSet[r.service] = true;
-                aiServices.push(r);
-            });
-            projects.push({
-                name: 'AI Product Studio',
-                category: 'infra',
-                serviceList: Object.keys(aiServiceSet).join(', '),
-                resources: aiServices,
-                total: aiTotal,
-                prevTotal: prevAiTotal
-            });
-        }
-
-        // 2. Tmux Builder infra (from admin summary)
-        var tmuxCosts = res.tmuxBuilderCosts || [];
-        if (tmuxCosts.length > 0) {
-            var tmuxTotal = res.tmuxBuilderTotal || tmuxCosts.reduce(function (s, r) { return s + (r.monthlyCost || 0); }, 0);
-            var prevTmuxTotal = res.prevTmuxBuilderTotal || null;
-            var tmuxServiceSet = {};
-            tmuxCosts.forEach(function (r) { tmuxServiceSet[r.service] = true; });
-            projects.push({
-                name: 'Tmux Builder',
-                category: 'infra',
-                serviceList: Object.keys(tmuxServiceSet).join(', '),
-                resources: tmuxCosts,
-                total: tmuxTotal,
-                prevTotal: prevTmuxTotal
-            });
-        }
-
-        // 3. EC2 instances → map to correct projects
-        // Project mapping rules:
-        //   careers-* → Career Builder
-        //   cocreate-ai* → CoCreate AI
-        //   tmux-* → Tmux Builder
-        //   everything else → AI Product Studio
-        var ec2Instances = (serviceDetailData && serviceDetailData.ec2Instances) ? serviceDetailData.ec2Instances : [];
-        var aiProj = projects.find(function (p) { return p.name === 'AI Product Studio'; });
-        var tmuxProj = projects.find(function (p) { return p.name === 'Tmux Builder'; });
-
-        // Dynamic project holders for Career Builder and CoCreate AI
-        var careerProj = null;
-        var cocreateAiProj = null;
-
-        ec2Instances.forEach(function (inst) {
-            var instName = (inst.name || '').toLowerCase();
-            var targetProj = null;
-
-            if (instName.indexOf('tmux') >= 0) {
-                targetProj = tmuxProj;
-            } else if (instName.indexOf('careers') >= 0 || instName.indexOf('career') >= 0) {
-                if (!careerProj) {
-                    careerProj = { name: 'Career Builder', category: 'infra', serviceList: 'EC2', resources: [], total: 0, prevTotal: null };
-                    projects.push(careerProj);
-                }
-                targetProj = careerProj;
-            } else if (instName.indexOf('cocreate-ai') >= 0 || instName.indexOf('cocreate_ai') >= 0) {
-                if (!cocreateAiProj) {
-                    cocreateAiProj = { name: 'CoCreate AI', category: 'infra', serviceList: 'EC2', resources: [], total: 0, prevTotal: null };
-                    projects.push(cocreateAiProj);
-                }
-                targetProj = cocreateAiProj;
-            } else {
-                targetProj = aiProj;
-            }
-
-            if (!targetProj) return;
-
-            var alreadyListed = targetProj.resources.some(function (r) {
-                return r.resource && r.resource.indexOf(inst.name) >= 0;
-            });
-            if (!alreadyListed) {
-                targetProj.resources.push({
-                    service: 'EC2',
-                    resource: inst.name + ' (' + (inst.type || '--') + ')',
-                    details: inst.state + ', ' + (inst.publicIp || 'no public IP'),
-                    monthlyCost: inst.estimatedMonthlyCost || 0,
-                    prevMonthlyCost: null
-                });
-                targetProj.total += inst.estimatedMonthlyCost || 0;
-            }
-            if (!targetProj.serviceList.includes('EC2')) {
-                targetProj.serviceList += ', EC2';
-            }
-        });
-
-        // 4. Map service-level costs from Cost Explorer to projects
-        // Career Builder uses: RDS, ElastiCache, ECS, ELB, ECR, CodeBuild, Secrets Manager
-        // These are the BIGGEST costs and must be attributed correctly
-        var svcDetails = (serviceDetailData && serviceDetailData.serviceDetails) ? serviceDetailData.serviceDetails : {};
-
-        // Services that belong entirely to Career Builder
-        var careerServices = {
-            'Amazon Relational Database Service': 'RDS Database',
-            'Amazon ElastiCache': 'ElastiCache (Redis)',
-            'Amazon Elastic Container Service': 'ECS (containers)',
-            'Amazon Elastic Load Balancing': 'ALB Load Balancer',
-            'Amazon EC2 Container Registry (ECR)': 'ECR (container images)',
-            'CodeBuild': 'CodeBuild (CI/CD)',
-            'AWS Secrets Manager': 'Secrets Manager'
-        };
-
-        if (!careerProj) {
-            careerProj = { name: 'Career Builder', category: 'infra', serviceList: 'EC2', resources: [], total: 0, prevTotal: null };
-            projects.push(careerProj);
-        }
-
-        var careerSvcSet = {};
-        Object.keys(careerServices).forEach(function (awsSvcName) {
-            var svc = svcDetails[awsSvcName];
-            if (!svc || svc.totalCost < 0.001) return;
-            var label = careerServices[awsSvcName];
-            var shortName = label.split(' ')[0]; // e.g. 'RDS', 'ElastiCache', etc.
-            careerSvcSet[shortName] = true;
-            careerProj.resources.push({
-                service: shortName,
-                resource: label,
-                details: 'careers-production cluster',
-                monthlyCost: svc.totalCost,
-                prevMonthlyCost: null
-            });
-            careerProj.total += svc.totalCost;
-        });
-        var careerSvcList = Object.keys(careerSvcSet);
-        if (careerSvcList.length > 0) {
-            careerProj.serviceList = careerProj.serviceList ? careerProj.serviceList + ', ' + careerSvcList.join(', ') : careerSvcList.join(', ');
-        }
-
-        // 5. Shared costs (VPC, CloudWatch) — split proportionally or attribute to "Shared"
-        var sharedServices = {
-            'Amazon Virtual Private Cloud': 'VPC (NAT Gateway, networking)',
-            'AmazonCloudWatch': 'CloudWatch (monitoring & logs)'
-        };
-        var sharedTotal = 0;
-        var sharedResources = [];
-        Object.keys(sharedServices).forEach(function (awsSvcName) {
-            var svc = svcDetails[awsSvcName];
-            if (!svc || svc.totalCost < 0.001) return;
-            sharedTotal += svc.totalCost;
-            sharedResources.push({
-                service: awsSvcName.indexOf('VPC') >= 0 ? 'VPC' : 'CloudWatch',
-                resource: sharedServices[awsSvcName],
-                details: 'Shared across all projects',
-                monthlyCost: svc.totalCost,
-                prevMonthlyCost: null
-            });
-        });
-        if (sharedResources.length > 0) {
-            projects.push({
-                name: 'Shared Infrastructure',
-                category: 'infra',
-                serviceList: 'VPC, CloudWatch',
-                resources: sharedResources,
-                total: sharedTotal,
-                prevTotal: null
-            });
-        }
-
-        // 6. CoCreate AI — add CloudFront distributions
-        if (cocreateAiProj) {
-            if (!cocreateAiProj.serviceList.includes('CloudFront')) {
-                cocreateAiProj.serviceList += ', CloudFront';
-            }
-        }
-
-        // 7. Vedic Astro — SST-deployed project (S3, CloudFront, Lambda)
-        // Estimated from CloudWatch: ~69K requests, ~730MB data = ~$0.13/mo
-        var vedicCfCost = 0.06;  // ~730MB × $0.085/GB
-        var vedicLambdaCost = 0; // Within free tier
-        var vedicS3Cost = 0.01;  // Minimal static assets
-        var vedicTotal = vedicCfCost + vedicLambdaCost + vedicS3Cost;
-        var vedicProj = { name: 'Vedic Astro', category: 'infra', serviceList: 'Lambda, S3, CloudFront', resources: [], total: vedicTotal, prevTotal: null };
-        vedicProj.resources.push({
-            service: 'Lambda',
-            resource: 'vedic-astro-production (21 functions)',
-            details: 'SST-deployed API + newsletters (free tier)',
-            monthlyCost: vedicLambdaCost,
-            prevMonthlyCost: null
-        });
-        vedicProj.resources.push({
-            service: 'S3',
-            resource: 'vedic-astro-production-* buckets',
-            details: 'Static site assets',
-            monthlyCost: vedicS3Cost,
-            prevMonthlyCost: null
-        });
-        vedicProj.resources.push({
-            service: 'CloudFront',
-            resource: 'd3r8o59ewzr723.cloudfront.net',
-            details: '~69K requests, ~730MB/mo',
-            monthlyCost: vedicCfCost,
-            prevMonthlyCost: null
-        });
-        projects.push(vedicProj);
-
-        // 8. User projects (CoCreate deployed shops) → part of Tmux Builder platform
-        var users = res.users || [];
-        users.forEach(function (user) {
-            (user.projects || []).forEach(function (proj) {
-                if (!proj.costs || proj.costs.total < 0.001) return;
-                if (!tmuxProj) return;
-
-                if (proj.costs.s3 && proj.costs.s3.total > 0) {
-                    var userName = user.name || user.email || 'User';
-                    var projLabel = proj.projectName || 'Project';
-                    tmuxProj.resources.push({
-                        service: 'S3',
-                        resource: userName + ' - ' + projLabel,
-                        details: 'User project',
-                        monthlyCost: proj.costs.s3.total,
-                        prevMonthlyCost: null
-                    });
-                    tmuxProj.total += proj.costs.s3.total;
-                }
-
-                if (proj.costs.cloudfront && proj.costs.cloudfront.total > 0) {
-                    var userName2 = user.name || user.email || 'User';
-                    var projLabel2 = proj.projectName || 'Project';
-                    tmuxProj.resources.push({
-                        service: 'CloudFront',
-                        resource: userName2 + ' - ' + projLabel2,
-                        details: 'User project CDN',
-                        monthlyCost: proj.costs.cloudfront.total,
-                        prevMonthlyCost: null
-                    });
-                    tmuxProj.total += proj.costs.cloudfront.total;
-                }
-            });
-        });
-
-        // Sort by total desc
-        projects.sort(function (a, b) { return (b.total || 0) - (a.total || 0); });
-
-        // Compute grandTotal
-        var infraTotal = res.infraTotal || 0;
-        var grandTotal = res.grandTotal || projects.reduce(function (s, p) { return s + (p.total || 0); }, 0);
-
-        return {
-            projects: projects,
-            infraTotal: infraTotal,
-            grandTotal: grandTotal,
-            prevGrandTotal: res.prevGrandTotal || null
-        };
-    }
+    // buildProjectCostData removed — all project mapping is now handled dynamically
+    // by the backend (aws-costs/index.mjs). The frontend receives pre-resolved
+    // projectCosts from the batch API response.
 
     function renderProjectCosts() {
         var container = $('#project-costs-container');

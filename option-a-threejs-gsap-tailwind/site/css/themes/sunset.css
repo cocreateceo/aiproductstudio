@@ -52,6 +52,16 @@
     --chat-text-muted: var(--text-muted);
     --chat-msg-assistant-bg: var(--bg-card);
     --chat-msg-assistant-text: var(--text-primary);
+
+    /* Select/dropdown option theming */
+    --select-bg: var(--bg-secondary);
+    --select-color: var(--text-primary);
+}
+
+[data-theme="sunset"] select,
+[data-theme="sunset"] select option {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
 }
 
 /* Sunset Gradient Animation */

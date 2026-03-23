@@ -4,6 +4,13 @@
    All colors use CSS variables for theming
    ========================================= */
 
+/* ── Global Select/Option Theming ────────── */
+select,
+select option {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
 /* ── Skeleton Loading ────────────────────── */
 @keyframes shimmer {
     0% { background-position: -200% 0; }
@@ -2012,11 +2019,12 @@
     border-radius: 10px;
     font-size: 13px;
     font-weight: 500;
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--bg-secondary);
     border: 1px solid var(--border-color);
     color: var(--text-primary);
     font-family: inherit;
     min-width: 200px;
+    cursor: pointer;
 }
 
 .s3-bucket-select:focus {

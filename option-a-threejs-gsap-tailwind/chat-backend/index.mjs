@@ -23,6 +23,16 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const NOTIFICATION_EMAIL = process.env.NOTIFICATION_EMAIL; // Must be set and verified in SES
 
+// LLM model configuration (update here when switching models)
+const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-4-20250514';
+const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+
+// LLM pricing per 1K tokens (update here when pricing changes)
+const LLM_PRICING = {
+  claude: { input: 0.003, output: 0.015 },
+  openai: { input: 0.00015, output: 0.0006 }
+};
+
 // S3 bucket for storing all data (must exist in cocreate account us-east-1)
 const S3_BUCKET = process.env.S3_BUCKET || 'cocreate-applications-data';
 const S3_REGION = process.env.AWS_REGION || 'us-east-1';
@@ -1602,7 +1612,7 @@ Example response:
 
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: CLAUDE_MODEL,
       max_tokens: 150,
       messages: [{ role: 'user', content: extractionPrompt }]
     });
@@ -1928,18 +1938,18 @@ If the user asks about "this page" or "where am I", refer to this page context.`
     const fullSystemPrompt = contextualPrompt + attachmentContext;
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: CLAUDE_MODEL,
       max_tokens: 1000, // Increased for attachment analysis
       system: fullSystemPrompt,
       messages: apiMessages
     });
 
-    // Calculate token usage and estimated cost (Claude Sonnet pricing)
+    // Calculate token usage and estimated cost
     const inputTokens = response.usage?.input_tokens || 0;
     const outputTokens = response.usage?.output_tokens || 0;
     const totalTokens = inputTokens + outputTokens;
-    const inputCost = (inputTokens / 1000) * 0.003;
-    const outputCost = (outputTokens / 1000) * 0.015;
+    const inputCost = (inputTokens / 1000) * LLM_PRICING.claude.input;
+    const outputCost = (outputTokens / 1000) * LLM_PRICING.claude.output;
     const estimatedCost = parseFloat((inputCost + outputCost).toFixed(4));
 
     return {
@@ -2002,7 +2012,7 @@ async function chatWithOpenAI(messages, hasContactInfo, screenshot = null) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: OPENAI_MODEL,
         messages: apiMessages,
         max_tokens: 500,
         temperature: 0.7
@@ -2015,12 +2025,12 @@ async function chatWithOpenAI(messages, hasContactInfo, screenshot = null) {
 
     const data = await response.json();
 
-    // Calculate token usage and estimated cost (GPT-4o-mini pricing)
+    // Calculate token usage and estimated cost
     const inputTokens = data.usage?.prompt_tokens || 0;
     const outputTokens = data.usage?.completion_tokens || 0;
     const totalTokens = data.usage?.total_tokens || 0;
-    const inputCost = (inputTokens / 1000) * 0.00015;
-    const outputCost = (outputTokens / 1000) * 0.0006;
+    const inputCost = (inputTokens / 1000) * LLM_PRICING.openai.input;
+    const outputCost = (outputTokens / 1000) * LLM_PRICING.openai.output;
     const estimatedCost = parseFloat((inputCost + outputCost).toFixed(4));
 
     return {
@@ -2102,7 +2112,7 @@ ${JSON.stringify(formData, null, 2)}`;
 
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: CLAUDE_MODEL,
       max_tokens: 1000,
       system: FORM_VALIDATION_PROMPT,
       messages: [{ role: 'user', content: userMessage }]

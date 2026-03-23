@@ -9,7 +9,7 @@
   /* Backgrounds */
   --bg-primary: #0a0a0a;
   --bg-secondary: #141414;
-  --bg-tertiary: #1a1a1a;
+  --bg-tertiary: var(--bg-secondary, #1a1a1a);
   --bg-hover: #242424;
 
   /* Accent Colors */
