@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="favicon.ico" sizes="32x32 48x48">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png">
+    <link rel="apple-touch-icon" href="favicon-192.png">
     <title>Admin Portal v2 | CoCreate</title>
 
     <!-- Tailwind CSS -->
@@ -511,6 +514,9 @@
                 <button class="nav-tab px-6 py-3 rounded-lg font-semibold" data-view="costs" style="background: rgba(26, 10, 0, 0.3); color: var(--text-secondary); border: 1px solid transparent;">
                     💰 Costs
                 </button>
+                <button class="nav-tab px-6 py-3 rounded-lg font-semibold" data-view="events" style="background: rgba(26, 10, 0, 0.3); color: var(--text-secondary); border: 1px solid transparent;">
+                    🎪 Events
+                </button>
             </div>
 
             <!-- Applications View -->
@@ -674,6 +680,60 @@
             </div>
         </div>
     </div>
+
+            <!-- Events View -->
+            <div id="view-events" class="view-content hidden">
+                <!-- Event Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="glass-card rounded-xl p-4">
+                        <p class="text-sm text-theme-secondary">Total Registrations</p>
+                        <p id="event-stat-total" class="text-3xl font-bold mt-1 gradient-text">0</p>
+                    </div>
+                    <div class="glass-card rounded-xl p-4">
+                        <p class="text-sm text-theme-secondary">Event</p>
+                        <p class="text-lg font-bold mt-1" style="color: var(--primary);">Build Your Product in 2 Hours</p>
+                        <p id="event-stat-date" class="text-sm text-theme-muted">Saturday | 9 AM - 11 AM CST</p>
+                    </div>
+                    <div class="glass-card rounded-xl p-4">
+                        <p class="text-sm text-theme-secondary">Event Link</p>
+                        <a href="event.html" target="_blank" class="text-lg font-bold mt-1 block" style="color: var(--accent);">cocreateidea.com/event.html</a>
+                        <button onclick="navigator.clipboard.writeText('https://cocreateidea.com/event.html').then(()=>showToast('Link copied!'))" class="text-xs mt-1 px-3 py-1 rounded" style="background: rgba(var(--primary-rgb), 0.2); color: var(--primary);">Copy Link</button>
+                    </div>
+                </div>
+
+                <!-- Export Button -->
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-display font-semibold text-theme-primary">Registrations</h3>
+                    <button id="export-registrations" onclick="exportRegistrationsCSV()" class="px-4 py-2 rounded-lg font-semibold text-sm transition" style="background: rgba(var(--primary-rgb), 0.2); color: var(--primary); border: 1px solid rgba(var(--primary-rgb), 0.3);">
+                        Export CSV
+                    </button>
+                </div>
+
+                <!-- Registrations Table -->
+                <div class="glass-card rounded-xl overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr style="background: rgba(26, 10, 0, 0.3); border-bottom: 1px solid var(--border-color);">
+                                    <th class="text-left px-4 py-3 text-theme-secondary font-semibold">#</th>
+                                    <th class="text-left px-4 py-3 text-theme-secondary font-semibold">Name</th>
+                                    <th class="text-left px-4 py-3 text-theme-secondary font-semibold">Email</th>
+                                    <th class="text-left px-4 py-3 text-theme-secondary font-semibold">Phone</th>
+                                    <th class="text-left px-4 py-3 text-theme-secondary font-semibold">Product Idea</th>
+                                    <th class="text-left px-4 py-3 text-theme-secondary font-semibold">Registered</th>
+                                </tr>
+                            </thead>
+                            <tbody id="event-registrations-list">
+                                <tr>
+                                    <td colspan="6" class="text-center py-12 text-theme-muted">
+                                        Click to load registrations...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
     <!-- Generic Detail Modal -->
     <div id="detail-modal" class="hidden fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4">

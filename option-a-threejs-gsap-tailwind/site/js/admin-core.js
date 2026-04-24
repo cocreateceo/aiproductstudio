@@ -733,11 +733,16 @@ function renderApplications() {
             <div class="card-header p-5" onclick="toggleCard('${app.s3Key}')">
                 <div class="flex justify-between items-start">
                     <div class="flex-1">
-                        <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-3 flex-wrap">
                             <h3 class="font-semibold text-lg text-theme-primary">${app.visitorInfo?.name || 'Unknown'}</h3>
                             <span class="status-${status} px-3 py-1 rounded-full text-xs font-semibold">
                                 ${status === 'hold' ? 'ON HOLD' : status.toUpperCase()}
                             </span>
+                            ${app.referral?.referredBy ? `
+                            <span class="px-3 py-1 rounded-full text-xs font-semibold" style="background: linear-gradient(135deg, var(--accent), var(--primary)); color: #1A0A00;" title="Code: ${app.referral.code}">
+                                REF: ${app.referral.referredBy.toUpperCase()}
+                            </span>
+                            ` : ''}
                         </div>
                         <p class="text-theme-muted text-sm mt-1">${app.visitorInfo?.email || 'No email'}</p>
                         <p class="text-sm text-theme-secondary mt-2 line-clamp-1">${app.formData?.product_idea || app.formData?.productIdea || 'No product idea'}</p>
@@ -1313,6 +1318,7 @@ navTabs.forEach(tab => {
         else if (view === 'clients') renderClientProfiles();
         else if (view === 'builds') renderBuildHistory();
         else if (view === 'costs') loadCostsSummary();
+        else if (view === 'events') loadEventRegistrations();
     });
 });
 
@@ -2386,4 +2392,127 @@ async function sendUserReport(userId, period) {
         console.error('Error sending user report:', e);
         showToast(`Connection error: ${e.message}`, 'error');
     }
+}
+
+// ========== EVENT REGISTRATIONS ==========
+
+let eventRegistrations = [];
+
+// Weekly event timing (mirrors /event.html logic)
+// Active Saturday = today if Sat before 11 AM CT, else next Saturday
+function getCurrentEventTiming() {
+    const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Chicago',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', hour12: false, weekday: 'short'
+    }).formatToParts(new Date());
+    const get = (t) => parts.find(p => p.type === t).value;
+    const year = +get('year'), month = +get('month'), day = +get('day');
+    const hour = +get('hour') % 24;
+    const weekday = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(get('weekday'));
+
+    let satOffset;
+    if (weekday === 6 && hour < 11) satOffset = 0;
+    else if (weekday === 6) satOffset = 7;
+    else satOffset = (6 - weekday + 7) % 7;
+
+    const dateStr = new Date(Date.UTC(year, month - 1, day + satOffset)).toISOString().slice(0, 10);
+    const label = new Date(dateStr + 'T12:00:00Z').toLocaleDateString('en-US', {
+        weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC'
+    });
+    return { dateStr, eventId: 'build-product-2hrs-' + dateStr, label };
+}
+
+async function loadEventRegistrations() {
+    const tbody = document.getElementById('event-registrations-list');
+    if (!tbody) return;
+
+    const timing = getCurrentEventTiming();
+    const dateEl = document.getElementById('event-stat-date');
+    if (dateEl) dateEl.textContent = `${timing.label} | 9 AM - 11 AM CST`;
+
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-12 text-theme-muted">
+        <svg class="w-8 h-8 mx-auto mb-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
+        Loading registrations...
+    </td></tr>`;
+
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'event-list-registrations',
+                password: adminPassword,
+                eventId: timing.eventId
+            })
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-12 text-theme-muted">Error: ${data.error}</td></tr>`;
+            return;
+        }
+
+        eventRegistrations = data.registrations || [];
+        const totalEl = document.getElementById('event-stat-total');
+        if (totalEl) totalEl.textContent = data.total || 0;
+
+        if (eventRegistrations.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-12 text-theme-muted">No registrations yet</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = eventRegistrations.map((reg, i) => {
+            const date = reg.registeredAt ? new Date(reg.registeredAt).toLocaleString('en-US', {
+                month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+            }) : 'N/A';
+
+            return `<tr style="border-bottom: 1px solid var(--border-color);">
+                <td class="px-4 py-3 text-theme-muted">${i + 1}</td>
+                <td class="px-4 py-3 font-medium text-theme-primary">${escapeHtml(reg.name || '')}</td>
+                <td class="px-4 py-3"><a href="mailto:${escapeHtml(reg.email || '')}" style="color: var(--primary);">${escapeHtml(reg.email || '')}</a></td>
+                <td class="px-4 py-3 text-theme-secondary">${escapeHtml(reg.phone || '-')}</td>
+                <td class="px-4 py-3 text-theme-secondary" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(reg.productIdea || '-')}</td>
+                <td class="px-4 py-3 text-theme-muted text-xs">${date}</td>
+            </tr>`;
+        }).join('');
+
+    } catch (e) {
+        console.error('Error loading event registrations:', e);
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-12 text-theme-muted">Failed to load: ${e.message}</td></tr>`;
+    }
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function exportRegistrationsCSV() {
+    if (!eventRegistrations || eventRegistrations.length === 0) {
+        showToast('No registrations to export', 'warning');
+        return;
+    }
+
+    const headers = ['Name', 'Email', 'Phone', 'Product Idea', 'Registered At'];
+    const rows = eventRegistrations.map(r => [
+        r.name || '',
+        r.email || '',
+        r.phone || '',
+        (r.productIdea || '').replace(/,/g, ';'),
+        r.registeredAt || ''
+    ]);
+
+    const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `event-registrations-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('CSV exported!', 'success');
 }
