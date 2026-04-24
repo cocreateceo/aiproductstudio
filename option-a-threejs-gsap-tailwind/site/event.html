@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="ember">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="favicon.ico" sizes="32x32 48x48">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png">
+    <link rel="apple-touch-icon" href="favicon-192.png">
+    <title>Build Your Product in 2 Hours | CoCreate Event</title>
+    <meta name="description" content="Join CoCreate's free live workshop - Build your AI-powered product in less than 2 hours. Every Saturday, 9-11 AM CST. Register now!">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Build Your Product in Less Than 2 Hours | CoCreate">
+    <meta property="og:description" content="Free live workshop. Every Saturday | 9 AM - 11 AM CST. Limited spots!">
+    <meta property="og:image" content="https://www.cocreateidea.com/assets/logo.png">
+    <meta property="og:url" content="https://www.cocreateidea.com/event.html">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: 'var(--primary)',
+                        secondary: 'var(--secondary)',
+                        accent: 'var(--accent)',
+                    },
+                    fontFamily: {
+                        sans: ['DM Sans', 'system-ui', 'sans-serif'],
+                        display: ['Outfit', 'DM Sans', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- CoCreate Theme CSS -->
+    <link rel="stylesheet" href="css/themes/ember.css">
+    <link rel="stylesheet" href="css/themes/coral.css">
+    <link rel="stylesheet" href="css/themes/sunset.css">
+    <link rel="stylesheet" href="css/themes/aurora.css">
+    <link rel="stylesheet" href="css/themes/legacy.css">
+    <link rel="stylesheet" href="css/themes/sandstone.css">
+    <link rel="stylesheet" href="css/themes/champagne.css">
+    <link rel="stylesheet" href="css/themes/zoom.css">
+
+    <!-- Unified Theme System -->
+    <script src="js/theme.js"></script>
+
+    <!-- GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <script src="js/config.js"></script>
+    <link rel="stylesheet" href="css/chat-widget.css">
+    <link rel="stylesheet" href="css/responsive.css">
+
+    <style>
+        /* Fixed Page Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('assets/cocreate_bg.png') center bottom / cover no-repeat;
+            z-index: -2;
+            pointer-events: none;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(ellipse 120% 100% at 50% 100%, transparent 30%, rgba(26, 10, 0, 0.6) 100%),
+                linear-gradient(90deg, rgba(26, 10, 0, 0.65) 0%, rgba(26, 10, 0, 0.3) 40%, transparent 60%),
+                linear-gradient(180deg, rgba(26, 10, 0, 0.5) 0%, transparent 40%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        :root {
+            --transition-speed: 0.4s;
+            --nav-height: 80px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'DM Sans', system-ui, sans-serif;
+            background: transparent;
+            color: var(--text-primary);
+            overflow-x: hidden;
+            transition: background var(--transition-speed) ease, color var(--transition-speed) ease;
+        }
+
+        h1, h2, h3, h4, h5, h6, .font-display {
+            font-family: 'Outfit', 'DM Sans', system-ui, sans-serif;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        h1 { font-weight: 700; letter-spacing: -0.03em; }
+
+        .gradient-text {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .glass-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            transition: background var(--transition-speed) ease, border-color var(--transition-speed) ease;
+        }
+
+        .text-theme-primary { color: var(--text-primary); }
+        .text-theme-secondary { color: var(--text-secondary); }
+        .text-theme-muted { color: var(--text-muted); }
+        .border-theme { border-color: var(--border-color); }
+
+        /* Navigation Styles */
+        .nav-main {
+            width: 100%;
+            backdrop-filter: blur(20px) saturate(180%);
+            transition: all 0.3s ease;
+        }
+        .nav-inner { max-width: 1400px; margin: 0 auto; }
+        .nav-item { position: relative; }
+
+        .nav-link-new {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: color 0.2s ease;
+            white-space: nowrap;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        .nav-link-new:hover { color: var(--text-primary); }
+
+        .nav-dropdown-new {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            min-width: 200px;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            padding: 0.75rem 0;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(8px);
+            transition: all 0.2s ease;
+            z-index: 9999;
+            border-radius: 12px;
+        }
+        .nav-item:hover .nav-dropdown-new {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .nav-dropdown-new a {
+            display: block;
+            padding: 0.625rem 1.25rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            transition: all 0.15s ease;
+        }
+        .nav-dropdown-new a:hover {
+            color: var(--text-primary);
+            background: rgba(26, 10, 0, 0.3);
+        }
+
+        .nav-cta-btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1.25rem;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+        .nav-cta-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px var(--glow-color);
+        }
+
+        /* Theme Switcher */
+        .theme-switcher { position: relative; }
+        .theme-toggle-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0.5rem 0.75rem;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+        .theme-toggle-btn:hover { color: var(--text-primary); }
+        .theme-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 8px;
+            min-width: 180px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+        .theme-dropdown.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .theme-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-secondary);
+        }
+        .theme-option:hover {
+            background: rgba(26, 10, 0, 0.3);
+            color: var(--text-primary);
+        }
+        .theme-option.active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+        .theme-preview {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid var(--border-color);
+        }
+
+        /* Mobile Menu */
+        .mobile-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border-color);
+        }
+        .mobile-menu.active { display: block; }
+        .mobile-nav-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 1rem;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        .mobile-dropdown { display: none; padding-left: 1rem; }
+        .mobile-dropdown.active { display: block; }
+        .mobile-dropdown a {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: var(--text-secondary);
+        }
+        .mobile-nav-cta {
+            display: block;
+            margin: 1rem;
+            padding: 1rem;
+            text-align: center;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        /* ═══════════════════════════════════════════════════════════ */
+        /* EVENT PAGE STYLES                                          */
+        /* ═══════════════════════════════════════════════════════════ */
+
+        /* Hero */
+        .event-hero {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 100px 24px 40px;
+            overflow: hidden;
+        }
+
+        /* Animated particle background */
+        .particle-field {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--primary);
+            opacity: 0;
+            animation: particleFloat 8s infinite;
+        }
+
+        @keyframes particleFloat {
+            0% { opacity: 0; transform: translateY(100vh) scale(0); }
+            10% { opacity: 0.8; }
+            90% { opacity: 0.3; }
+            100% { opacity: 0; transform: translateY(-10vh) scale(1.5); }
+        }
+
+        /* FREE Badge */
+        .free-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 20px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 100px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 0.875rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: white;
+            animation: badgePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes badgePulse {
+            0%, 100% { box-shadow: 0 0 20px var(--glow-color); }
+            50% { box-shadow: 0 0 40px var(--glow-color), 0 0 60px var(--glow-color); }
+        }
+
+        /* Countdown */
+        .countdown-container {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .countdown-unit {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 80px;
+        }
+
+        .countdown-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1;
+            background: linear-gradient(180deg, var(--text-primary) 0%, var(--primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .countdown-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .countdown-separator {
+            font-family: 'Outfit', sans-serif;
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--primary);
+            opacity: 0.5;
+            line-height: 1;
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        /* Event highlights */
+        .highlight-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .highlight-card:hover {
+            transform: translateY(-6px);
+            border-color: var(--primary);
+            box-shadow: 0 16px 40px var(--glow-color);
+        }
+
+        .highlight-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 12px;
+        }
+
+        /* Registration form */
+        .register-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(30px);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .register-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--accent), var(--secondary));
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 18px;
+            background: rgba(26, 10, 0, 0.4);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 16px;
+            font-family: inherit;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--glow-color);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .cta-button {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            box-shadow: 0 4px 20px var(--glow-color);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .cta-button:hover::before { left: 100%; }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px var(--glow-color);
+        }
+
+        /* Success state */
+        .form-success {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(16, 185, 129, 0.1));
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        /* QR section */
+        .qr-section {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            padding: 24px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+        }
+
+        .qr-section img {
+            width: 120px;
+            height: 120px;
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
+        }
+
+        /* Event ended state */
+        .event-ended-badge {
+            padding: 8px 20px;
+            background: rgba(100, 100, 100, 0.3);
+            border: 1px solid rgba(100, 100, 100, 0.5);
+            border-radius: 100px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        /* Agenda timeline */
+        .agenda-item {
+            display: flex;
+            gap: 16px;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .agenda-item:last-child { border-bottom: none; }
+        .agenda-time {
+            min-width: 90px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 0.875rem;
+        }
+
+        /* Spin animation */
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin { animation: spin 1s linear infinite; }
+
+        /* Footer */
+        footer {
+            background: rgba(26, 10, 0, 0.3);
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .countdown-value { font-size: 2.5rem; }
+            .countdown-separator { font-size: 2rem; }
+            .countdown-unit { min-width: 60px; }
+            .register-card { padding: 24px; }
+            .qr-section { flex-direction: column; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 glass-card border-b border-theme nav-main" style="z-index: 10000;">
+        <div class="nav-inner flex items-center justify-between h-16 px-6 lg:px-10">
+            <a href="index.html" class="flex items-center gap-3 shrink-0 group">
+                <div class="w-10 h-10 flex items-center justify-center transition-transform group-hover:scale-105">
+                    <img src="assets/logo.png" alt="CoCreate Logo" class="w-10 h-10 object-contain">
+                </div>
+                <span class="text-lg font-display font-bold tracking-tight hidden sm:block">
+                    <span class="text-theme-primary">CO</span><span class="gradient-text">CREATE</span>
+                </span>
+            </a>
+
+            <div class="hidden lg:flex items-center gap-1">
+                <div class="nav-item">
+                    <button class="nav-link-new" type="button">
+                        Who We Are
+                        <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="nav-dropdown-new">
+                        <a href="who-we-are.html">Who We Are</a>
+                        <a href="partners.html">Partners</a>
+                        <a href="culture.html">Culture</a>
+                    </div>
+                </div>
+                <div class="nav-item">
+                    <button class="nav-link-new" type="button">
+                        What We Do
+                        <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="nav-dropdown-new">
+                        <a href="what-we-do.html">Overview</a>
+                        <a href="ai.html">AI Solutions</a>
+                        <a href="product.html">Product Development</a>
+                        <a href="platforms.html">Platforms</a>
+                    </div>
+                </div>
+
+                <!-- Theme Switcher -->
+                <div class="theme-switcher">
+                    <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle theme">
+                        <svg class="w-4 h-4" id="theme-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+                        </svg>
+                        <span class="text-xs font-medium uppercase tracking-wide" id="theme-label">Ember</span>
+                    </button>
+                    <div class="theme-dropdown" id="theme-dropdown">
+                        <div class="theme-option active" data-theme="ember">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #1A0A00 50%, #FC2A0D 50%);"></div>
+                            <span>Ember</span>
+                        </div>
+                        <div class="theme-option" data-theme="coral">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #FFF8F0 50%, #FD6C71 50%);"></div>
+                            <span>Coral</span>
+                        </div>
+                        <div class="theme-option" data-theme="sunset">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #2D1B3D 50%, #FF6B9D 50%);"></div>
+                            <span>Sunset</span>
+                        </div>
+                        <div class="theme-option" data-theme="aurora">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #FFF5F8 50%, #E6A4FF 50%);"></div>
+                            <span>Aurora</span>
+                        </div>
+                        <div class="theme-option" data-theme="legacy">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #020617 50%, #6366f1 50%);"></div>
+                            <span>Legacy</span>
+                        </div>
+                    </div>
+                </div>
+
+                <a href="contact.html" class="nav-cta-btn">Contact</a>
+            </div>
+
+            <!-- Mobile Menu Button -->
+            <button class="lg:hidden flex items-center justify-center w-10 h-10 rounded-lg hover:bg-white/10 transition" id="mobile-menu-btn" aria-label="Open menu">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div class="lg:hidden mobile-menu" id="mobile-menu">
+            <div class="px-6 py-4 space-y-1 border-t border-theme">
+                <div class="mobile-nav-item">
+                    <button class="mobile-nav-btn" data-dropdown="mobile-who">
+                        Who We Are
+                        <svg class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="mobile-dropdown" id="mobile-who">
+                        <a href="who-we-are.html">Who We Are</a>
+                        <a href="partners.html">Partners</a>
+                        <a href="culture.html">Culture</a>
+                    </div>
+                </div>
+                <div class="mobile-nav-item">
+                    <button class="mobile-nav-btn" data-dropdown="mobile-what">
+                        What We Do
+                        <svg class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="mobile-dropdown" id="mobile-what">
+                        <a href="what-we-do.html">Overview</a>
+                        <a href="ai.html">AI Solutions</a>
+                        <a href="product.html">Product Development</a>
+                        <a href="platforms.html">Platforms</a>
+                    </div>
+                </div>
+                <a href="event.html" class="mobile-nav-btn" style="color: var(--primary); font-weight: 600;">Live Event</a>
+                <a href="contact.html" class="mobile-nav-cta">Contact Us</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Particle Background -->
+    <div class="particle-field" id="particleField"></div>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- HERO + COUNTDOWN                                       -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="event-hero">
+        <div class="max-w-6xl mx-auto w-full">
+            <div class="grid lg:grid-cols-2 gap-12 items-center">
+
+                <!-- Left: Event Info -->
+                <div class="text-center lg:text-left">
+                    <div class="mb-6">
+                        <span class="free-badge" id="eventBadge">FREE LIVE WORKSHOP</span>
+                    </div>
+
+                    <h1 class="text-4xl sm:text-5xl lg:text-6xl font-display font-bold mb-6 leading-tight">
+                        Build Your Product<br>
+                        <span class="gradient-text">in Less Than 2 Hours</span>
+                    </h1>
+
+                    <p class="text-lg text-theme-secondary mb-4" style="font-style: italic; color: var(--accent);">
+                        Imagine. CoCreateIdea. Done!
+                    </p>
+
+                    <div class="flex flex-wrap gap-4 items-center justify-center lg:justify-start mb-8">
+                        <div class="flex items-center gap-2 text-theme-secondary">
+                            <svg class="w-5 h-5" style="color: var(--primary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            <span class="font-medium" id="heroDate">Saturday</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-theme-secondary">
+                            <svg class="w-5 h-5" style="color: var(--primary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span class="font-medium">9:00 AM - 11:00 AM CST</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-theme-secondary">
+                            <svg class="w-5 h-5" style="color: var(--primary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                            </svg>
+                            <span class="font-medium">Virtual via Zoom</span>
+                        </div>
+                    </div>
+
+                    <!-- Countdown Timer -->
+                    <div class="mb-8">
+                        <p class="text-sm text-theme-muted uppercase tracking-widest mb-4 font-medium" id="countdownLabel">Event starts in</p>
+                        <div class="countdown-container" id="countdown">
+                            <div class="countdown-unit">
+                                <span class="countdown-value" id="days">00</span>
+                                <span class="countdown-label">Days</span>
+                            </div>
+                            <span class="countdown-separator">:</span>
+                            <div class="countdown-unit">
+                                <span class="countdown-value" id="hours">00</span>
+                                <span class="countdown-label">Hours</span>
+                            </div>
+                            <span class="countdown-separator">:</span>
+                            <div class="countdown-unit">
+                                <span class="countdown-value" id="minutes">00</span>
+                                <span class="countdown-label">Minutes</span>
+                            </div>
+                            <span class="countdown-separator">:</span>
+                            <div class="countdown-unit">
+                                <span class="countdown-value" id="seconds">00</span>
+                                <span class="countdown-label">Seconds</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- QR Code -->
+                    <div class="qr-section">
+                        <img src="assets/qr-cocreate.png" alt="Scan to visit CoCreate">
+                        <div>
+                            <p class="font-display font-semibold text-theme-primary mb-1">Scan to Visit</p>
+                            <p class="text-sm text-theme-muted">Share this QR code with friends and colleagues</p>
+                            <p class="text-sm font-medium mt-2" style="color: var(--primary);">cocreateidea.com</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Registration Form -->
+                <div>
+                    <div class="register-card" id="registerCard">
+                        <div id="formSection">
+                            <h2 class="text-2xl font-display font-bold mb-2 text-theme-primary">Register Now</h2>
+                            <p class="text-theme-muted mb-6">Secure your spot. We'll send you the Zoom link.</p>
+
+                            <form id="eventForm">
+                                <div class="mb-4">
+                                    <label for="fullName" class="form-label">Full Name *</label>
+                                    <input type="text" id="fullName" name="fullName" class="form-input" placeholder="Your full name" required>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label for="email" class="form-label">Email Address *</label>
+                                    <input type="email" id="email" name="email" class="form-input" placeholder="you@example.com" required>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label for="phone" class="form-label">Phone Number</label>
+                                    <input type="tel" id="phone" name="phone" class="form-input" placeholder="+1 (555) 000-0000">
+                                </div>
+
+                                <div class="mb-6">
+                                    <label for="productIdea" class="form-label">What do you want to build?</label>
+                                    <input type="text" id="productIdea" name="productIdea" class="form-input" placeholder="Brief description of your product idea">
+                                    <p class="text-xs text-theme-muted mt-1">Optional - helps us tailor the workshop</p>
+                                </div>
+
+                                <button type="submit" id="submitBtn" class="cta-button w-full py-4 rounded-xl text-white font-display font-bold text-lg tracking-wide border-0 cursor-pointer">
+                                    Register for Free
+                                </button>
+
+                                <p class="text-xs text-center text-theme-muted mt-4">
+                                    By registering, you agree to receive event-related emails from CoCreate.
+                                </p>
+                            </form>
+                        </div>
+
+                        <!-- Success State (hidden by default) -->
+                        <div id="successSection" style="display: none;">
+                            <div class="form-success">
+                                <div style="font-size: 3rem; margin-bottom: 12px;">&#10003;</div>
+                                <h3 class="text-xl font-display font-bold mb-2" style="color: #22c55e;">You're Registered!</h3>
+                                <p class="text-theme-secondary mb-4">
+                                    Check your email for the <strong>Zoom meeting link</strong>.
+                                </p>
+                                <div style="background: rgba(34, 197, 94, 0.1); border-radius: 12px; padding: 16px; margin-top: 16px;">
+                                    <p class="text-sm text-theme-muted mb-1">Event Details</p>
+                                    <p class="font-medium text-theme-primary" id="successDate">Saturday</p>
+                                    <p class="font-medium text-theme-primary">9:00 AM - 11:00 AM CST (Chicago)</p>
+                                    <p class="text-sm mt-2 font-medium" style="color: var(--primary);">Zoom Meeting ID: 224 520 4604</p>
+                                    <p class="text-sm" style="color: var(--primary);">Passcode: 1234</p>
+                                    <a href="https://us06web.zoom.us/j/2245204604?pwd=Yk9ReE42K080LzRoUXBPdzFNRFlvUT09" target="_blank" class="inline-block mt-3 px-6 py-2 rounded-lg text-white font-semibold text-sm no-underline" style="background: linear-gradient(135deg, var(--primary), var(--secondary));">Join Zoom Meeting</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Spots counter -->
+                    <div class="text-center mt-4">
+                        <p class="text-sm text-theme-muted">
+                            <span style="color: var(--primary); font-weight: 600;" id="spotsLeft">Limited spots</span> available
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- WHAT YOU'LL LEARN                                      -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="py-20 px-6">
+        <div class="max-w-5xl mx-auto">
+            <h2 class="text-3xl sm:text-4xl font-display font-bold text-center mb-4 text-theme-primary">
+                What You'll <span class="gradient-text">Learn</span>
+            </h2>
+            <p class="text-center text-theme-muted mb-12 max-w-2xl mx-auto">
+                In just 2 hours, you'll go from idea to a working AI-powered product prototype
+            </p>
+
+            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="highlight-card">
+                    <div class="highlight-icon">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                        </svg>
+                    </div>
+                    <h3 class="font-display font-semibold text-theme-primary mb-2">Validate Your Idea</h3>
+                    <p class="text-sm text-theme-muted">AI-powered market validation in minutes, not months</p>
+                </div>
+
+                <div class="highlight-card">
+                    <div class="highlight-icon">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                        </svg>
+                    </div>
+                    <h3 class="font-display font-semibold text-theme-primary mb-2">Live Product Build</h3>
+                    <p class="text-sm text-theme-muted">Watch us build a real product live using AI-first development</p>
+                </div>
+
+                <div class="highlight-card">
+                    <div class="highlight-icon">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="font-display font-semibold text-theme-primary mb-2">Expert Mentorship</h3>
+                    <p class="text-sm text-theme-muted">Direct guidance from our founding team of AI builders</p>
+                </div>
+
+                <div class="highlight-card">
+                    <div class="highlight-icon">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                        </svg>
+                    </div>
+                    <h3 class="font-display font-semibold text-theme-primary mb-2">Launch Strategy</h3>
+                    <p class="text-sm text-theme-muted">Go-to-market plan to launch your product in 2 weeks</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- AGENDA                                                 -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="py-20 px-6">
+        <div class="max-w-3xl mx-auto">
+            <h2 class="text-3xl font-display font-bold text-center mb-12 text-theme-primary">
+                Workshop <span class="gradient-text">Agenda</span>
+            </h2>
+
+            <div class="register-card">
+                <div class="agenda-item">
+                    <span class="agenda-time">9:00 AM</span>
+                    <div>
+                        <p class="font-medium text-theme-primary">Welcome & Introductions</p>
+                        <p class="text-sm text-theme-muted">Meet the CoCreate team, attendee intros, set expectations</p>
+                    </div>
+                </div>
+                <div class="agenda-item">
+                    <span class="agenda-time">9:05 AM</span>
+                    <div>
+                        <p class="font-medium text-theme-primary">Idea Validation</p>
+                        <p class="text-sm text-theme-muted">Share your product idea — AI-powered validation in real-time</p>
+                    </div>
+                </div>
+                <div class="agenda-item">
+                    <span class="agenda-time">9:15 AM</span>
+                    <div>
+                        <p class="font-medium text-theme-primary">Live Demo: How We Build</p>
+                        <p class="text-sm text-theme-muted">Watch the CoCreate process — idea to working product live</p>
+                    </div>
+                </div>
+                <div class="agenda-item">
+                    <span class="agenda-time">9:30 AM</span>
+                    <div>
+                        <p class="font-medium text-theme-primary" style="color: var(--accent);">Build & Test With Us</p>
+                        <p class="text-sm text-theme-muted">Tell us your idea — we build it live while you guide and collaborate</p>
+                        <span class="inline-block mt-1 px-2 py-0.5 rounded text-xs font-semibold" style="background: rgba(var(--primary-rgb), 0.2); color: var(--primary);">Live build</span>
+                    </div>
+                </div>
+                <div class="agenda-item">
+                    <span class="agenda-time">10:00 AM</span>
+                    <div>
+                        <p class="font-medium text-theme-primary" style="color: var(--primary);">First URL is Live</p>
+                        <p class="text-sm text-theme-muted">Your product goes online — a real working URL</p>
+                        <span class="inline-block mt-1 px-2 py-0.5 rounded text-xs font-semibold" style="background: rgba(34, 197, 94, 0.2); color: #22c55e;">First launch</span>
+                    </div>
+                </div>
+                <div class="agenda-item">
+                    <span class="agenda-time">10:30 AM</span>
+                    <div>
+                        <p class="font-medium text-theme-primary">URL Build & Test</p>
+                        <p class="text-sm text-theme-muted">Refine, polish, and test your live product together</p>
+                    </div>
+                </div>
+                <div class="agenda-item">
+                    <span class="agenda-time">11:00 AM</span>
+                    <div>
+                        <p class="font-medium text-theme-primary" style="color: var(--accent);">Launch Your URL</p>
+                        <p class="text-sm text-theme-muted">Your finished product is live and ready to share with the world</p>
+                        <span class="inline-block mt-1 px-2 py-0.5 rounded text-xs font-semibold" style="background: rgba(34, 197, 94, 0.2); color: #22c55e;">Final launch</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- FINAL CTA                                              -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="py-20 px-6 text-center">
+        <div class="max-w-2xl mx-auto">
+            <h2 class="text-3xl sm:text-4xl font-display font-bold mb-4 text-theme-primary">
+                Don't Miss This <span class="gradient-text">Opportunity</span>
+            </h2>
+            <p class="text-theme-secondary mb-8">
+                Join founders who are turning their ideas into AI-powered products. Free event, limited spots.
+            </p>
+            <a href="#registerCard" class="cta-button inline-block py-4 px-10 rounded-xl text-white font-display font-bold text-lg no-underline">
+                Register Now - It's Free
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-10 px-6">
+        <div class="max-w-6xl mx-auto text-center">
+            <a href="index.html" class="inline-flex items-center gap-3 mb-4">
+                <img src="assets/logo.png" alt="CoCreate Logo" class="w-8 h-8 object-contain">
+                <span class="font-display font-bold text-lg">
+                    <span class="text-theme-primary">CO</span><span class="gradient-text">CREATE</span>
+                </span>
+            </a>
+            <p class="text-sm text-theme-muted mb-2">Your AI Partner. Launch your business in 2 weeks.</p>
+            <p class="text-xs text-theme-muted">&copy; 2026 CoCreate Idea. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // ═══════════════════════════════════════════════════════
+        // PARTICLES
+        // ═══════════════════════════════════════════════════════
+        (function() {
+            const field = document.getElementById('particleField');
+            for (let i = 0; i < 30; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                p.style.left = Math.random() * 100 + '%';
+                p.style.animationDelay = Math.random() * 8 + 's';
+                p.style.animationDuration = (6 + Math.random() * 6) + 's';
+                const colors = ['var(--primary)', 'var(--secondary)', 'var(--accent)'];
+                p.style.background = colors[Math.floor(Math.random() * colors.length)];
+                p.style.width = p.style.height = (2 + Math.random() * 4) + 'px';
+                field.appendChild(p);
+            }
+        })();
+
+        // ═══════════════════════════════════════════════════════
+        // EVENT TIMING — weekly cycle in America/Chicago
+        //   COUNTDOWN: Mon 09:00 → Sat 09:00   (registration open, counts to Saturday)
+        //   LIVE     : Sat 09:00 → Sat 11:00   (event in progress)
+        //   REST     : Sat 11:00 → Mon 09:00   (closed, counts to Monday re-open)
+        // ═══════════════════════════════════════════════════════
+        function getChicagoParts(date) {
+            const parts = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'America/Chicago',
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', hour12: false,
+                weekday: 'short'
+            }).formatToParts(date);
+            const get = (t) => parts.find(p => p.type === t).value;
+            return {
+                year: +get('year'),
+                month: +get('month'),
+                day: +get('day'),
+                hour: +get('hour') % 24,
+                weekday: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(get('weekday'))
+            };
+        }
+
+        function chicagoOffsetForDate(yyyyMmDd) {
+            // Probe 12:00 UTC on that date — Chicago shows 7 AM (CDT, UTC-5) or 6 AM (CST, UTC-6)
+            const probe = new Date(yyyyMmDd + 'T12:00:00Z');
+            const h = getChicagoParts(probe).hour;
+            return h === 7 ? '-05:00' : '-06:00';
+        }
+
+        function addUtcDays(year, month, day, add) {
+            return new Date(Date.UTC(year, month - 1, day + add)).toISOString().slice(0, 10);
+        }
+
+        function computeEventTiming() {
+            const ch = getChicagoParts(new Date());
+            const { year, month, day, weekday, hour } = ch;
+
+            // Saturday of the currently-advertised event
+            let satOffset;
+            if (weekday === 6 && hour < 11) satOffset = 0;           // today (before event ends)
+            else if (weekday === 6) satOffset = 7;                   // after 11 AM Sat → next Saturday
+            else satOffset = (6 - weekday + 7) % 7;                  // Sun-Fri → upcoming Saturday
+            const saturdayStr = addUtcDays(year, month, day, satOffset);
+
+            let state, targetStr, targetHour;
+            if (weekday === 6 && hour >= 9 && hour < 11) {
+                state = 'LIVE';
+                targetStr = saturdayStr;
+                targetHour = 9;
+            } else if ((weekday === 6 && hour >= 11) || weekday === 0 || (weekday === 1 && hour < 9)) {
+                state = 'REST';                                       // count to Monday 09:00 CT
+                let monOffset;
+                if (weekday === 6) monOffset = 2;
+                else if (weekday === 0) monOffset = 1;
+                else monOffset = 0;                                   // Monday before 9 AM
+                targetStr = addUtcDays(year, month, day, monOffset);
+                targetHour = 9;
+            } else {
+                state = 'COUNTDOWN';                                  // count to Saturday 09:00 CT
+                targetStr = saturdayStr;
+                targetHour = 9;
+            }
+            return { state, saturdayStr, targetStr, targetHour };
+        }
+
+        let CURRENT_EVENT_STR = '';                                   // tracks which Saturday we've labeled
+        let CURRENT_STATE = '';
+        let FORM_DISABLED = false;
+
+        function formatSaturdayLabel(yyyyMmDd) {
+            return new Date(yyyyMmDd + 'T12:00:00Z').toLocaleDateString('en-US', {
+                weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC'
+            });
+        }
+
+        function setFormDisabled(disabled) {
+            if (FORM_DISABLED === disabled) return;
+            const form = document.getElementById('eventForm');
+            const submitBtn = document.getElementById('submitBtn');
+            if (!form || !submitBtn) return;
+            form.querySelectorAll('input, button').forEach(el => el.disabled = disabled);
+            if (disabled) {
+                submitBtn.dataset.originalText = submitBtn.dataset.originalText || submitBtn.textContent;
+                submitBtn.textContent = 'Registration Closed';
+                submitBtn.style.opacity = '0.5';
+            } else {
+                submitBtn.textContent = submitBtn.dataset.originalText || 'Register for Free';
+                submitBtn.style.opacity = '';
+            }
+            FORM_DISABLED = disabled;
+        }
+
+        // Populated on first tick (see updateCountdown)
+        let EVENT_DATE_STR = '';
+        let EVENT_ID = '';
+
+        function updateCountdown() {
+            const timing = computeEventTiming();
+
+            // Roll the visible Saturday label + eventId whenever the active Saturday changes
+            if (timing.saturdayStr !== CURRENT_EVENT_STR) {
+                CURRENT_EVENT_STR = timing.saturdayStr;
+                EVENT_DATE_STR = timing.saturdayStr;
+                EVENT_ID = 'build-product-2hrs-' + timing.saturdayStr;
+                const label = formatSaturdayLabel(timing.saturdayStr);
+                const hd = document.getElementById('heroDate');
+                if (hd) hd.textContent = label;
+                const sd = document.getElementById('successDate');
+                if (sd) sd.textContent = label;
+            }
+
+            const now = new Date();
+            const targetOffset = chicagoOffsetForDate(timing.targetStr);
+            const hh = String(timing.targetHour).padStart(2, '0');
+            const target = new Date(`${timing.targetStr}T${hh}:00:00${targetOffset}`);
+            const diff = target - now;
+
+            const labelEl = document.getElementById('countdownLabel');
+            const badge = document.getElementById('eventBadge');
+            const daysEl = document.getElementById('days');
+            const hoursEl = document.getElementById('hours');
+            const minutesEl = document.getElementById('minutes');
+            const secondsEl = document.getElementById('seconds');
+            const separators = document.querySelectorAll('.countdown-separator');
+            const countdownLabels = document.querySelectorAll('.countdown-label');
+
+            // State transitions — only touch DOM when state actually changes (cheap on re-entry)
+            if (timing.state !== CURRENT_STATE) {
+                CURRENT_STATE = timing.state;
+                if (timing.state === 'LIVE') {
+                    labelEl.textContent = 'EVENT IS LIVE NOW!';
+                    daysEl.textContent = 'LIVE';
+                    hoursEl.textContent = '';
+                    minutesEl.textContent = '';
+                    secondsEl.textContent = '';
+                    separators.forEach(s => s.style.display = 'none');
+                    countdownLabels.forEach(l => l.style.display = 'none');
+                    badge.className = 'free-badge';
+                    badge.textContent = 'LIVE NOW';
+                    setFormDisabled(false);
+                } else if (timing.state === 'REST') {
+                    labelEl.textContent = 'Registration opens Monday 9:00 AM CST in';
+                    separators.forEach(s => s.style.display = '');
+                    countdownLabels.forEach(l => l.style.display = '');
+                    badge.className = 'event-ended-badge';
+                    badge.textContent = 'REGISTRATION OPENS MONDAY';
+                    setFormDisabled(true);
+                } else { // COUNTDOWN
+                    labelEl.textContent = 'Event starts in';
+                    separators.forEach(s => s.style.display = '');
+                    countdownLabels.forEach(l => l.style.display = '');
+                    badge.className = 'free-badge';
+                    badge.textContent = 'FREE LIVE WORKSHOP';
+                    setFormDisabled(false);
+                }
+            }
+
+            if (timing.state === 'LIVE' || diff <= 0) return;
+
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            daysEl.textContent = String(days).padStart(2, '0');
+            hoursEl.textContent = String(hours).padStart(2, '0');
+            minutesEl.textContent = String(minutes).padStart(2, '0');
+            secondsEl.textContent = String(seconds).padStart(2, '0');
+        }
+
+        updateCountdown();
+        setInterval(updateCountdown, 1000);
+
+        // ═══════════════════════════════════════════════════════
+        // REGISTRATION FORM
+        // ═══════════════════════════════════════════════════════
+        const CHAT_API_URL = window.AppConfig ? AppConfig.api.chat : 'https://mcndu8ynsa.execute-api.us-east-1.amazonaws.com/prod/';
+
+        const form = document.getElementById('eventForm');
+        const submitBtn = document.getElementById('submitBtn');
+        let isSubmitting = false;
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (isSubmitting) return;
+            isSubmitting = true;
+
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Registering...
+            `;
+
+            const formData = {
+                name: document.getElementById('fullName').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                phone: document.getElementById('phone').value.trim(),
+                productIdea: document.getElementById('productIdea').value.trim(),
+            };
+
+            try {
+                const response = await fetch(CHAT_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'event-register',
+                        eventId: EVENT_ID,
+                        ...formData
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Show success
+                    document.getElementById('formSection').style.display = 'none';
+                    document.getElementById('successSection').style.display = 'block';
+                    // Scroll to success
+                    document.getElementById('registerCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                    // Zoom link sent via email - no redirect needed
+                } else {
+                    alert(result.error || 'Registration failed. Please try again.');
+                    isSubmitting = false;
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                alert('Network error. Please try again.');
+                isSubmitting = false;
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        });
+
+        // ═══════════════════════════════════════════════════════
+        // THEME SWITCHER
+        // ═══════════════════════════════════════════════════════
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeDropdown = document.getElementById('theme-dropdown');
+
+        if (themeToggle && themeDropdown) {
+            themeToggle.addEventListener('click', () => {
+                themeDropdown.classList.toggle('active');
+            });
+
+            document.querySelectorAll('.theme-option').forEach(option => {
+                option.addEventListener('click', () => {
+                    const theme = option.dataset.theme;
+                    document.documentElement.setAttribute('data-theme', theme);
+                    document.querySelectorAll('.theme-option').forEach(o => o.classList.remove('active'));
+                    option.classList.add('active');
+                    const label = document.getElementById('theme-label');
+                    if (label) label.textContent = theme.charAt(0).toUpperCase() + theme.slice(1);
+                    themeDropdown.classList.remove('active');
+                    if (window.ThemeManager) ThemeManager.setTheme(theme);
+                });
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.theme-switcher')) {
+                    themeDropdown.classList.remove('active');
+                }
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════
+        // MOBILE MENU
+        // ═══════════════════════════════════════════════════════
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        if (mobileMenuBtn && mobileMenu) {
+            mobileMenuBtn.addEventListener('click', () => {
+                mobileMenu.classList.toggle('active');
+            });
+
+            document.querySelectorAll('.mobile-nav-btn[data-dropdown]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const dropdownId = btn.dataset.dropdown;
+                    const dropdown = document.getElementById(dropdownId);
+                    if (dropdown) dropdown.classList.toggle('active');
+                });
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════
+        // GSAP ANIMATIONS
+        // ═══════════════════════════════════════════════════════
+        gsap.from('.free-badge', { opacity: 0, y: -20, duration: 0.6, delay: 0.2 });
+        gsap.from('h1', { opacity: 0, y: 30, duration: 0.8, delay: 0.4 });
+        gsap.from('.countdown-container', { opacity: 0, scale: 0.9, duration: 0.6, delay: 0.8 });
+        gsap.from('.register-card', { opacity: 0, x: 40, duration: 0.8, delay: 0.6 });
+        gsap.from('.qr-section', { opacity: 0, y: 20, duration: 0.6, delay: 1.0 });
+
+        gsap.utils.toArray('.highlight-card').forEach((card, i) => {
+            gsap.from(card, {
+                scrollTrigger: { trigger: card, start: 'top 85%' },
+                opacity: 0, y: 30, duration: 0.5, delay: i * 0.1
+            });
+        });
+
+        gsap.utils.toArray('.agenda-item').forEach((item, i) => {
+            gsap.from(item, {
+                scrollTrigger: { trigger: item, start: 'top 85%' },
+                opacity: 0, x: -20, duration: 0.4, delay: i * 0.08
+            });
+        });
+    </script>
+</body>
+</html>
