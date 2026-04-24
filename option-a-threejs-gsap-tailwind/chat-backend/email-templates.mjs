@@ -177,8 +177,9 @@ function plainTextSeparator() {
 // ─── Application Flow ────────────────────────────────────────────────────────
 
 export function renderAdminNewApplication(data) {
-  const { name, email, company, role, message, applicationId } = data;
-  const subject = `New Application: ${name}`;
+  const { name, email, company, role, message, applicationId, source, referral } = data;
+  const refTag = referral?.referredBy ? ` · Ref: ${referral.referredBy} (${referral.code})` : '';
+  const subject = `New Application: ${name}${refTag}`;
 
   const rows = [
     ['Name', name],
@@ -187,6 +188,11 @@ export function renderAdminNewApplication(data) {
     ['Role', role || 'Not provided'],
     ['Application ID', applicationId || 'N/A'],
   ];
+  if (source) rows.push(['Source', source]);
+  if (referral?.referredBy) {
+    rows.push(['Referred By', `${referral.referredBy} (code: ${referral.code})`]);
+    if (referral.offer) rows.push(['Partner Offer', referral.offer]);
+  }
   if (message) rows.push(['Message', message]);
 
   const content = [
@@ -204,6 +210,9 @@ export function renderAdminNewApplication(data) {
     `Company: ${company || 'Not provided'}`,
     `Role: ${role || 'Not provided'}`,
     `Application ID: ${applicationId || 'N/A'}`,
+    source ? `Source: ${source}` : '',
+    referral?.referredBy ? `Referred By: ${referral.referredBy} (code: ${referral.code})` : '',
+    referral?.offer ? `Partner Offer: ${referral.offer}` : '',
     message ? `Message: ${message}` : '',
     '',
     `Review at: ${EMAIL_CONFIG.siteUrl}/admin.html`,
@@ -695,6 +704,98 @@ export function renderReEngagement(data) {
     `Dashboard: ${dashboard}`,
     '',
     `Unsubscribe: ${unsub}`,
+  ].join('\n');
+
+  return { html: getEmailBaseHtml(content), text, subject };
+}
+
+// ─── Event Registration ─────────────────────────────────────────────────────
+
+export function renderEventRegistrationConfirmation(data) {
+  const { name, email, eventTitle, eventDate, eventTime, zoomLink, zoomMeetingId, zoomPasscode } = data;
+  const subject = `You're Registered: ${eventTitle}`;
+
+  const content = [
+    heading(`You're In, ${escHtml(name)}!`),
+    paragraph(`You've successfully registered for <strong>${escHtml(eventTitle)}</strong>.`),
+    divider(),
+    `<h3 style="margin:0 0 12px 0;color:#c4671a;font-size:18px;">Event Details</h3>`,
+    dataTable([
+      ['Event', eventTitle],
+      ['Date', eventDate],
+      ['Time', eventTime],
+      ['Location', 'Virtual via Zoom'],
+    ]),
+    divider(),
+    `<h3 style="margin:0 0 12px 0;color:#c4671a;font-size:18px;">Your Zoom Link</h3>`,
+    paragraph('Click the button below to join the event on Saturday:'),
+    ctaButton(zoomLink, 'Join Zoom Meeting'),
+    dataTable([
+      ['Meeting Link', zoomLink],
+      ...(zoomMeetingId ? [['Meeting ID', zoomMeetingId]] : []),
+      ...(zoomPasscode ? [['Passcode', zoomPasscode]] : []),
+    ]),
+    divider(),
+    `<h3 style="margin:0 0 12px 0;color:#c4671a;font-size:18px;">Before the Event</h3>`,
+    bulletList([
+      'Download Zoom if you haven\'t already',
+      'Prepare your product idea (even a rough one!)',
+      'Join 5 minutes early to get settled',
+      'Have a notebook ready for action items',
+    ]),
+    paragraph('See you there!<br>— The CoCreate Team'),
+  ].join('');
+
+  const text = [
+    `Hi ${name},`,
+    '',
+    `You're registered for: ${eventTitle}`,
+    '',
+    `Date: ${eventDate}`,
+    `Time: ${eventTime}`,
+    `Location: Virtual via Zoom`,
+    '',
+    `Zoom Link: ${zoomLink}`,
+    zoomMeetingId ? `Meeting ID: ${zoomMeetingId}` : '',
+    zoomPasscode ? `Passcode: ${zoomPasscode}` : '',
+    '',
+    'Before the Event:',
+    '- Download Zoom if you haven\'t already',
+    '- Prepare your product idea (even a rough one!)',
+    '- Join 5 minutes early to get settled',
+    '',
+    'See you there!',
+    '— The CoCreate Team',
+  ].filter(Boolean).join('\n');
+
+  return { html: getEmailBaseHtml(content), text, subject };
+}
+
+export function renderEventRegistrationAdminNotification(data) {
+  const { name, email, phone, productIdea, eventTitle, eventId, totalRegistrations } = data;
+  const subject = `New Event Registration: ${name} for ${eventTitle}`;
+
+  const content = [
+    heading('New Event Registration'),
+    paragraph(`Someone just registered for <strong>${escHtml(eventTitle)}</strong>.`),
+    dataTable([
+      ['Name', name],
+      ['Email', email],
+      ['Phone', phone || 'Not provided'],
+      ['Product Idea', productIdea || 'Not provided'],
+      ['Event ID', eventId],
+      ['Total Registrations', totalRegistrations || 'N/A'],
+    ]),
+  ].join('');
+
+  const text = [
+    `New Event Registration for: ${eventTitle}`,
+    '',
+    `Name: ${name}`,
+    `Email: ${email}`,
+    `Phone: ${phone || 'Not provided'}`,
+    `Product Idea: ${productIdea || 'Not provided'}`,
+    `Total Registrations: ${totalRegistrations || 'N/A'}`,
   ].join('\n');
 
   return { html: getEmailBaseHtml(content), text, subject };

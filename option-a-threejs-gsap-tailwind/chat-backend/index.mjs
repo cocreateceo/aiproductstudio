@@ -37,7 +37,26 @@ const LLM_PRICING = {
 const S3_BUCKET = process.env.S3_BUCKET || 'cocreate-applications-data';
 const S3_REGION = process.env.AWS_REGION || 'us-east-1';
 
-import { EMAIL_CONFIG, ADMIN_EMAILS, renderAdminNewApplication, renderApplicantAcknowledgment, renderApplicantApproved, renderApplicantRejected, renderUserWelcome, renderPasswordResetLink, renderPasswordChanged, renderNewLoginAlert, renderProjectDeployed, renderBuildFailedUser, renderBuildFailedAdmin, renderAccountDeactivated, renderSessionExpiryReminder, renderWeeklyDigest, renderReEngagement } from './email-templates.mjs';
+// Partner referral codes — code → internal attribution.
+// To add a new referrer, add an entry here and redeploy the Lambda.
+const REFERRAL_CODES = {
+  COSAT01: {
+    referredBy: 'Satya',
+    offer: 'Basic $2000 (was $3000) · Advanced AI $4000 (was $6000) · Or 50% sponsored for ownership',
+    active: true
+  }
+};
+
+function resolveReferral(rawCode) {
+  if (!rawCode || typeof rawCode !== 'string') return null;
+  const code = rawCode.trim().toUpperCase();
+  if (!/^[A-Z0-9_-]+$/.test(code)) return null;
+  const match = REFERRAL_CODES[code];
+  if (!match || !match.active) return null;
+  return { code, ...match };
+}
+
+import { EMAIL_CONFIG, ADMIN_EMAILS, renderAdminNewApplication, renderApplicantAcknowledgment, renderApplicantApproved, renderApplicantRejected, renderUserWelcome, renderPasswordResetLink, renderPasswordChanged, renderNewLoginAlert, renderProjectDeployed, renderBuildFailedUser, renderBuildFailedAdmin, renderAccountDeactivated, renderSessionExpiryReminder, renderWeeklyDigest, renderReEngagement, renderEventRegistrationConfirmation, renderEventRegistrationAdminNotification } from './email-templates.mjs';
 import { sendTemplatedEmail, sendToAdmins, sendTemplate, sendTemplateToAdmins, isResetRateLimited } from './email-service.mjs';
 
 // System prompt for the AI Product Studio chat agent with guardrails
@@ -2189,11 +2208,20 @@ ${JSON.stringify(formData, null, 2)}`;
     const filename = `${timestamp.replace(/[:.]/g, '-')}_${randomSuffix}.json`;
     const s3Key = `applications/${userFolder}/${dateFolder}/${filename}`;
 
+    // Resolve referral code (if any) to known partner — attribution stays internal.
+    const referral = resolveReferral(formData.referralCode);
+    if (referral) {
+      console.log('Referral applied:', referral.code, '→', referral.referredBy);
+    } else if (formData.referralCode) {
+      console.log('Unknown referral code submitted:', formData.referralCode);
+    }
+
     const applicationData = {
       submittedAt: timestamp,
       submittedAtEST: new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }),
       status: 'pending',
-      source: 'direct-form',
+      source: referral ? `referral:${referral.code}` : 'direct-form',
+      referral: referral || null,
       visitorInfo: {
         name: formData.name || null,
         email: formData.email || null,
@@ -2219,7 +2247,8 @@ ${JSON.stringify(formData, null, 2)}`;
         name: formData.name || 'Not provided',
         email: formData.email || 'Not provided',
         productIdea: formData.productIdea || 'Not provided',
-        source: 'Direct Form',
+        source: referral ? `Referral (${referral.referredBy} · ${referral.code})` : 'Direct Form',
+        referral: referral || null,
         s3Key
       };
       await sendTemplateToAdmins(renderAdminNewApplication, emailData);
@@ -2253,6 +2282,51 @@ ${JSON.stringify(formData, null, 2)}`;
       error: 'Validation service error - please try again'
     };
   }
+}
+
+// Computes the active Saturday's eventId in America/Chicago.
+// Mirrors /event.html: if Sat before 11 AM CT, today; otherwise upcoming Saturday.
+function currentWeekEventId() {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Chicago',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', hour12: false, weekday: 'short'
+  }).formatToParts(new Date());
+  const get = (t) => parts.find(p => p.type === t).value;
+  const year = +get('year'), month = +get('month'), day = +get('day');
+  const hour = +get('hour') % 24;
+  const weekday = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(get('weekday'));
+  let satOffset;
+  if (weekday === 6 && hour < 11) satOffset = 0;
+  else if (weekday === 6) satOffset = 7;
+  else satOffset = (6 - weekday + 7) % 7;
+  const d = new Date(Date.UTC(year, month - 1, day + satOffset));
+  return 'build-product-2hrs-' + d.toISOString().slice(0, 10);
+}
+
+// Weekly "Build Your Product in 2 Hours" event resolver.
+// Accepts eventId = "build-product-2hrs-YYYY-MM-DD" where the date is a Saturday.
+// Static workshop details — only the date varies week to week.
+function resolveWeeklyEvent(eventId) {
+  if (typeof eventId !== 'string') return null;
+  const match = eventId.match(/^build-product-2hrs-(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+  const [, y, m, d] = match;
+  const year = +y, month = +m, day = +d;
+  const dt = new Date(Date.UTC(year, month - 1, day));
+  if (dt.getUTCFullYear() !== year || dt.getUTCMonth() !== month - 1 || dt.getUTCDate() !== day) return null;
+  if (dt.getUTCDay() !== 6) return null; // must be Saturday
+  const dateLabel = dt.toLocaleDateString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC'
+  });
+  return {
+    title: 'Build Your Product in Less Than 2 Hours',
+    date: dateLabel,                                        // e.g. "Saturday, April 25, 2026"
+    time: '9:00 AM - 11:00 AM CST (Chicago)',
+    zoomLink: 'https://us06web.zoom.us/j/2245204604?pwd=Yk9ReE42K080LzRoUXBPdzFNRFlvUT09',
+    zoomMeetingId: '224 520 4604',
+    zoomPasscode: '1234',
+  };
 }
 
 // Main handler
@@ -2570,6 +2644,166 @@ export const handler = async (event) => {
     }
     if (action === 'aws-activity-email-report') {
       return handleAwsActivityEmailReport({ body, corsHeaders, ADMIN_PASSWORD });
+    }
+
+    // ========== EVENT REGISTRATION ==========
+    if (action === 'event-register') {
+      try {
+        const { name, email, phone, productIdea, eventId } = body;
+
+        if (!name || !email) {
+          return {
+            statusCode: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ success: false, error: 'Name and email are required' })
+          };
+        }
+
+        // Event configuration (timezone: America/Chicago)
+        // eventId format: build-product-2hrs-YYYY-MM-DD (must be a Saturday)
+        // Static workshop details; only the date varies week to week.
+        const eventConfig = resolveWeeklyEvent(eventId);
+        if (!eventConfig) {
+          return {
+            statusCode: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ success: false, error: 'Invalid event' })
+          };
+        }
+
+        const { S3Client: S3C, PutObjectCommand, ListObjectsV2Command } = await import('@aws-sdk/client-s3');
+        const s3 = new S3C({ region: S3_REGION });
+
+        // ── Store registration in S3 ──
+        const timestamp = new Date().toISOString();
+        const registrationData = {
+          name, email, phone, productIdea, eventId,
+          registeredAt: timestamp,
+          ip: clientIP,
+        };
+
+        const s3Key = `events/${eventId}/registrations/${email.toLowerCase().replace(/[^a-z0-9]/g, '_')}.json`;
+        await s3.send(new PutObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: s3Key,
+          Body: JSON.stringify(registrationData, null, 2),
+          ContentType: 'application/json',
+        }));
+
+        // Count total registrations
+        let totalRegistrations = 'N/A';
+        try {
+          const listResult = await s3.send(new ListObjectsV2Command({
+            Bucket: S3_BUCKET,
+            Prefix: `events/${eventId}/registrations/`,
+          }));
+          totalRegistrations = String(listResult.KeyCount || 0);
+        } catch (e) { /* ignore count errors */ }
+
+        // ── Send confirmation email with Zoom link ──
+        const confirmationEmail = renderEventRegistrationConfirmation({
+          name, email,
+          eventTitle: eventConfig.title,
+          eventDate: eventConfig.date,
+          eventTime: eventConfig.time,
+          zoomLink: eventConfig.zoomLink,
+          zoomMeetingId: eventConfig.zoomMeetingId,
+          zoomPasscode: eventConfig.zoomPasscode,
+        });
+
+        await sendTemplatedEmail(
+          email,
+          confirmationEmail.subject,
+          confirmationEmail.html,
+          confirmationEmail.text
+        );
+
+        // ── Notify admins ──
+        const adminEmail = renderEventRegistrationAdminNotification({
+          name, email, phone, productIdea,
+          eventTitle: eventConfig.title,
+          eventId,
+          totalRegistrations,
+        });
+
+        await sendToAdmins(
+          adminEmail.subject,
+          adminEmail.html,
+          adminEmail.text
+        );
+
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: true, message: 'Registration successful' })
+        };
+      } catch (error) {
+        console.error('Event registration error:', error);
+        return {
+          statusCode: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'Registration failed. Please try again.' })
+        };
+      }
+    }
+
+    // ========== LIST EVENT REGISTRATIONS (Admin) ==========
+    if (action === 'event-list-registrations') {
+      try {
+        const { password, eventId } = body;
+        if (password !== ADMIN_PASSWORD) {
+          return {
+            statusCode: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ success: false, error: 'Unauthorized' })
+          };
+        }
+
+        const targetEventId = eventId || currentWeekEventId();
+        const { S3Client: S3C, ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const s3 = new S3C({ region: S3_REGION });
+
+        const prefix = `events/${targetEventId}/registrations/`;
+        const listResult = await s3.send(new ListObjectsV2Command({
+          Bucket: S3_BUCKET,
+          Prefix: prefix,
+        }));
+
+        const registrations = [];
+        if (listResult.Contents) {
+          for (const obj of listResult.Contents) {
+            try {
+              const data = await s3.send(new GetObjectCommand({
+                Bucket: S3_BUCKET,
+                Key: obj.Key,
+              }));
+              const record = JSON.parse(await data.Body.transformToString());
+              registrations.push(record);
+            } catch (e) { /* skip bad records */ }
+          }
+        }
+
+        // Sort by registration time (newest first)
+        registrations.sort((a, b) => new Date(b.registeredAt) - new Date(a.registeredAt));
+
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            success: true,
+            eventId: targetEventId,
+            total: registrations.length,
+            registrations
+          })
+        };
+      } catch (error) {
+        console.error('Event list error:', error);
+        return {
+          statusCode: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, error: 'Failed to load registrations' })
+        };
+      }
     }
 
     // Get Tmux Projects - Fetch deployed projects from Tmux Builder API
