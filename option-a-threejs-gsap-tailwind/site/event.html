@@ -1087,6 +1087,20 @@
             return new Date(Date.UTC(year, month - 1, day + add)).toISOString().slice(0, 10);
         }
 
+        // Saturdays where the workshop is canceled. Active Saturday rolls
+        // forward over these and the page stays in REST until the next one.
+        const SKIPPED_SATURDAYS = ['2026-04-25'];
+
+        function nextNonSkippedSaturday(yyyyMmDd) {
+            let s = yyyyMmDd;
+            while (SKIPPED_SATURDAYS.includes(s)) {
+                const dt = new Date(s + 'T12:00:00Z');
+                dt.setUTCDate(dt.getUTCDate() + 7);
+                s = dt.toISOString().slice(0, 10);
+            }
+            return s;
+        }
+
         function computeEventTiming() {
             const ch = getChicagoParts(new Date());
             const { year, month, day, weekday, hour } = ch;
@@ -1096,19 +1110,21 @@
             if (weekday === 6 && hour < 11) satOffset = 0;           // today (before event ends)
             else if (weekday === 6) satOffset = 7;                   // after 11 AM Sat → next Saturday
             else satOffset = (6 - weekday + 7) % 7;                  // Sun-Fri → upcoming Saturday
-            const saturdayStr = addUtcDays(year, month, day, satOffset);
+            const naturalSaturdayStr = addUtcDays(year, month, day, satOffset);
+            const saturdayStr = nextNonSkippedSaturday(naturalSaturdayStr);
+            const skipped = saturdayStr !== naturalSaturdayStr;
 
             let state, targetStr, targetHour;
-            if (weekday === 6 && hour >= 9 && hour < 11) {
+            if (!skipped && weekday === 6 && hour >= 9 && hour < 11) {
                 state = 'LIVE';
                 targetStr = saturdayStr;
                 targetHour = 9;
-            } else if ((weekday === 6 && hour >= 11) || weekday === 0 || (weekday === 1 && hour < 9)) {
+            } else if (skipped || (weekday === 6 && hour >= 11) || weekday === 0 || (weekday === 1 && hour < 9)) {
                 state = 'REST';                                       // count to Monday 09:00 CT
                 let monOffset;
-                if (weekday === 6) monOffset = 2;
+                if (weekday === 1 && hour < 9) monOffset = 0;         // today (Monday before 9 AM)
                 else if (weekday === 0) monOffset = 1;
-                else monOffset = 0;                                   // Monday before 9 AM
+                else monOffset = (1 - weekday + 7) % 7 || 7;          // upcoming Monday from Tue–Sat
                 targetStr = addUtcDays(year, month, day, monOffset);
                 targetHour = 9;
             } else {

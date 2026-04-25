@@ -2399,7 +2399,9 @@ async function sendUserReport(userId, period) {
 let eventRegistrations = [];
 
 // Weekly event timing (mirrors /event.html logic)
-// Active Saturday = today if Sat before 11 AM CT, else next Saturday
+// Active Saturday = today if Sat before 11 AM CT, else next non-skipped Saturday
+const ADMIN_SKIPPED_SATURDAYS = ['2026-04-25'];
+
 function getCurrentEventTiming() {
     const parts = new Intl.DateTimeFormat('en-US', {
         timeZone: 'America/Chicago',
@@ -2416,7 +2418,12 @@ function getCurrentEventTiming() {
     else if (weekday === 6) satOffset = 7;
     else satOffset = (6 - weekday + 7) % 7;
 
-    const dateStr = new Date(Date.UTC(year, month - 1, day + satOffset)).toISOString().slice(0, 10);
+    let dateStr = new Date(Date.UTC(year, month - 1, day + satOffset)).toISOString().slice(0, 10);
+    while (ADMIN_SKIPPED_SATURDAYS.includes(dateStr)) {
+        const dt = new Date(dateStr + 'T12:00:00Z');
+        dt.setUTCDate(dt.getUTCDate() + 7);
+        dateStr = dt.toISOString().slice(0, 10);
+    }
     const label = new Date(dateStr + 'T12:00:00Z').toLocaleDateString('en-US', {
         weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC'
     });
