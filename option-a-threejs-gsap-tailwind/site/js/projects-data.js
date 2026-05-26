@@ -17,7 +17,7 @@ window.PROJECTS_DATA = [
     tagline: "Astrology, wellness, and spiritual-growth platforms powered by AI.",
     icon: "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z",
     projects: [
-      { name: "Vedic Astro",            description: "Full Vedic astrology platform — kundli, horoscopes, panchang, and compatibility readings.", liveUrl: "https://astro.vedics.net" },
+      { name: "Vedic Astro",            description: "Full Vedic astrology platform — kundli, horoscopes, panchang, and compatibility readings.", liveUrl: "https://astro.vedics.net", featured: true },
       { name: "Vedic Transform",        description: "Vedic transformation and spiritual-growth web app with guided journeys.",                  liveUrl: "https://10x.vedics.net" },
       { name: "Vedic Avatar",           description: "AI avatar that delivers personalized Vedic guidance and consultations.",                   liveUrl: "" },
       { name: "Vedic YouTube Studio",   description: "Astro Vedics YouTube channel — automated Vedic astrology content.",                       liveUrl: "https://www.youtube.com/@astrovedic-s" },
@@ -33,7 +33,7 @@ window.PROJECTS_DATA = [
     icon: "M3 3v18h18M7 14l3-3 3 3 5-5",
     projects: [
       { name: "TradeWell",    description: "Self-hosted live trading-charts dashboard — your markets, all on one screen.", liveUrl: "https://d39c48qrzwnhha.cloudfront.net" },
-      { name: "TradePredict", description: "AI-powered automated trading platform by CoCreate.",                          liveUrl: "https://trade.cocreateidea.com" },
+      { name: "TradePredict", description: "AI-powered automated trading platform by CoCreate.",                          liveUrl: "https://trade.cocreateidea.com", featured: true },
       { name: "Tradewise",    description: "Smart trading insights and portfolio analytics.",                             liveUrl: "" }
     ]
   },
@@ -44,8 +44,8 @@ window.PROJECTS_DATA = [
     icon: "M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z",
     projects: [
       { name: "SpeakWell",        description: "AI-powered spoken-language training application with real-time feedback.", liveUrl: "https://speakwell.cocreateidea.com" },
-      { name: "Career Builder",   description: "CareerX — AI-powered career platform and job-application assistant.",       liveUrl: "https://career.cocreateidea.com" },
-      { name: "Resume Builder",   description: "ResumeX — free AI resume builder that tailors resumes to each role.",       liveUrl: "https://resume.cocreateidea.com" },
+      { name: "Career Builder",   description: "CareerX — AI-powered career platform and job-application assistant.",       liveUrl: "https://career.cocreateidea.com", featured: true },
+      { name: "Resume Builder",   description: "ResumeX — free AI resume builder that tailors resumes to each role.",       liveUrl: "https://resume.cocreateidea.com", featured: true },
       { name: "LearnAI",          description: "AI education platform — learn to build with AI (5-day intensive).",         liveUrl: "https://learnai.cocreateidea.com" },
       { name: "Hiring Assistant", description: "AI agent orchestration that scores a candidate's join-probability.",        liveUrl: "" },
       { name: "HR Chatbot",       description: "Conversational HR assistant for employee queries and support.",            liveUrl: "" }
@@ -57,7 +57,7 @@ window.PROJECTS_DATA = [
     tagline: "AI assistants for clinical support and personalized care.",
     icon: "M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z",
     projects: [
-      { name: "Medical AI Assistant",        description: "MediPulse — your AI health companion for clinical support and triage.", liveUrl: "https://medipulse.cocreateidea.com/login/" },
+      { name: "Medical AI Assistant",        description: "MediPulse — your AI health companion for clinical support and triage.", liveUrl: "https://medipulse.cocreateidea.com/login/", featured: true },
       { name: "Prescriptive Beauty Advisor", description: "AI-powered skincare recommendations tailored to each user.",              liveUrl: "" }
     ]
   },
@@ -79,7 +79,7 @@ window.PROJECTS_DATA = [
     tagline: "Smart property discovery and matching.",
     icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6",
     projects: [
-      { name: "HomeMatch", description: "India's smart property-matching platform — find your dream home.", liveUrl: "https://d1rk0r5urb0mbh.cloudfront.net" }
+      { name: "HomeMatch", description: "India's smart property-matching platform — find your dream home.", liveUrl: "https://d1rk0r5urb0mbh.cloudfront.net", featured: true }
     ]
   },
   {

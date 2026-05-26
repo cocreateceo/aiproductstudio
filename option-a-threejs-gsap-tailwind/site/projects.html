@@ -55,6 +55,7 @@
     <script src="js/config.js"></script>
     <link rel="stylesheet" href="css/chat-widget.css">
     <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="css/projects.css">
 
     <style>
         /* Fixed Page Background */
@@ -460,16 +461,52 @@
                 <span class="gradient-text">CoCreated</span>
             </h1>
             <p class="text-xl md:text-2xl text-theme-secondary max-w-3xl mx-auto leading-relaxed">
-                A growing portfolio of AI-powered products across industries. Explore by category to see what we've built.
+                A growing portfolio of AI-powered products across industries. See our featured work, search, or browse by category.
             </p>
         </div>
     </section>
 
-    <!-- Categories Grid -->
-    <section class="py-16 px-6 pb-28">
+    <!-- Featured Products -->
+    <section class="px-6 pt-2 pb-6">
         <div class="max-w-6xl mx-auto">
+            <div class="flex items-center gap-3 mb-8">
+                <h2 class="text-2xl md:text-3xl font-display font-bold">Featured Products</h2>
+                <svg class="w-6 h-6 text-accent" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14l-5-4.87 7.1-1.01z"/></svg>
+            </div>
+            <div id="featured-grid" class="proj-grid">
+                <!-- Featured cards injected by JS -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Browse: search + filter + categories / results -->
+    <section class="py-12 px-6 pb-28">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-10">
+                <h2 class="text-2xl md:text-3xl font-display font-bold mb-2">Browse All Projects</h2>
+                <p class="text-theme-secondary">Search by name, or explore by category below.</p>
+            </div>
+
+            <div class="proj-toolbar">
+                <label class="proj-search">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <input id="proj-search-input" type="search" placeholder="Search products…" autocomplete="off" aria-label="Search products">
+                </label>
+                <div class="filter-chips">
+                    <button class="filter-chip active" data-filter="all" type="button">All</button>
+                    <button class="filter-chip" data-filter="live" type="button">Live</button>
+                    <button class="filter-chip" data-filter="soon" type="button">Coming Soon</button>
+                </div>
+            </div>
+
+            <!-- Default browse: category cards -->
             <div id="categories-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <!-- Category cards injected by JS -->
+            </div>
+
+            <!-- Search / filter results (shown when searching or filtering) -->
+            <div id="results-grid" class="proj-grid" style="display:none;">
+                <!-- Product cards injected by JS -->
             </div>
         </div>
     </section>
@@ -502,6 +539,7 @@
 
     <!-- Projects data + chat widget -->
     <script src="js/projects-data.js"></script>
+    <script src="js/projects-render.js"></script>
     <script src="js/chat-widget.js"></script>
     <script src="js/chat-loader.js"></script>
 
@@ -541,6 +579,55 @@
                     });
                 });
             }
+        })();
+
+        // --- Featured strip ---
+        (function renderFeatured() {
+            const grid = document.getElementById('featured-grid');
+            const CP = window.CoCreateProjects;
+            if (!grid || !CP) return;
+            const featured = CP.flatten().filter(p => p.featured);
+            if (!featured.length) { grid.closest('section').style.display = 'none'; return; }
+            grid.innerHTML = featured.map(p => CP.productCardHTML(p, { showCategory: true })).join('');
+        })();
+
+        // --- Search + status filter (toggles category browse vs. flat results) ---
+        (function searchAndFilter() {
+            const CP = window.CoCreateProjects;
+            const input = document.getElementById('proj-search-input');
+            const chips = Array.from(document.querySelectorAll('.filter-chip'));
+            const catGrid = document.getElementById('categories-grid');
+            const results = document.getElementById('results-grid');
+            if (!CP || !input || !catGrid || !results) return;
+
+            const all = CP.flatten();
+            let q = '', filter = 'all';
+
+            function apply() {
+                const browsing = (q.trim() === '' && filter === 'all');
+                catGrid.style.display = browsing ? '' : 'none';
+                results.style.display = browsing ? 'none' : '';
+                if (browsing) return;
+
+                const needle = q.trim().toLowerCase();
+                const matches = all.filter(p => {
+                    if (filter === 'live' && !p.isLive) return false;
+                    if (filter === 'soon' && p.isLive) return false;
+                    if (!needle) return true;
+                    return (p.name + ' ' + p.description + ' ' + p.catName).toLowerCase().includes(needle);
+                });
+                results.innerHTML = matches.length
+                    ? matches.map(p => CP.productCardHTML(p, { showCategory: true })).join('')
+                    : '<div class="proj-empty">No products match your search.</div>';
+            }
+
+            input.addEventListener('input', e => { q = e.target.value; apply(); });
+            chips.forEach(chip => chip.addEventListener('click', () => {
+                chips.forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                filter = chip.dataset.filter;
+                apply();
+            }));
         })();
 
         // GSAP Animations

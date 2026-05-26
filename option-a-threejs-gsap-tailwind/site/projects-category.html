@@ -55,6 +55,7 @@
     <script src="js/config.js"></script>
     <link rel="stylesheet" href="css/chat-widget.css">
     <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="css/projects.css">
 
     <style>
         /* Fixed Page Background */
@@ -431,7 +432,7 @@
     <!-- Projects Grid -->
     <section class="py-12 px-6 pb-28">
         <div class="max-w-6xl mx-auto">
-            <div id="projects-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div id="projects-grid" class="proj-grid">
                 <!-- Project cards injected by JS -->
             </div>
         </div>
@@ -465,6 +466,7 @@
 
     <!-- Projects data + chat widget -->
     <script src="js/projects-data.js"></script>
+    <script src="js/projects-render.js"></script>
     <script src="js/chat-widget.js"></script>
     <script src="js/chat-loader.js"></script>
 
@@ -498,36 +500,10 @@
             document.getElementById('category-tagline').textContent = cat.tagline;
             document.getElementById('hero-icon-path').setAttribute('d', cat.icon);
 
-            grid.innerHTML = cat.projects.map(p => {
-                const action = (p.liveUrl && p.liveUrl !== '#')
-                    ? `<a class="visit-btn" href="${escapeHtml(p.liveUrl)}" target="_blank" rel="noopener noreferrer">
-                           Visit Live
-                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                           </svg>
-                       </a>`
-                    : `<span class="coming-soon">
-                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                           </svg>
-                           Coming Soon
-                       </span>`;
-                return `
-                <div class="project-card section-reveal">
-                    <h3 class="text-xl font-display font-bold mb-3">${escapeHtml(p.name)}</h3>
-                    <p class="text-theme-secondary leading-relaxed mb-6">${escapeHtml(p.description)}</p>
-                    ${action}
-                </div>`;
-            }).join('');
-
-            if (window.gsap) {
-                gsap.utils.toArray('#projects-grid .section-reveal').forEach((elem) => {
-                    gsap.to(elem, {
-                        opacity: 1, y: 0, duration: 0.7, ease: 'power3.out',
-                        scrollTrigger: { trigger: elem, start: 'top 92%' }
-                    });
-                });
-            }
+            grid.innerHTML = window.CoCreateProjects.flatten()
+                .filter(p => p.catKey === cat.key)
+                .map(p => window.CoCreateProjects.productCardHTML(p))
+                .join('');
         })();
 
         // GSAP base
