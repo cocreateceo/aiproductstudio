@@ -79,6 +79,34 @@
 }
 .proj-card:hover .tile-shot { transform: scale(1.04); }
 .proj-tile.has-shot .tile-shot { transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+/* Themed stock photos read best centered; screenshots stay top-anchored. */
+.proj-tile .tile-shot--photo { object-position: center center; }
+
+/* Cards are clickable → open the detail modal. */
+.proj-card { cursor: pointer; }
+.proj-card:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.proj-tile-hint {
+  position: absolute;
+  bottom: 10px;
+  right: 12px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 100px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.proj-card:hover .proj-tile-hint,
+.proj-card:focus-visible .proj-tile-hint { opacity: 1; transform: translateY(0); }
 
 /* Status badge */
 .proj-badge {
@@ -216,4 +244,110 @@
   text-align: center;
   color: var(--text-muted);
   padding: 3rem 1rem;
+}
+
+/* ----------------------------- Detail modal ----------------------------- */
+.proj-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+}
+.proj-modal.is-open { display: flex; }
+body.proj-modal-open { overflow: hidden; }
+
+.proj-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 8, 14, 0.72);
+  backdrop-filter: blur(6px);
+  animation: pm-fade 0.25s ease;
+}
+.proj-modal__panel {
+  position: relative;
+  z-index: 1;
+  width: min(620px, 100%);
+  max-height: calc(100dvh - 2.5rem);
+  overflow-y: auto;
+  background: var(--bg-card, #12141c);
+  border: 1px solid var(--border-color);
+  border-radius: 1.25rem;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+  animation: pm-rise 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes pm-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pm-rise { from { opacity: 0; transform: translateY(18px) scale(0.98); } to { opacity: 1; transform: none; } }
+
+.proj-modal__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+.proj-modal__close:hover { background: rgba(0, 0, 0, 0.65); transform: rotate(90deg); }
+
+/* Reuse .proj-tile gradient/layers, just taller + rounded top only. */
+.proj-modal__media.proj-tile {
+  height: 250px;
+  border-radius: 1.25rem 1.25rem 0 0;
+}
+.proj-modal__media .tile-icon { width: 66px; height: 66px; }
+.proj-modal__media .tile-initial { font-size: 96px; }
+
+.proj-modal__body { padding: 1.5rem 1.6rem 1.7rem; }
+.proj-modal__body .proj-cat-tag { margin-bottom: 0.5rem; }
+.proj-modal__body h2 {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 1.6rem;
+  line-height: 1.15;
+  margin-bottom: 0.7rem;
+}
+.proj-modal__overview {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  font-size: 1rem;
+  margin-bottom: 1.2rem;
+}
+.proj-modal__highlights {
+  list-style: none;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+.proj-modal__highlights li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+.proj-modal__highlights svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--primary);
+}
+.proj-modal__actions { display: flex; }
+.proj-modal__actions .proj-visit { font-size: 0.92rem; padding: 0.7rem 1.3rem; }
+
+@media (max-width: 520px) {
+  .proj-modal__media.proj-tile { height: 190px; }
+  .proj-modal__body h2 { font-size: 1.35rem; }
 }
