@@ -57,7 +57,7 @@ window.PROJECTS_DATA = [
     tagline: "AI assistants for clinical support and personalized care.",
     icon: "M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z",
     projects: [
-      { name: "Medical AI Assistant",        description: "MediPulse — your AI health companion for clinical support and triage.", liveUrl: "https://medipulse.cocreateidea.com" },
+      { name: "Medical AI Assistant",        description: "MediPulse — your AI health companion for clinical support and triage.", liveUrl: "https://medipulse.cocreateidea.com/login/" },
       { name: "Prescriptive Beauty Advisor", description: "AI-powered skincare recommendations tailored to each user.",              liveUrl: "" }
     ]
   },
