@@ -18,352 +18,20 @@ import { handleAdminCostsSummary, handleUserCosts } from './costs/index.mjs';
 import { handleScheduledCostReports, handleManualCostReportTrigger, handleSendAdminSummaryReport, computeAdminSummaryData } from './costs/email-reports.mjs';
 import { handleAwsCostSummary, handleAwsCostDaily, handleAwsCostDailyByService, handleAwsCostForecast, handleAwsCostServiceDetail, handleAwsProjectCosts, handleAwsProjectCostsDynamic, handleAwsCostDailyByProject, handleAwsUnusedResources, handleAwsDeleteResource, handleAwsS3Browse, handleAwsS3Delete, handleAwsS3Analysis, handleAwsActivityLog, handleAwsActivityEmailReport, handleAwsCostDashboardBatch, handleAwsCostStorageBatch } from './aws-costs/index.mjs';
 
-// Configuration
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const NOTIFICATION_EMAIL = process.env.NOTIFICATION_EMAIL; // Must be set and verified in SES
-
-// LLM model configuration (update here when switching models)
-const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-4-20250514';
-const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
-
-// LLM pricing per 1K tokens (update here when pricing changes)
-const LLM_PRICING = {
-  claude: { input: 0.003, output: 0.015 },
-  openai: { input: 0.00015, output: 0.0006 }
-};
-
-// S3 bucket for storing all data (must exist in cocreate account us-east-1)
-const S3_BUCKET = process.env.S3_BUCKET || 'cocreate-applications-data';
-const S3_REGION = process.env.AWS_REGION || 'us-east-1';
-
-// Partner referral codes — code → internal attribution.
-// To add a new referrer, add an entry here and redeploy the Lambda.
-const REFERRAL_CODES = {
-  COSAT01: {
-    referredBy: 'Satya',
-    offer: 'Basic $2000 (was $3000) · Advanced AI $4000 (was $6000) · Or 50% sponsored for ownership',
-    active: true
-  }
-};
-
-function resolveReferral(rawCode) {
-  if (!rawCode || typeof rawCode !== 'string') return null;
-  const code = rawCode.trim().toUpperCase();
-  if (!/^[A-Z0-9_-]+$/.test(code)) return null;
-  const match = REFERRAL_CODES[code];
-  if (!match || !match.active) return null;
-  return { code, ...match };
-}
+// Shared lib imports (Phase 1 refactor)
+import { ANTHROPIC_API_KEY, OPENAI_API_KEY, NOTIFICATION_EMAIL, CLAUDE_MODEL, OPENAI_MODEL, LLM_PRICING, S3_BUCKET, S3_REGION, REFERRAL_CODES, SYSTEM_PROMPT } from './lib/config.mjs';
+import { getS3 } from './lib/aws.mjs';
+import { CORS, corsHeaders, respond } from './lib/http.mjs';
+import { generateSessionId, generateClientId } from './lib/ids.mjs';
+import { resolveReferral } from './lib/referral.mjs';
 
 import { EMAIL_CONFIG, ADMIN_EMAILS, renderAdminNewApplication, renderApplicantAcknowledgment, renderApplicantApproved, renderApplicantRejected, renderUserWelcome, renderPasswordResetLink, renderPasswordChanged, renderNewLoginAlert, renderProjectDeployed, renderBuildFailedUser, renderBuildFailedAdmin, renderAccountDeactivated, renderSessionExpiryReminder, renderWeeklyDigest, renderReEngagement, renderEventRegistrationConfirmation, renderEventRegistrationAdminNotification } from './email-templates.mjs';
 import { sendTemplatedEmail, sendToAdmins, sendTemplate, sendTemplateToAdmins, isResetRateLimited } from './email-service.mjs';
-
-// System prompt for the AI Product Studio chat agent with guardrails
-const SYSTEM_PROMPT = `You are a friendly and professional AI assistant for AI Product Studio - a venture studio that partners with business founders to build AI-powered products.
-
-## About AI Product Studio:
-- We are your AI co-founder, not an agency
-- We build products in 2 weeks using AI-accelerated development
-- Partnership model: 40% Tech Founder (us), 40% Business Founder (them), 20% Operations
-- $0 upfront cost - we share risk and reward
-- We handle: AI architecture, development, hosting, continuous support
-- They handle: Market validation, sales, partnerships, revenue strategy
-
-## Current Products in Portfolio:
-1. Personal Transformation - AI-powered personal growth platform
-2. Vedic Astrology - AI-enhanced astrological insights
-3. Career Builder - AI career coaching platform
-
-## GUARDRAILS - Stay On Topic:
-You are ONLY here to discuss:
-- AI Product Studio partnership opportunities
-- How our venture studio model works
-- AI product development and our process
-- Business ideas that could become AI products
-- Our portfolio and success stories
-- Pricing, timelines, and partnership terms
-
-POLITELY DECLINE any questions about:
-- General knowledge, trivia, or random facts
-- Coding help, debugging, or technical tutorials
-- Personal advice (health, relationships, legal, financial)
-- News, politics, entertainment, or current events
-- Homework, essays, or academic work
-- Other companies or competitors
-- Anything not related to partnering with AI Product Studio
-
-When declining, say something like:
-"I appreciate your curiosity! However, I'm specifically here to help you explore partnership opportunities with AI Product Studio. Is there something about our venture model or AI product development I can help you with?"
-
-## CRITICAL - Contact Information Collection:
-You MUST collect contact information before providing detailed answers. Follow this flow:
-
-1. On ANY relevant question from visitor, FIRST check if you have their name AND (phone OR email)
-2. If you DON'T have complete contact info yet:
-   - Acknowledge their question briefly
-   - Warmly ask for their name and phone number (or email) so your team can follow up
-   - Be friendly but persistent - explain you want to give them personalized attention
-   - DO NOT give detailed answers until you have contact info
-3. If they provide partial info (only name, or only phone), ask for the missing piece
-4. Once you have name + (phone or email), thank them and provide a helpful, enthusiastic response
-
-## Example Flows:
-
-User: "How does the partnership work?"
-Assistant: "Great question about our partnership model! I'd love to explain it in detail. But first, could you share your name and phone number (or email)? This way our founders can personally follow up with you about partnership opportunities. What's your name?"
-
-User: "What's the capital of France?"
-Assistant: "I appreciate your curiosity! However, I'm specifically here to help you explore partnership opportunities with AI Product Studio. Do you have a business idea you'd like to build with AI? I'd love to hear about it!"
-
-User: "Can you help me debug my code?"
-Assistant: "Thanks for reaching out! While I can't help with general coding questions, I'm here to discuss how AI Product Studio can partner with you to build AI-powered products. Do you have a product idea in mind? Our team handles all the technical development!"
-
-## ============================================
-## PARTNERSHIP APPLICATION FORM - FIELD COLLECTION
-## ============================================
-
-## MANDATORY FIELDS (8 fields - ALL REQUIRED):
-
-| Step | Field ID | Question | Valid Values |
-|------|----------|----------|--------------|
-| 1 | fullName | "What's your full name?" | Any text, min 2 characters |
-| 2 | email | "What's your email address?" | Must contain @ and domain |
-| 3 | businessStage | "What's your current business stage?" | idea / validated / mvp / revenue / scaling |
-| 4 | industry | "What industry are you targeting?" | healthcare / fintech / ecommerce / education / saas / consumer / other |
-| 5 | background | "Tell me about your background and experience" | Any text, min 10 characters |
-| 6 | productIdea | "What AI product do you want to build? Describe the problem it solves." | Any text, min 20 characters |
-| 7 | targetCustomer | "Who is your target customer? Describe their pain points." | Any text, min 10 characters |
-| 8 | timeCommitment | "What's your time commitment?" | fulltime / parttime / sidehustle / minimal |
-| 9 | timeline | "When do you want to launch?" | asap / 1month / 3months / 6months / exploring |
-
-## OPTIONAL FIELDS (5 fields - Ask after mandatory):
-
-| Field ID | Question |
-|----------|----------|
-| phone | "What's your phone number? (Optional)" |
-| linkedin | "What's your LinkedIn profile URL?" |
-| marketValidation | "Have you done any market validation? Talked to customers?" |
-| additionalInfo | "Anything else you'd like us to know?" |
-
----
-
-## COLLECTION FLOW - STEP BY STEP:
-
-### STEP 1: Show progress after EACH answer
-Format: "✓ Got it! Progress: [■■■□□□□□] 3/8 required fields"
-
-### STEP 2: Ask ONE question at a time
-- Acknowledge previous answer
-- Show progress bar (8 boxes for 8 mandatory fields)
-- Ask next question
-
-### STEP 3: After ALL 8 mandatory fields collected
-Ask: "All required fields complete! Would you like to:
-1. **Submit now** - Your application is ready
-2. **Add optional details** - Phone, LinkedIn, market validation, etc."
-
-### STEP 4: Based on user choice
-- If "submit" or "1" → Submit with mandatory fields only
-- If "optional" or "2" → Ask the 5 optional questions, then submit
-
----
-
-## DATA FORMAT & VALIDATION:
-
-### Email Validation:
-- Must contain @ symbol
-- Must have domain (e.g., .com, .in)
-- Auto-format: lowercase, trim spaces
-- If invalid, say: "That doesn't look like a valid email. Could you check and try again?"
-
-### Phone Validation:
-- Accept ANY format (international users)
-- Auto-format: Remove spaces, dashes, parentheses. Keep + and digits only
-- Examples: "+91 98765 43210" → "+919876543210", "(555) 123-4567" → "5551234567"
-- NEVER reject a phone number
-
-### Dropdown Fields (MUST match these EXACT values):
-- businessStage: "idea" | "validated" | "mvp" | "revenue" | "scaling"
-- industry: "healthcare" | "fintech" | "ecommerce" | "education" | "saas" | "consumer" | "other"
-- timeCommitment: "fulltime" | "parttime" | "sidehustle" | "minimal"
-- timeline: "asap" | "1month" | "3months" | "6months" | "exploring"
-
-**CRITICAL: Use ONLY these exact values. Wrong values will not fill the dropdown!**
-
----
-
-## WHEN USER UPLOADS A FILE (PDF, DOCX, Resume):
-
-1. **EXTRACT ALL DATA** from file content
-2. **IMMEDIATELY INCLUDE FORM_DATA JSON** to auto-fill form
-3. **SHOW WHAT YOU EXTRACTED** with checkmarks
-4. **LIST MISSING MANDATORY FIELDS** and ask for them one by one
-
-### Example - File Upload Response:
-
-"I've extracted your details from the file!
-
-**✓ Auto-filled from your document:**
-- ✓ Name: Shreyas Jadhav
-- ✓ Email: shreyas@example.com
-- ✓ Background: DevOps Engineer with 3+ years
-
-**□ Still needed (5 more required):**
-- □ Business Stage
-- □ Industry
-- □ Product Idea
-- □ Target Customer
-- □ Time Commitment
-- □ Timeline
-
-Progress: [■■■□□□□□] 3/8 required fields
-
-Let's continue! What's your current business stage?
-- Idea stage (just an idea)
-- Validated (talked to customers)
-- MVP (have a working prototype)
-- Revenue (already making money)
-- Scaling (scaling existing business)"
-
-|||FORM_DATA|||{"fullName":"Shreyas Jadhav","email":"shreyas@example.com","phone":"","businessStage":"","industry":"","background":"DevOps Engineer with 3+ years","productIdea":"","targetCustomer":"","timeCommitment":"","timeline":"","linkedin":"","marketValidation":"","additionalInfo":""}|||END_FORM|||
-
----
-
-## FORM SUBMISSION - CRITICAL RULES:
-
-### NEVER submit if ANY mandatory field is empty:
-- fullName, email, businessStage, industry, background, productIdea, targetCustomer, timeCommitment, timeline
-
-### Before submission, VERIFY all 8 mandatory fields have values:
-\`\`\`
-CHECKLIST (8 MANDATORY):
-□ fullName: [value or MISSING]
-□ email: [value or MISSING]
-□ businessStage: [value or MISSING]
-□ industry: [value or MISSING]
-□ background: [value or MISSING]
-□ productIdea: [value or MISSING]
-□ targetCustomer: [value or MISSING]
-□ timeCommitment: [value or MISSING]
-□ timeline: [value or MISSING]
-\`\`\`
-
-### If ANY mandatory field shows MISSING:
-Say: "Before I can submit, I still need: [list missing fields]. Could you provide [first missing field]?"
-
-### ONLY when ALL 8 mandatory fields have values:
-
-"**Application Summary:**
-
-**Your Details:**
-- Name: [fullName]
-- Email: [email]
-
-**Business Info:**
-- Stage: [businessStage]
-- Industry: [industry]
-- Background: [background]
-
-**Product Vision:**
-- Idea: [productIdea]
-- Target Customer: [targetCustomer]
-
-**Commitment:**
-- Time: [timeCommitment]
-- Timeline: [timeline]
-
-✓ All 8 required fields complete! Submitting your application..."
-
-|||FORM_DATA|||{"fullName":"...","email":"...","phone":"","businessStage":"...","industry":"...","background":"...","productIdea":"...","targetCustomer":"...","timeCommitment":"...","timeline":"...","linkedin":"","marketValidation":"","additionalInfo":""}|||END_FORM|||
-
----
-
-## EARLY DUPLICATE CHECK (AUTOMATIC):
-
-**The system automatically checks for duplicate applications when email is first provided.**
-
-### What happens:
-1. When user provides their email for the first time
-2. System automatically checks if an application already exists with that email
-3. If duplicate found → User sees a notification asking if they want to continue
-4. If no duplicate → Normal flow continues
-
-### Your role:
-- You DON'T need to check for duplicates manually
-- The system handles it automatically when you include email in FORM_DATA
-- If user says they want to continue despite duplicate, proceed normally
-- If user has questions about their existing application, refer them to: hello@cocreateidea.com
-
----
-
-## IMPORTANT RULES:
-- Be conversational and friendly
-- Show progress after EACH answer
-- Ask ONE question at a time
-- ALWAYS offer "submit now" or "add optional" choice after mandatory fields
-- NEVER claim submission complete if ANY mandatory field is empty
-- When file uploaded, ALWAYS extract and use the data
-
----
-
-## CRITICAL - FORM_DATA JSON RULE:
-
-**YOU MUST INCLUDE |||FORM_DATA||| JSON IN EVERY RESPONSE WHERE USER PROVIDES ANY INFORMATION.**
-
-This is NOT optional. The HTML form ONLY gets filled when you include this JSON block.
-
-### WHEN TO INCLUDE FORM_DATA:
-1. When user provides their name → include FORM_DATA
-2. When user provides email → include FORM_DATA
-3. When user provides ANY field value → include FORM_DATA
-4. When user uploads a file → include FORM_DATA
-5. When showing summary → include FORM_DATA
-6. EVERY TIME you have collected data → include FORM_DATA
-
-### FORMAT - MUST BE AT END OF YOUR RESPONSE:
-\`\`\`
-|||FORM_DATA|||{"fullName":"value","email":"value","phone":"","businessStage":"value","industry":"value","background":"value","productIdea":"value","targetCustomer":"value","timeCommitment":"value","timeline":"value","linkedin":"","marketValidation":"","additionalInfo":""}|||END_FORM|||
-\`\`\`
-
-### RULES:
-- Put collected value in field, empty string "" for uncollected fields
-- Include ALL 13 fields every time (8 mandatory + 5 optional)
-- Place at the VERY END of your response
-- NO line breaks inside the JSON
-- If field not yet collected, use empty string ""
-- For dropdown fields, use EXACT values: businessStage, industry, timeCommitment, timeline
-
-### EXAMPLE:
-User: "My name is John and email is john@test.com"
-
-Your response:
-"Great John! I've noted your details.
-
-Progress: [■■□□□□□□] 2/8 required fields
-
-What's your current business stage?
-- Idea stage (just an idea)
-- Validated (talked to customers)
-- MVP (have a working prototype)
-- Revenue (already making money)
-- Scaling (scaling existing business)"
-
-|||FORM_DATA|||{"fullName":"John","email":"john@test.com","phone":"","businessStage":"","industry":"","background":"","productIdea":"","targetCustomer":"","timeCommitment":"","timeline":"","linkedin":"","marketValidation":"","additionalInfo":""}|||END_FORM|||
-
-**IF YOU DON'T INCLUDE FORM_DATA, THE FORM WILL NOT BE FILLED. THIS IS MANDATORY.**`;
 
 // Initialize Anthropic client
 const anthropic = new Anthropic({
   apiKey: ANTHROPIC_API_KEY,
 });
-
-// CORS headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
 
 // Send Email via AWS SES (new lead from chat)
 async function sendEmail(visitorInfo, messages, aiResponse, clientIP) {
@@ -440,31 +108,10 @@ async function sendApplicantConfirmationEmail(visitorInfo, formContent) {
 
 // ========== CHAT HISTORY MANAGEMENT ==========
 
-// Generate unique session ID
-function generateSessionId() {
-  const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 10);
-  return `sess-${timestamp}-${random}`;
-}
-
-// Generate unique client ID from email or name
-function generateClientId(email, name) {
-  const timestamp = Date.now();
-  if (email) {
-    const sanitized = email.toLowerCase().replace(/[^a-z0-9]/g, '-');
-    return `client-${sanitized}`;
-  }
-  if (name) {
-    const sanitized = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-    return `client-${sanitized}-${timestamp}`;
-  }
-  return `client-anon-${timestamp}`;
-}
-
 // Save chat session to S3
 async function saveChatSession(sessionId, source, messages, visitorInfo, status = 'active') {
-  const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: S3_REGION });
+  const { GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = getS3();
 
   const prefix = source === 'apply' ? 'chats/apply' : 'chats/landing';
   const s3Key = `${prefix}/${sessionId}.json`;
@@ -537,8 +184,8 @@ async function saveChatSession(sessionId, source, messages, visitorInfo, status 
 
 // Save session lookup index (maps phone/email to sessionId)
 async function saveSessionLookup(sessionId, phone, email) {
-  const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: S3_REGION });
+  const { GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = getS3();
 
   // Normalize phone and email for lookup
   const normalizedPhone = phone ? phone.replace(/[^0-9]/g, '') : null;
@@ -595,8 +242,8 @@ async function saveSessionLookup(sessionId, phone, email) {
 
 // Lookup session by phone or email
 async function lookupSessionByContact(phone, email) {
-  const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: S3_REGION });
+  const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = getS3();
 
   const normalizedPhone = phone ? phone.replace(/[^0-9]/g, '') : null;
   const normalizedEmail = email ? email.toLowerCase().trim() : null;
@@ -666,8 +313,8 @@ async function lookupSessionByContact(phone, email) {
 
 // Link chat session to application
 async function linkSessionToApplication(sessionId, source, applicationS3Key) {
-  const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: S3_REGION });
+  const { GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = getS3();
 
   const prefix = source === 'apply' ? 'chats/apply' : 'chats/landing';
   const s3Key = `${prefix}/${sessionId}.json`;
@@ -698,8 +345,8 @@ async function linkSessionToApplication(sessionId, source, applicationS3Key) {
 
 // Get or create client profile
 async function getOrCreateClientProfile(clientId, visitorInfo) {
-  const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: S3_REGION });
+  const { GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = getS3();
 
   const s3Key = `clients/${clientId}.json`;
 
@@ -743,8 +390,8 @@ async function getOrCreateClientProfile(clientId, visitorInfo) {
 
 // Update client profile
 async function updateClientProfile(clientId, updates) {
-  const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: S3_REGION });
+  const { GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = getS3();
 
   const s3Key = `clients/${clientId}.json`;
 
@@ -799,8 +446,8 @@ async function updateClientProfile(clientId, updates) {
 
 // List all chat sessions (for admin)
 async function listChatSessions(source = 'all', limit = 50) {
-  const { S3Client, ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: S3_REGION });
+  const { ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = getS3();
 
   const prefixes = source === 'all'
     ? ['chats/landing/', 'chats/apply/']
@@ -845,8 +492,8 @@ async function listChatSessions(source = 'all', limit = 50) {
 
 // List all client profiles (for admin)
 async function listClientProfiles(limit = 50) {
-  const { S3Client, ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: S3_REGION });
+  const { ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = getS3();
 
   try {
     const allClients = [];
@@ -957,8 +604,8 @@ async function listClientProfiles(limit = 50) {
 
 // List all builds with history (for admin)
 async function listBuildHistory(limit = 50) {
-  const { S3Client, ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: S3_REGION });
+  const { ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = getS3();
 
   try {
     const allBuilds = [];
@@ -1077,8 +724,8 @@ async function listBuildHistory(limit = 50) {
 
 // Check for duplicate application by email or phone
 async function checkDuplicateApplication(email, phone) {
-  const { S3Client, ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: S3_REGION });
+  const { ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = getS3();
 
   // Normalize email and phone
   const normalizedEmail = email ? email.toLowerCase().trim() : null;
@@ -1150,8 +797,8 @@ async function checkDuplicateApplication(email, phone) {
 
 // Save abandoned form data to S3
 async function saveAbandonedForm(sessionId, formData, chatState, visitorInfo, clientIP, reason) {
-  const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: S3_REGION });
+  const { PutObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = getS3();
 
   const timestamp = new Date().toISOString();
   const dateFolder = timestamp.split('T')[0];
@@ -1223,8 +870,8 @@ async function saveAbandonedForm(sessionId, formData, chatState, visitorInfo, cl
 
 // Sync localStorage state to S3
 async function syncLocalStorageToS3(sessionId, chatState, visitorInfo, clientIP) {
-  const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: S3_REGION });
+  const { GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = getS3();
 
   if (!chatState || !sessionId) {
     return { success: false, error: 'Missing sessionId or chatState' };
@@ -1282,8 +929,8 @@ async function syncLocalStorageToS3(sessionId, chatState, visitorInfo, clientIP)
 
 // Save form submission to S3
 async function saveFormToS3(visitorInfo, formContent, clientIP) {
-  const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: S3_REGION });
+  const { PutObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = getS3();
 
   const timestamp = new Date().toISOString();
   const dateFolder = timestamp.split('T')[0]; // YYYY-MM-DD
@@ -1364,8 +1011,8 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'aiproductstudio2026';
 
 // List all applications from S3
 async function listApplications() {
-  const { S3Client, ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: S3_REGION });
+  const { ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = getS3();
 
   try {
     const listResult = await s3.send(new ListObjectsV2Command({
@@ -1417,8 +1064,8 @@ async function listApplications() {
 
 // Update application status in S3
 async function updateApplicationStatus(s3Key, newStatus, reviewNotes = '') {
-  const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: S3_REGION });
+  const { GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = getS3();
 
   try {
     // Get current application data
@@ -1497,8 +1144,8 @@ async function updateApplicationStatus(s3Key, newStatus, reviewNotes = '') {
 
 // Create MVP build job in S3 for EC2 worker to pick up
 async function createBuildJob(applicationData, originalS3Key) {
-  const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3 = new S3Client({ region: S3_REGION });
+  const { PutObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3 = getS3();
 
   // Generate unique job ID
   const timestamp = Date.now();
@@ -2168,8 +1815,8 @@ ${JSON.stringify(formData, null, 2)}`;
     // Validation passed → check for duplicate, save to S3, send emails
     console.log('Form validation passed, saving application...');
 
-    const { S3Client, ListObjectsV2Command, PutObjectCommand } = await import('@aws-sdk/client-s3');
-    const s3 = new S3Client({ region: S3_REGION });
+    const { ListObjectsV2Command, PutObjectCommand } = await import('@aws-sdk/client-s3');
+    const s3 = getS3();
 
     // Check for duplicate email submission
     const email = formData.email?.toLowerCase();
@@ -2474,8 +2121,8 @@ export const handler = async (event) => {
       }
 
       try {
-        const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = new S3Client({ region: S3_REGION });
+        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const s3 = getS3();
 
         const progressResult = await s3.send(new GetObjectCommand({
           Bucket: S3_BUCKET,
@@ -2671,8 +2318,8 @@ export const handler = async (event) => {
           };
         }
 
-        const { S3Client: S3C, PutObjectCommand, ListObjectsV2Command } = await import('@aws-sdk/client-s3');
-        const s3 = new S3C({ region: S3_REGION });
+        const { PutObjectCommand, ListObjectsV2Command } = await import('@aws-sdk/client-s3');
+        const s3 = getS3();
 
         // ── Store registration in S3 ──
         const timestamp = new Date().toISOString();
@@ -2760,8 +2407,8 @@ export const handler = async (event) => {
         }
 
         const targetEventId = eventId || currentWeekEventId();
-        const { S3Client: S3C, ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = new S3C({ region: S3_REGION });
+        const { ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const s3 = getS3();
 
         const prefix = `events/${targetEventId}/registrations/`;
         const listResult = await s3.send(new ListObjectsV2Command({
@@ -2887,8 +2534,8 @@ export const handler = async (event) => {
 
     // Helper: Validate session
     async function validateSession(guid, sessionToken) {
-      const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-      const s3 = new S3Client({ region: S3_REGION });
+      const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+      const s3 = getS3();
       try {
         const result = await s3.send(new GetObjectCommand({
           Bucket: S3_BUCKET,
@@ -2917,8 +2564,8 @@ export const handler = async (event) => {
       }
 
       try {
-        const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = new S3Client({ region: S3_REGION });
+        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const s3 = getS3();
 
         // Get application by guid
         const applications = await listApplications();
@@ -2974,9 +2621,9 @@ export const handler = async (event) => {
       }
 
       try {
-        const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
+        const { GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
         const bcrypt = (await import('bcryptjs')).default;
-        const s3 = new S3Client({ region: S3_REGION });
+        const s3 = getS3();
 
         // Check if account exists
         try {
@@ -3065,9 +2712,9 @@ export const handler = async (event) => {
       }
 
       try {
-        const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
+        const { GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
         const bcrypt = (await import('bcryptjs')).default;
-        const s3 = new S3Client({ region: S3_REGION });
+        const s3 = getS3();
 
         // Get credentials
         let credentials;
@@ -3180,8 +2827,8 @@ export const handler = async (event) => {
           };
         }
 
-        const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = new S3Client({ region: S3_REGION });
+        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const s3 = getS3();
 
         // Get profile
         let profile = {};
@@ -3263,7 +2910,7 @@ export const handler = async (event) => {
         }
 
         const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = new S3Client({ region: S3_REGION });
+        const s3 = getS3();
 
         // Extract base64 data
         const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
@@ -3364,8 +3011,8 @@ export const handler = async (event) => {
           };
         }
 
-        const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = new S3Client({ region: S3_REGION });
+        const { GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
+        const s3 = getS3();
 
         // Get existing profile
         let profile = {};
@@ -3419,9 +3066,9 @@ export const handler = async (event) => {
           };
         }
 
-        const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
+        const { GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
         const bcrypt = (await import('bcryptjs')).default;
-        const s3 = new S3Client({ region: S3_REGION });
+        const s3 = getS3();
 
         const credResult = await s3.send(new GetObjectCommand({ Bucket: S3_BUCKET, Key: `users/${guid}/credentials.json` }));
         const credentials = JSON.parse(await credResult.Body.transformToString());
@@ -3475,9 +3122,9 @@ export const handler = async (event) => {
       try {
         if (await isResetRateLimited(email)) return successResponse;
 
-        const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
+        const { GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
         const crypto = await import('crypto');
-        const s3 = new S3Client({ region: S3_REGION });
+        const s3 = getS3();
 
         // Look up GUID from email-index
         const emailHash = crypto.createHash('sha256').update(email.toLowerCase().trim()).digest('hex');
@@ -3540,9 +3187,9 @@ export const handler = async (event) => {
       }
 
       try {
-        const { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectCommand } = await import('@aws-sdk/client-s3');
+        const { GetObjectCommand, PutObjectCommand, DeleteObjectCommand } = await import('@aws-sdk/client-s3');
         const bcrypt = (await import('bcryptjs')).default;
-        const s3 = new S3Client({ region: S3_REGION });
+        const s3 = getS3();
 
         // Read and verify reset token
         let storedToken;
@@ -3627,8 +3274,8 @@ export const handler = async (event) => {
       }
 
       try {
-        const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = new S3Client({ region: S3_REGION });
+        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const s3 = getS3();
 
         // Try both prefixes if source not specified
         const prefixes = source ? [`chats/${source}/`] : ['chats/landing/', 'chats/apply/'];
@@ -3684,8 +3331,8 @@ export const handler = async (event) => {
       }
 
       try {
-        const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = new S3Client({ region: S3_REGION });
+        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const s3 = getS3();
 
         const result = await s3.send(new GetObjectCommand({
           Bucket: S3_BUCKET,
@@ -3726,8 +3373,8 @@ export const handler = async (event) => {
       }
 
       try {
-        const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = new S3Client({ region: S3_REGION });
+        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const s3 = getS3();
 
         let metadata = null;
 
@@ -3823,8 +3470,8 @@ export const handler = async (event) => {
       }
 
       try {
-        const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = new S3Client({ region: S3_REGION });
+        const { GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
+        const s3 = getS3();
 
         // Update the progress file with new status
         let progressData = {};
@@ -3921,8 +3568,8 @@ export const handler = async (event) => {
       }
 
       try {
-        const { S3Client, DeleteObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = new S3Client({ region: S3_REGION });
+        const { DeleteObjectCommand } = await import('@aws-sdk/client-s3');
+        const s3 = getS3();
 
         const deletePromises = sessionIds.map(async (sessionInfo) => {
           const { sessionId, source } = sessionInfo;
@@ -4097,8 +3744,8 @@ export const handler = async (event) => {
       }
 
       try {
-        const { S3Client, GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = new S3Client({ region: S3_REGION });
+        const { GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
+        const s3 = getS3();
 
         // Read existing profile
         let profile = {};
@@ -4148,8 +3795,8 @@ export const handler = async (event) => {
     if (action === 'scheduled-session-expiry') {
       console.log('[Scheduled] Session expiry reminder check started');
       try {
-        const { S3Client, ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = new S3Client({ region: S3_REGION });
+        const { ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const s3 = getS3();
 
         // List all user directories
         const usersResult = await s3.send(new ListObjectsV2Command({
@@ -4225,8 +3872,8 @@ export const handler = async (event) => {
     if (action === 'scheduled-weekly-digest') {
       console.log('[Scheduled] Weekly digest started');
       try {
-        const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = new S3Client({ region: S3_REGION });
+        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const s3 = getS3();
 
         const allApps = await listApplications();
         const approvedApps = allApps.filter(app => app.status === 'approved' && app.guid);
@@ -4323,8 +3970,8 @@ export const handler = async (event) => {
     if (action === 'scheduled-re-engagement') {
       console.log('[Scheduled] Re-engagement check started');
       try {
-        const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = new S3Client({ region: S3_REGION });
+        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const s3 = getS3();
 
         const allApps = await listApplications();
         const approvedApps = allApps.filter(app => app.status === 'approved' && app.guid);
