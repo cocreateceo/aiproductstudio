@@ -6,6 +6,7 @@
 
 import { getS3 } from '../lib/aws.mjs';
 import { S3_BUCKET } from '../lib/config.mjs';
+import { corsHeaders } from '../lib/http.mjs';
 import { generateClientId } from '../lib/ids.mjs';
 
 // Save chat session to S3
@@ -284,3 +285,54 @@ export async function listChatSessions(source = 'all', limit = 50) {
     new Date(b.lastActivity || b.startedAt) - new Date(a.lastActivity || a.startedAt)
   );
 }
+
+// ---------------------------------------------------------------------------
+// handleLookupSession — action 'lookup-session'
+// Lookup existing session by phone or email (for returning users)
+// ---------------------------------------------------------------------------
+export async function handleLookupSession(body, event) {
+  const { phone, email } = body;
+
+  if (!phone && !email) {
+    return {
+      statusCode: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ success: false, error: 'Phone or email is required' })
+    };
+  }
+
+  const result = await lookupSessionByContact(phone, email);
+
+  if (result.found) {
+    return {
+      statusCode: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        success: true,
+        found: true,
+        sessionId: result.sessionId,
+        matchedBy: result.matchedBy,
+        messages: result.messages,
+        visitorInfo: result.visitorInfo,
+        lastActivity: result.session.lastActivity
+      })
+    };
+  } else {
+    return {
+      statusCode: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        success: true,
+        found: false,
+        reason: result.reason
+      })
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Routes map
+// ---------------------------------------------------------------------------
+export const routes = {
+  'lookup-session': handleLookupSession,
+};

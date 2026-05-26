@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import crypto from 'crypto';
 import { ANTHROPIC_API_KEY, CLAUDE_MODEL, S3_BUCKET } from '../lib/config.mjs';
 import { getS3 } from '../lib/aws.mjs';
+import { corsHeaders } from '../lib/http.mjs';
 import { resolveReferral } from '../lib/referral.mjs';
 import { renderAdminNewApplication, renderApplicantAcknowledgment } from '../email-templates.mjs';
 import { sendTemplatedEmail, sendToAdmins, sendTemplate, sendTemplateToAdmins } from '../email-service.mjs';
@@ -697,3 +698,131 @@ ${JSON.stringify(formData, null, 2)}`;
     };
   }
 }
+
+// ---------------------------------------------------------------------------
+// handleCheckDuplicate — action 'check-duplicate'
+// Called by frontend when email is first collected (before form fill)
+// ---------------------------------------------------------------------------
+export async function handleCheckDuplicate(body, event) {
+  const { email, phone } = body;
+
+  if (!email && !phone) {
+    return {
+      statusCode: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ success: false, error: 'Email or phone is required' })
+    };
+  }
+
+  console.log('Early duplicate check for:', { email, phone });
+
+  const duplicateCheck = await checkDuplicateApplication(email, phone);
+
+  if (duplicateCheck.isDuplicate) {
+    const submittedDate = duplicateCheck.submittedAt
+      ? new Date(duplicateCheck.submittedAt).toLocaleDateString()
+      : 'recently';
+
+    console.log('Duplicate found:', duplicateCheck);
+
+    return {
+      statusCode: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        success: true,
+        isDuplicate: true,
+        matchedBy: duplicateCheck.matchedBy,
+        submittedAt: submittedDate,
+        message: `You already have an application submitted on ${submittedDate} using this ${duplicateCheck.matchedBy}. Our team is reviewing it and will contact you soon.`
+      })
+    };
+  } else {
+    console.log('No duplicate found - user can proceed');
+    return {
+      statusCode: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        success: true,
+        isDuplicate: false,
+        message: 'No existing application found. You can proceed with your new application.'
+      })
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// handleSaveAbandonedForm — action 'save-abandoned-form'
+// Called when user leaves page without submitting (beforeunload)
+// ---------------------------------------------------------------------------
+export async function handleSaveAbandonedForm(body, event) {
+  const { visitorInfo = {} } = body;
+  const clientIP = event.requestContext?.http?.sourceIp ||
+                   event.headers?.['x-forwarded-for']?.split(',')[0] ||
+                   'Unknown';
+  const { sessionId, formData, chatState, reason } = body;
+
+  if (!sessionId) {
+    return {
+      statusCode: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ success: false, error: 'Session ID is required' })
+    };
+  }
+
+  console.log('Saving abandoned form for session:', sessionId);
+
+  const result = await saveAbandonedForm(sessionId, formData, chatState, visitorInfo, clientIP, reason);
+
+  return {
+    statusCode: 200,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      success: result.success,
+      key: result.key || null,
+      error: result.error || null
+    })
+  };
+}
+
+// ---------------------------------------------------------------------------
+// handleSyncState — action 'sync-state'
+// Periodically sync localStorage state to S3
+// ---------------------------------------------------------------------------
+export async function handleSyncState(body, event) {
+  const { visitorInfo = {} } = body;
+  const clientIP = event.requestContext?.http?.sourceIp ||
+                   event.headers?.['x-forwarded-for']?.split(',')[0] ||
+                   'Unknown';
+  const { sessionId, chatState } = body;
+
+  if (!sessionId || !chatState) {
+    return {
+      statusCode: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ success: false, error: 'Session ID and chat state are required' })
+    };
+  }
+
+  console.log('Syncing state for session:', sessionId);
+
+  const result = await syncLocalStorageToS3(sessionId, chatState, visitorInfo, clientIP);
+
+  return {
+    statusCode: 200,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      success: result.success,
+      synced: result.synced || false,
+      error: result.error || null
+    })
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Routes map
+// ---------------------------------------------------------------------------
+export const routes = {
+  'check-duplicate': handleCheckDuplicate,
+  'save-abandoned-form': handleSaveAbandonedForm,
+  'sync-state': handleSyncState,
+};

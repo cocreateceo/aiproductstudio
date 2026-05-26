@@ -29,11 +29,68 @@ import { sendFormSubmissionEmail, sendApplicantConfirmationEmail, checkDuplicate
 import { handleUserCheck, handleUserSignup, handleUserLogin, handleUserDashboard, handleUploadAvatar, handleSaveTheme, handleUserChangePassword, handleForgotPassword, handleResetPassword } from './domains/users.mjs';
 import { handleAdminLogin, handleAdminList, handleAdminUpdate, handleAdminProgress, handleAdminChats, handleAdminClients, handleAdminBuilds, handleAdminChatDetail, handleAdminClientDetail, handleAdminBuildDetail, handleAdminDeleteChats, handleUpdateBuildStatus, handleGetAdminSummary } from './domains/admin.mjs';
 
+// Route maps (action → handler) from each domain module
+import { routes as sessionRoutes } from './domains/sessions.mjs';
+import { routes as applicationRoutes } from './domains/applications.mjs';
+import { routes as eventRoutes } from './domains/events.mjs';
+import { routes as userRoutes } from './domains/users.mjs';
+import { routes as adminRoutes } from './domains/admin.mjs';
+import { routes as miscRoutes } from './domains/misc.mjs';
+
 import { EMAIL_CONFIG, ADMIN_EMAILS, renderAdminNewApplication, renderApplicantAcknowledgment, renderApplicantApproved, renderApplicantRejected, renderUserWelcome, renderPasswordResetLink, renderPasswordChanged, renderNewLoginAlert, renderProjectDeployed, renderBuildFailedUser, renderBuildFailedAdmin, renderAccountDeactivated, renderSessionExpiryReminder, renderWeeklyDigest, renderReEngagement, renderEventRegistrationConfirmation, renderEventRegistrationAdminNotification } from './email-templates.mjs';
 import { sendTemplatedEmail, sendToAdmins, sendTemplate, sendTemplateToAdmins, isResetRateLimited } from './email-service.mjs';
 
 // Admin password (simple auth for now)
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'aiproductstudio2026';
+
+// ---------------------------------------------------------------------------
+// Cost / AWS delegation routes.
+// Each entry mirrors EXACTLY how the former inline `if (action===...)` block
+// invoked its imported handler (same args, same return — direct, not wrapped).
+// ---------------------------------------------------------------------------
+const costRoutes = {
+  // ── User / admin cost summaries (costs/index.mjs, costs/email-reports.mjs) ──
+  'admin-costs-summary': (body, event) => handleAdminCostsSummary({ body, corsHeaders, S3_REGION, ADMIN_PASSWORD, listApplications }),
+  'user-costs': (body, event) => handleUserCosts({ body, corsHeaders, S3_REGION, listApplications }),
+  'send-cost-reports': (body, event) => handleManualCostReportTrigger({ body, corsHeaders, S3_REGION, ADMIN_PASSWORD, listApplications }),
+  'send-all-reports': (body, event) => {
+    body.reportType = body.period || 'weekly';
+    return handleManualCostReportTrigger({ body, corsHeaders, S3_REGION, ADMIN_PASSWORD, listApplications });
+  },
+  'send-admin-report': (body, event) => handleSendAdminSummaryReport({ body, corsHeaders, S3_REGION, ADMIN_PASSWORD, listApplications }),
+
+  // ── AWS Batch endpoints (merged calls for dashboard performance) ──
+  'aws-cost-dashboard-batch': (body, event) => handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PASSWORD }),
+  'aws-cost-storage-batch': (body, event) => handleAwsCostStorageBatch({ body, corsHeaders, ADMIN_PASSWORD }),
+
+  // ── AWS account-wide cost endpoints (aws-costs/index.mjs) ──
+  'aws-cost-summary': (body, event) => handleAwsCostSummary({ body, corsHeaders, ADMIN_PASSWORD }),
+  'aws-cost-daily': (body, event) => handleAwsCostDaily({ body, corsHeaders, ADMIN_PASSWORD }),
+  'aws-cost-daily-by-service': (body, event) => handleAwsCostDailyByService({ body, corsHeaders, ADMIN_PASSWORD }),
+  'aws-cost-forecast': (body, event) => handleAwsCostForecast({ body, corsHeaders, ADMIN_PASSWORD }),
+  'aws-cost-service-detail': (body, event) => handleAwsCostServiceDetail({ body, corsHeaders, ADMIN_PASSWORD }),
+  'aws-project-costs': (body, event) => handleAwsProjectCosts({ body, corsHeaders, ADMIN_PASSWORD }),
+  'aws-project-costs-dynamic': (body, event) => handleAwsProjectCostsDynamic({ body, corsHeaders, ADMIN_PASSWORD }),
+  'aws-cost-daily-by-project': (body, event) => handleAwsCostDailyByProject({ body, corsHeaders, ADMIN_PASSWORD }),
+  'aws-unused-resources': (body, event) => handleAwsUnusedResources({ body, corsHeaders, ADMIN_PASSWORD }),
+  'aws-delete-resource': (body, event) => handleAwsDeleteResource({ body, corsHeaders, ADMIN_PASSWORD }),
+  'aws-s3-browse': (body, event) => handleAwsS3Browse({ body, corsHeaders, ADMIN_PASSWORD }),
+  'aws-s3-delete': (body, event) => handleAwsS3Delete({ body, corsHeaders, ADMIN_PASSWORD }),
+  'aws-s3-analysis': (body, event) => handleAwsS3Analysis({ body, corsHeaders, ADMIN_PASSWORD }),
+  'aws-activity-log': (body, event) => handleAwsActivityLog({ body, corsHeaders, ADMIN_PASSWORD }),
+  'aws-activity-email-report': (body, event) => handleAwsActivityEmailReport({ body, corsHeaders, ADMIN_PASSWORD }),
+};
+
+// Merged action → handler registry. Each handler is invoked as fn(body, event).
+const ROUTES_REGISTRY = {
+  ...sessionRoutes,
+  ...applicationRoutes,
+  ...eventRoutes,
+  ...userRoutes,
+  ...adminRoutes,
+  ...miscRoutes,
+  ...costRoutes,
+};
 
 // Main handler
 export const handler = async (event) => {
@@ -73,856 +130,19 @@ export const handler = async (event) => {
       };
     }
 
-    // ========== ADMIN ENDPOINTS ==========
-
-    // Admin Login
-    if (action === 'admin-login') return await handleAdminLogin(body, event);
-
-    // Admin List Applications
-    if (action === 'admin-list') return await handleAdminList(body, event);
-
-    // Admin Update Application Status
-    if (action === 'admin-update') return await handleAdminUpdate(body, event);
-
-    // Admin Get Job Progress
-    if (action === 'admin-progress') return await handleAdminProgress(body, event);
-
-    // Admin List Chat Sessions
-    if (action === 'admin-chats') return await handleAdminChats(body, event);
-
-    // Admin List Client Profiles
-    if (action === 'admin-clients') return await handleAdminClients(body, event);
-
-    // Admin List Build History
-    if (action === 'admin-builds') return await handleAdminBuilds(body, event);
-
-    // ==================== AWS COSTS ENDPOINTS ====================
-
-    // Admin Costs Summary - All users with total costs (see costs/index.mjs)
-    if (action === 'admin-costs-summary') {
-      return handleAdminCostsSummary({ body, corsHeaders, S3_REGION, ADMIN_PASSWORD, listApplications });
-    }
-
-    // Admin Summary - Infrastructure costs, grand total, deltas (see costs/email-reports.mjs)
-    if (action === 'get-admin-summary') return await handleGetAdminSummary(body, event);
-
-    // User Costs - Current user's projects with costs (see costs/index.mjs)
-    if (action === 'user-costs') {
-      return handleUserCosts({ body, corsHeaders, S3_REGION, listApplications });
-    }
-
-    // Send Cost Reports - Manual admin trigger for email cost reports (see costs/email-reports.mjs)
-    if (action === 'send-cost-reports') {
-      return handleManualCostReportTrigger({ body, corsHeaders, S3_REGION, ADMIN_PASSWORD, listApplications });
-    }
-
-    // Send All Reports - sends cost reports to all approved users
-    if (action === 'send-all-reports') {
-      body.reportType = body.period || 'weekly';
-      return handleManualCostReportTrigger({ body, corsHeaders, S3_REGION, ADMIN_PASSWORD, listApplications });
-    }
-
-    // Send Admin Report - comprehensive admin summary with all users + infrastructure costs
-    if (action === 'send-admin-report') {
-      return handleSendAdminSummaryReport({ body, corsHeaders, S3_REGION, ADMIN_PASSWORD, listApplications });
-    }
-
-    // ── AWS Batch Endpoints (merged calls for dashboard performance) ──
-    if (action === 'aws-cost-dashboard-batch') {
-      return handleAwsCostDashboardBatch({ body, corsHeaders, ADMIN_PASSWORD });
-    }
-    if (action === 'aws-cost-storage-batch') {
-      return handleAwsCostStorageBatch({ body, corsHeaders, ADMIN_PASSWORD });
-    }
-
-    // ── AWS Account-Wide Cost Endpoints (see aws-costs/index.mjs) ──
-    if (action === 'aws-cost-summary') {
-      return handleAwsCostSummary({ body, corsHeaders, ADMIN_PASSWORD });
-    }
-    if (action === 'aws-cost-daily') {
-      return handleAwsCostDaily({ body, corsHeaders, ADMIN_PASSWORD });
-    }
-    if (action === 'aws-cost-daily-by-service') {
-      return handleAwsCostDailyByService({ body, corsHeaders, ADMIN_PASSWORD });
-    }
-    if (action === 'aws-cost-forecast') {
-      return handleAwsCostForecast({ body, corsHeaders, ADMIN_PASSWORD });
-    }
-    if (action === 'aws-cost-service-detail') {
-      return handleAwsCostServiceDetail({ body, corsHeaders, ADMIN_PASSWORD });
-    }
-    if (action === 'aws-project-costs') {
-      return handleAwsProjectCosts({ body, corsHeaders, ADMIN_PASSWORD });
-    }
-    if (action === 'aws-project-costs-dynamic') {
-      return handleAwsProjectCostsDynamic({ body, corsHeaders, ADMIN_PASSWORD });
-    }
-    if (action === 'aws-cost-daily-by-project') {
-      return handleAwsCostDailyByProject({ body, corsHeaders, ADMIN_PASSWORD });
-    }
-    if (action === 'aws-unused-resources') {
-      return handleAwsUnusedResources({ body, corsHeaders, ADMIN_PASSWORD });
-    }
-    if (action === 'aws-delete-resource') {
-      return handleAwsDeleteResource({ body, corsHeaders, ADMIN_PASSWORD });
-    }
-    if (action === 'aws-s3-browse') {
-      return handleAwsS3Browse({ body, corsHeaders, ADMIN_PASSWORD });
-    }
-    if (action === 'aws-s3-delete') {
-      return handleAwsS3Delete({ body, corsHeaders, ADMIN_PASSWORD });
-    }
-    if (action === 'aws-s3-analysis') {
-      return handleAwsS3Analysis({ body, corsHeaders, ADMIN_PASSWORD });
-    }
-    if (action === 'aws-activity-log') {
-      return handleAwsActivityLog({ body, corsHeaders, ADMIN_PASSWORD });
-    }
-    if (action === 'aws-activity-email-report') {
-      return handleAwsActivityEmailReport({ body, corsHeaders, ADMIN_PASSWORD });
-    }
-
-    // ========== EVENT REGISTRATION ==========
-    if (action === 'event-register') {
-      try {
-        const { name, email, phone, productIdea, eventId } = body;
-
-        if (!name || !email) {
-          return {
-            statusCode: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ success: false, error: 'Name and email are required' })
-          };
-        }
-
-        // Event configuration (timezone: America/Chicago)
-        // eventId format: build-product-2hrs-YYYY-MM-DD (must be a Saturday)
-        // Static workshop details; only the date varies week to week.
-        const eventConfig = resolveWeeklyEvent(eventId);
-        if (!eventConfig) {
-          return {
-            statusCode: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ success: false, error: 'Invalid event' })
-          };
-        }
-
-        const { PutObjectCommand, ListObjectsV2Command } = await import('@aws-sdk/client-s3');
-        const s3 = getS3();
-
-        // ── Store registration in S3 ──
-        const timestamp = new Date().toISOString();
-        const registrationData = {
-          name, email, phone, productIdea, eventId,
-          registeredAt: timestamp,
-          ip: clientIP,
-        };
-
-        const s3Key = `events/${eventId}/registrations/${email.toLowerCase().replace(/[^a-z0-9]/g, '_')}.json`;
-        await s3.send(new PutObjectCommand({
-          Bucket: S3_BUCKET,
-          Key: s3Key,
-          Body: JSON.stringify(registrationData, null, 2),
-          ContentType: 'application/json',
-        }));
-
-        // Count total registrations
-        let totalRegistrations = 'N/A';
+    // ========== REGISTRY DISPATCH (all 55 named actions) ==========
+    // Every `action === 'X'` branch is now a registry entry. The default
+    // (no/unknown action) chat path continues below this block, unchanged.
+    if (action) {
+      const fn = ROUTES_REGISTRY[action];
+      if (fn) {
         try {
-          const listResult = await s3.send(new ListObjectsV2Command({
-            Bucket: S3_BUCKET,
-            Prefix: `events/${eventId}/registrations/`,
-          }));
-          totalRegistrations = String(listResult.KeyCount || 0);
-        } catch (e) { /* ignore count errors */ }
-
-        // ── Send confirmation email with Zoom link ──
-        const confirmationEmail = renderEventRegistrationConfirmation({
-          name, email,
-          eventTitle: eventConfig.title,
-          eventDate: eventConfig.date,
-          eventTime: eventConfig.time,
-          zoomLink: eventConfig.zoomLink,
-          zoomMeetingId: eventConfig.zoomMeetingId,
-          zoomPasscode: eventConfig.zoomPasscode,
-        });
-
-        await sendTemplatedEmail(
-          email,
-          confirmationEmail.subject,
-          confirmationEmail.html,
-          confirmationEmail.text
-        );
-
-        // ── Notify admins ──
-        const adminEmail = renderEventRegistrationAdminNotification({
-          name, email, phone, productIdea,
-          eventTitle: eventConfig.title,
-          eventId,
-          totalRegistrations,
-        });
-
-        await sendToAdmins(
-          adminEmail.subject,
-          adminEmail.html,
-          adminEmail.text
-        );
-
-        return {
-          statusCode: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: true, message: 'Registration successful' })
-        };
-      } catch (error) {
-        console.error('Event registration error:', error);
-        return {
-          statusCode: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'Registration failed. Please try again.' })
-        };
-      }
-    }
-
-    // ========== LIST EVENT REGISTRATIONS (Admin) ==========
-    if (action === 'event-list-registrations') {
-      try {
-        const { password, eventId } = body;
-        if (password !== ADMIN_PASSWORD) {
-          return {
-            statusCode: 401,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ success: false, error: 'Unauthorized' })
-          };
+          return await fn(body, event);
+        } catch (err) {
+          console.error(`[${action}]`, err);
+          return respond({ error: err.message || 'internal error' }, 500);
         }
-
-        const targetEventId = eventId || currentWeekEventId();
-        const { ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = getS3();
-
-        const prefix = `events/${targetEventId}/registrations/`;
-        const listResult = await s3.send(new ListObjectsV2Command({
-          Bucket: S3_BUCKET,
-          Prefix: prefix,
-        }));
-
-        const registrations = [];
-        if (listResult.Contents) {
-          for (const obj of listResult.Contents) {
-            try {
-              const data = await s3.send(new GetObjectCommand({
-                Bucket: S3_BUCKET,
-                Key: obj.Key,
-              }));
-              const record = JSON.parse(await data.Body.transformToString());
-              registrations.push(record);
-            } catch (e) { /* skip bad records */ }
-          }
-        }
-
-        // Sort by registration time (newest first)
-        registrations.sort((a, b) => new Date(b.registeredAt) - new Date(a.registeredAt));
-
-        return {
-          statusCode: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            success: true,
-            eventId: targetEventId,
-            total: registrations.length,
-            registrations
-          })
-        };
-      } catch (error) {
-        console.error('Event list error:', error);
-        return {
-          statusCode: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'Failed to load registrations' })
-        };
       }
-    }
-
-    // Get Tmux Projects - Fetch deployed projects from Tmux Builder API
-    if (action === 'get-tmux-projects') {
-      try {
-        const { guid } = body;
-        if (!guid) {
-          return {
-            statusCode: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ success: false, error: 'guid is required' })
-          };
-        }
-
-        // Call Tmux Builder API to get deployments from chat history
-        const tmuxBuilderUrl = `https://d3tfeatcbws1ka.cloudfront.net/api/deployments?guid=${encodeURIComponent(guid)}`;
-        console.log('[Get Tmux Projects] Fetching from:', tmuxBuilderUrl);
-
-        const tmuxResponse = await fetch(tmuxBuilderUrl);
-        const tmuxData = await tmuxResponse.json();
-
-        console.log('[Get Tmux Projects] Tmux Builder response:', JSON.stringify(tmuxData));
-
-        if (!tmuxData.success) {
-          return {
-            statusCode: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              success: true,
-              project: null,
-              projects: [],
-              activities: []
-            })
-          };
-        }
-
-        // Format projects for frontend (from tmux-builder deployments)
-        const projects = (tmuxData.deployments || []).map((dep, index) => ({
-          projectId: `${guid}-${index}`,
-          projectName: dep.project_name || 'Project',
-          deployedUrl: dep.url || '',
-          status: dep.status || 'deployed',
-          createdAt: dep.deployed_at,
-          updatedAt: dep.deployed_at
-        }));
-
-        // Get the main project (first one, which is newest due to reverse sort)
-        const mainProject = projects[0] || null;
-
-        return {
-          statusCode: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            success: true,
-            project: mainProject,
-            projects: projects,
-            activities: []
-          })
-        };
-      } catch (error) {
-        console.error('[Get Tmux Projects] Error:', error);
-        return {
-          statusCode: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: error.message })
-        };
-      }
-    }
-
-    // ==================== USER DASHBOARD ENDPOINTS ====================
-
-    // User check - does user exist and have account?
-    if (action === 'user-check') return await handleUserCheck(body, event);
-
-    // User signup
-    if (action === 'user-signup') return await handleUserSignup(body, event);
-
-    // User login
-    if (action === 'user-login') return await handleUserLogin(body, event);
-
-    // User dashboard data
-    if (action === 'user-dashboard') return await handleUserDashboard(body, event);
-
-    // Upload profile avatar
-    if (action === 'upload-avatar') return await handleUploadAvatar(body, event);
-
-    // Save user theme preference
-    if (action === 'save-theme') return await handleSaveTheme(body, event);
-
-    // User change password
-    if (action === 'user-change-password') return await handleUserChangePassword(body, event);
-
-    // Forgot password
-    if (action === 'forgot-password') return await handleForgotPassword(body, event);
-
-    // Reset password
-    if (action === 'reset-password') return await handleResetPassword(body, event);
-
-    // Admin Get Single Chat Session Detail
-    if (action === 'admin-chat-detail') return await handleAdminChatDetail(body, event);
-
-    // Admin Get Client Profile Detail
-    if (action === 'admin-client-detail') return await handleAdminClientDetail(body, event);
-
-    // Admin Get Build Detail with Agent Log
-    if (action === 'admin-build-detail') return await handleAdminBuildDetail(body, event);
-
-    // ========== BUILD STATUS UPDATE (deploy/fail notifications) ==========
-    if (action === 'update-build-status') return await handleUpdateBuildStatus(body, event);
-
-    // Admin Delete Chats
-    if (action === 'admin-delete-chats') return await handleAdminDeleteChats(body, event);
-
-    // ========== SESSION LOOKUP ENDPOINT ==========
-
-    // Lookup existing session by phone or email (for returning users)
-    if (action === 'lookup-session') {
-      const { phone, email } = body;
-
-      if (!phone && !email) {
-        return {
-          statusCode: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'Phone or email is required' })
-        };
-      }
-
-      const result = await lookupSessionByContact(phone, email);
-
-      if (result.found) {
-        return {
-          statusCode: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            success: true,
-            found: true,
-            sessionId: result.sessionId,
-            matchedBy: result.matchedBy,
-            messages: result.messages,
-            visitorInfo: result.visitorInfo,
-            lastActivity: result.session.lastActivity
-          })
-        };
-      } else {
-        return {
-          statusCode: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            success: true,
-            found: false,
-            reason: result.reason
-          })
-        };
-      }
-    }
-
-    // ========== EARLY DUPLICATE CHECK ENDPOINT ==========
-    // Called by frontend when email is first collected (before form fill)
-    if (action === 'check-duplicate') {
-      const { email, phone } = body;
-
-      if (!email && !phone) {
-        return {
-          statusCode: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'Email or phone is required' })
-        };
-      }
-
-      console.log('Early duplicate check for:', { email, phone });
-
-      const duplicateCheck = await checkDuplicateApplication(email, phone);
-
-      if (duplicateCheck.isDuplicate) {
-        const submittedDate = duplicateCheck.submittedAt
-          ? new Date(duplicateCheck.submittedAt).toLocaleDateString()
-          : 'recently';
-
-        console.log('Duplicate found:', duplicateCheck);
-
-        return {
-          statusCode: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            success: true,
-            isDuplicate: true,
-            matchedBy: duplicateCheck.matchedBy,
-            submittedAt: submittedDate,
-            message: `You already have an application submitted on ${submittedDate} using this ${duplicateCheck.matchedBy}. Our team is reviewing it and will contact you soon.`
-          })
-        };
-      } else {
-        console.log('No duplicate found - user can proceed');
-        return {
-          statusCode: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            success: true,
-            isDuplicate: false,
-            message: 'No existing application found. You can proceed with your new application.'
-          })
-        };
-      }
-    }
-
-    // ========== ABANDONED FORM TRACKING ENDPOINT ==========
-    // Called when user leaves page without submitting (beforeunload)
-    if (action === 'save-abandoned-form') {
-      const { sessionId, formData, chatState, reason } = body;
-
-      if (!sessionId) {
-        return {
-          statusCode: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'Session ID is required' })
-        };
-      }
-
-      console.log('Saving abandoned form for session:', sessionId);
-
-      const result = await saveAbandonedForm(sessionId, formData, chatState, visitorInfo, clientIP, reason);
-
-      return {
-        statusCode: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          success: result.success,
-          key: result.key || null,
-          error: result.error || null
-        })
-      };
-    }
-
-    // ========== EMAIL PREFERENCES (UNSUBSCRIBE) ==========
-    if (action === 'update-email-preferences') {
-      const { guid, preferences } = body;
-
-      if (!guid || !preferences) {
-        return {
-          statusCode: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'guid and preferences are required' })
-        };
-      }
-
-      try {
-        const { GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = getS3();
-
-        // Read existing profile
-        let profile = {};
-        try {
-          const profileResult = await s3.send(new GetObjectCommand({
-            Bucket: S3_BUCKET,
-            Key: `users/${guid}/profile.json`
-          }));
-          profile = JSON.parse(await profileResult.Body.transformToString());
-        } catch (e) {
-          console.warn('No existing profile for', guid);
-        }
-
-        // Merge preferences
-        profile.emailPreferences = {
-          ...(profile.emailPreferences || {}),
-          ...preferences
-        };
-        profile.updatedAt = new Date().toISOString();
-
-        // Save back
-        await s3.send(new PutObjectCommand({
-          Bucket: S3_BUCKET,
-          Key: `users/${guid}/profile.json`,
-          Body: JSON.stringify(profile, null, 2),
-          ContentType: 'application/json'
-        }));
-
-        return {
-          statusCode: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: true, emailPreferences: profile.emailPreferences })
-        };
-      } catch (error) {
-        console.error('Update email preferences error:', error.message);
-        return {
-          statusCode: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: error.message })
-        };
-      }
-    }
-
-    // ========== SCHEDULED EMAIL HANDLERS ==========
-
-    // Session Expiry Reminder (scheduled via EventBridge)
-    if (action === 'scheduled-session-expiry') {
-      console.log('[Scheduled] Session expiry reminder check started');
-      try {
-        const { ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = getS3();
-
-        // List all user directories
-        const usersResult = await s3.send(new ListObjectsV2Command({
-          Bucket: S3_BUCKET,
-          Prefix: 'users/',
-          Delimiter: '/'
-        }));
-
-        const userPrefixes = (usersResult.CommonPrefixes || []).map(p => p.Prefix);
-        let sent = 0;
-        const errors = [];
-
-        for (const prefix of userPrefixes) {
-          try {
-            // Read sessions.json
-            const sessionsResult = await s3.send(new GetObjectCommand({
-              Bucket: S3_BUCKET,
-              Key: `${prefix}sessions.json`
-            }));
-            const sessions = JSON.parse(await sessionsResult.Body.transformToString());
-
-            // Check if any token expires within 24 hours
-            const now = new Date();
-            const twentyFourHoursFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-            const expiringToken = (sessions.tokens || []).find(t => {
-              const expiresAt = new Date(t.expiresAt);
-              return expiresAt > now && expiresAt <= twentyFourHoursFromNow;
-            });
-
-            if (expiringToken) {
-              // Read profile for name/email
-              try {
-                const profileResult = await s3.send(new GetObjectCommand({
-                  Bucket: S3_BUCKET,
-                  Key: `${prefix}profile.json`
-                }));
-                const profile = JSON.parse(await profileResult.Body.transformToString());
-
-                if (profile.email) {
-                  const { html, text, subject } = renderSessionExpiryReminder({
-                    name: profile.name || profile.email,
-                    expiresAt: expiringToken.expiresAt
-                  });
-                  await sendTemplatedEmail(profile.email, subject, html, text);
-                  sent++;
-                }
-              } catch (profileErr) {
-                errors.push(`Profile read error for ${prefix}: ${profileErr.message}`);
-              }
-            }
-          } catch (e) {
-            // No sessions.json for this user, skip
-          }
-        }
-
-        console.log(`[Scheduled] Session expiry: sent=${sent}, errors=${errors.length}`);
-        return {
-          statusCode: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: true, sent, errors })
-        };
-      } catch (error) {
-        console.error('[Scheduled] Session expiry error:', error.message);
-        return {
-          statusCode: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: error.message })
-        };
-      }
-    }
-
-    // Weekly Digest (scheduled via EventBridge)
-    if (action === 'scheduled-weekly-digest') {
-      console.log('[Scheduled] Weekly digest started');
-      try {
-        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = getS3();
-
-        const allApps = await listApplications();
-        const approvedApps = allApps.filter(app => app.status === 'approved' && app.guid);
-
-        let sent = 0;
-        let skipped = 0;
-        const errors = [];
-
-        for (const app of approvedApps) {
-          const email = app.visitorInfo?.email || app.formData?.email;
-          const name = app.visitorInfo?.name || app.formData?.name || 'Partner';
-          const guid = app.guid;
-
-          if (!email) {
-            skipped++;
-            continue;
-          }
-
-          try {
-            // Check email preferences
-            let profile = {};
-            try {
-              const profileResult = await s3.send(new GetObjectCommand({
-                Bucket: S3_BUCKET,
-                Key: `users/${guid}/profile.json`
-              }));
-              profile = JSON.parse(await profileResult.Body.transformToString());
-            } catch (e) { /* no profile yet */ }
-
-            if (profile.emailPreferences?.weeklyDigest === false) {
-              skipped++;
-              continue;
-            }
-
-            // Get last activity from login history
-            let lastActivity = null;
-            try {
-              const historyResult = await s3.send(new GetObjectCommand({
-                Bucket: S3_BUCKET,
-                Key: `users/${guid}/login-history.json`
-              }));
-              const history = JSON.parse(await historyResult.Body.transformToString());
-              const entries = history.logins || history;
-              if (Array.isArray(entries) && entries.length > 0) {
-                lastActivity = entries[entries.length - 1].timestamp || entries[entries.length - 1].loginAt;
-              }
-            } catch (e) { /* no login history */ }
-
-            // Get deployment status
-            let deploymentStatus = null;
-            const jobId = app.jobId || app.buildJobId;
-            if (jobId) {
-              try {
-                const progressResult = await s3.send(new GetObjectCommand({
-                  Bucket: S3_BUCKET,
-                  Key: `progress/${jobId}.json`
-                }));
-                const progress = JSON.parse(await progressResult.Body.transformToString());
-                deploymentStatus = progress.status;
-              } catch (e) { /* no progress file */ }
-            }
-
-            const { html, text, subject } = renderWeeklyDigest({
-              name,
-              guid,
-              lastActivity,
-              deploymentStatus,
-              projectName: app.formData?.productIdea?.substring(0, 50) || 'Your Project'
-            });
-            await sendTemplatedEmail(email, subject, html, text);
-            sent++;
-          } catch (e) {
-            errors.push(`${email}: ${e.message}`);
-          }
-        }
-
-        console.log(`[Scheduled] Weekly digest: sent=${sent}, skipped=${skipped}, errors=${errors.length}`);
-        return {
-          statusCode: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: true, sent, errors, skipped })
-        };
-      } catch (error) {
-        console.error('[Scheduled] Weekly digest error:', error.message);
-        return {
-          statusCode: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: error.message })
-        };
-      }
-    }
-
-    // Re-engagement Email (scheduled via EventBridge)
-    if (action === 'scheduled-re-engagement') {
-      console.log('[Scheduled] Re-engagement check started');
-      try {
-        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = getS3();
-
-        const allApps = await listApplications();
-        const approvedApps = allApps.filter(app => app.status === 'approved' && app.guid);
-
-        let sent = 0;
-        let skipped = 0;
-        const errors = [];
-        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-
-        for (const app of approvedApps) {
-          const email = app.visitorInfo?.email || app.formData?.email;
-          const name = app.visitorInfo?.name || app.formData?.name || 'Partner';
-          const guid = app.guid;
-
-          if (!email) {
-            skipped++;
-            continue;
-          }
-
-          try {
-            // Check email preferences
-            let profile = {};
-            try {
-              const profileResult = await s3.send(new GetObjectCommand({
-                Bucket: S3_BUCKET,
-                Key: `users/${guid}/profile.json`
-              }));
-              profile = JSON.parse(await profileResult.Body.transformToString());
-            } catch (e) { /* no profile yet */ }
-
-            if (profile.emailPreferences?.reEngagement === false) {
-              skipped++;
-              continue;
-            }
-
-            // Get last login from login history
-            let lastLogin = null;
-            try {
-              const historyResult = await s3.send(new GetObjectCommand({
-                Bucket: S3_BUCKET,
-                Key: `users/${guid}/login-history.json`
-              }));
-              const history = JSON.parse(await historyResult.Body.transformToString());
-              const entries = history.logins || history;
-              if (Array.isArray(entries) && entries.length > 0) {
-                lastLogin = entries[entries.length - 1].timestamp || entries[entries.length - 1].loginAt;
-              }
-            } catch (e) { /* no login history - never logged in */ }
-
-            // Only send if last login was 30+ days ago or never logged in
-            if (lastLogin && new Date(lastLogin) > thirtyDaysAgo) {
-              skipped++;
-              continue;
-            }
-
-            const { html, text, subject } = renderReEngagement({
-              name,
-              guid,
-              lastLogin
-            });
-            await sendTemplatedEmail(email, subject, html, text);
-            sent++;
-          } catch (e) {
-            errors.push(`${email}: ${e.message}`);
-          }
-        }
-
-        console.log(`[Scheduled] Re-engagement: sent=${sent}, skipped=${skipped}, errors=${errors.length}`);
-        return {
-          statusCode: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: true, sent, errors, skipped })
-        };
-      } catch (error) {
-        console.error('[Scheduled] Re-engagement error:', error.message);
-        return {
-          statusCode: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: error.message })
-        };
-      }
-    }
-
-    // ========== SYNC STATE ENDPOINT ==========
-    // Periodically sync localStorage state to S3
-    if (action === 'sync-state') {
-      const { sessionId, chatState } = body;
-
-      if (!sessionId || !chatState) {
-        return {
-          statusCode: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'Session ID and chat state are required' })
-        };
-      }
-
-      console.log('Syncing state for session:', sessionId);
-
-      const result = await syncLocalStorageToS3(sessionId, chatState, visitorInfo, clientIP);
-
-      return {
-        statusCode: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          success: result.success,
-          synced: result.synced || false,
-          error: result.error || null
-        })
-      };
     }
 
     // ========== CHAT ENDPOINT ==========
@@ -1140,5 +360,5 @@ export const handler = async (event) => {
   }
 };
 
-// Exposed for the routing test (populated by the registry in a later refactor task).
-export const ROUTES = {};
+// Exposed for the routing test — the merged action → handler registry.
+export const ROUTES = ROUTES_REGISTRY;
