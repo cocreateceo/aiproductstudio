@@ -27,6 +27,7 @@ import { listBuildHistory, createBuildJob } from './domains/builds.mjs';
 import { currentWeekEventId, resolveWeeklyEvent } from './domains/events.mjs';
 import { sendFormSubmissionEmail, sendApplicantConfirmationEmail, checkDuplicateApplication, saveAbandonedForm, syncLocalStorageToS3, saveFormToS3, listApplications, updateApplicationStatus, handleFormValidation } from './domains/applications.mjs';
 import { handleUserCheck, handleUserSignup, handleUserLogin, handleUserDashboard, handleUploadAvatar, handleSaveTheme, handleUserChangePassword, handleForgotPassword, handleResetPassword } from './domains/users.mjs';
+import { handleAdminLogin, handleAdminList, handleAdminUpdate, handleAdminProgress, handleAdminChats, handleAdminClients, handleAdminBuilds, handleAdminChatDetail, handleAdminClientDetail, handleAdminBuildDetail, handleAdminDeleteChats, handleUpdateBuildStatus, handleGetAdminSummary } from './domains/admin.mjs';
 
 import { EMAIL_CONFIG, ADMIN_EMAILS, renderAdminNewApplication, renderApplicantAcknowledgment, renderApplicantApproved, renderApplicantRejected, renderUserWelcome, renderPasswordResetLink, renderPasswordChanged, renderNewLoginAlert, renderProjectDeployed, renderBuildFailedUser, renderBuildFailedAdmin, renderAccountDeactivated, renderSessionExpiryReminder, renderWeeklyDigest, renderReEngagement, renderEventRegistrationConfirmation, renderEventRegistrationAdminNotification } from './email-templates.mjs';
 import { sendTemplatedEmail, sendToAdmins, sendTemplate, sendTemplateToAdmins, isResetRateLimited } from './email-service.mjs';
@@ -75,189 +76,25 @@ export const handler = async (event) => {
     // ========== ADMIN ENDPOINTS ==========
 
     // Admin Login
-    if (action === 'admin-login') {
-      const { password } = body;
-      if (password === ADMIN_PASSWORD) {
-        return {
-          statusCode: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: true, message: 'Login successful' })
-        };
-      } else {
-        return {
-          statusCode: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'Invalid password' })
-        };
-      }
-    }
+    if (action === 'admin-login') return await handleAdminLogin(body, event);
 
     // Admin List Applications
-    if (action === 'admin-list') {
-      const { password } = body;
-      if (password !== ADMIN_PASSWORD) {
-        return {
-          statusCode: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'Unauthorized' })
-        };
-      }
-
-      const applications = await listApplications();
-      return {
-        statusCode: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ success: true, applications })
-      };
-    }
+    if (action === 'admin-list') return await handleAdminList(body, event);
 
     // Admin Update Application Status
-    if (action === 'admin-update') {
-      const { password, s3Key, status, reviewNotes } = body;
-      if (password !== ADMIN_PASSWORD) {
-        return {
-          statusCode: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'Unauthorized' })
-        };
-      }
-
-      if (!s3Key || !status) {
-        return {
-          statusCode: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 's3Key and status are required' })
-        };
-      }
-
-      const updatedApp = await updateApplicationStatus(s3Key, status, reviewNotes);
-
-      // Send approval/rejection email to applicant (fire-and-forget)
-      const applicantEmail = updatedApp.visitorInfo?.email || updatedApp.formData?.email;
-      const applicantName = updatedApp.visitorInfo?.name || updatedApp.formData?.name || 'Partner';
-      if (applicantEmail && status === 'approved') {
-        sendTemplate(applicantEmail, renderApplicantApproved, {
-          name: applicantName,
-          guid: updatedApp.guid,
-          builderSessionUrl: updatedApp.sessionLink,
-          deploymentUrl: updatedApp.deploymentUrl,
-        }).catch(err => console.error('Approval email error:', err.message));
-      } else if (applicantEmail && status === 'rejected') {
-        sendTemplate(applicantEmail, renderApplicantRejected, {
-          name: applicantName,
-          reason: reviewNotes || undefined,
-        }).catch(err => console.error('Rejection email error:', err.message));
-      } else if (applicantEmail && status === 'deactivated') {
-        const { html, text, subject } = renderAccountDeactivated({ name: applicantName });
-        sendTemplatedEmail(applicantEmail, subject, html, text).catch(e => console.error('Deactivation email failed:', e.message));
-      }
-
-      return {
-        statusCode: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ success: true, application: updatedApp })
-      };
-    }
+    if (action === 'admin-update') return await handleAdminUpdate(body, event);
 
     // Admin Get Job Progress
-    if (action === 'admin-progress') {
-      const { password, jobId } = body;
-      if (password !== ADMIN_PASSWORD) {
-        return {
-          statusCode: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'Unauthorized' })
-        };
-      }
-
-      if (!jobId) {
-        return {
-          statusCode: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'jobId is required' })
-        };
-      }
-
-      try {
-        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = getS3();
-
-        const progressResult = await s3.send(new GetObjectCommand({
-          Bucket: S3_BUCKET,
-          Key: `progress/${jobId}.json`
-        }));
-        const progressData = JSON.parse(await progressResult.Body.transformToString());
-
-        return {
-          statusCode: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: true, progress: progressData })
-        };
-      } catch (error) {
-        return {
-          statusCode: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'Progress not found' })
-        };
-      }
-    }
+    if (action === 'admin-progress') return await handleAdminProgress(body, event);
 
     // Admin List Chat Sessions
-    if (action === 'admin-chats') {
-      const { password, source, limit } = body;
-      if (password !== ADMIN_PASSWORD) {
-        return {
-          statusCode: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'Unauthorized' })
-        };
-      }
-
-      const sessions = await listChatSessions(source || 'all', limit || 50);
-      return {
-        statusCode: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ success: true, sessions })
-      };
-    }
+    if (action === 'admin-chats') return await handleAdminChats(body, event);
 
     // Admin List Client Profiles
-    if (action === 'admin-clients') {
-      const { password, limit } = body;
-      if (password !== ADMIN_PASSWORD) {
-        return {
-          statusCode: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'Unauthorized' })
-        };
-      }
-
-      const clients = await listClientProfiles(limit || 50);
-      return {
-        statusCode: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ success: true, clients })
-      };
-    }
+    if (action === 'admin-clients') return await handleAdminClients(body, event);
 
     // Admin List Build History
-    if (action === 'admin-builds') {
-      const { password, limit } = body;
-      if (password !== ADMIN_PASSWORD) {
-        return {
-          statusCode: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'Unauthorized' })
-        };
-      }
-
-      const builds = await listBuildHistory(limit || 50);
-      return {
-        statusCode: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ success: true, builds })
-      };
-    }
+    if (action === 'admin-builds') return await handleAdminBuilds(body, event);
 
     // ==================== AWS COSTS ENDPOINTS ====================
 
@@ -267,13 +104,7 @@ export const handler = async (event) => {
     }
 
     // Admin Summary - Infrastructure costs, grand total, deltas (see costs/email-reports.mjs)
-    if (action === 'get-admin-summary') {
-      if (body.password !== ADMIN_PASSWORD) {
-        return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ success: false, error: 'Unauthorized' }) };
-      }
-      const data = await computeAdminSummaryData({ S3_REGION, ADMIN_PASSWORD, listApplications });
-      return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ success: true, ...data }) };
-    }
+    if (action === 'get-admin-summary') return await handleGetAdminSummary(body, event);
 
     // User Costs - Current user's projects with costs (see costs/index.mjs)
     if (action === 'user-costs') {
@@ -608,361 +439,19 @@ export const handler = async (event) => {
     if (action === 'reset-password') return await handleResetPassword(body, event);
 
     // Admin Get Single Chat Session Detail
-    if (action === 'admin-chat-detail') {
-      const { password, sessionId, source } = body;
-      if (password !== ADMIN_PASSWORD) {
-        return {
-          statusCode: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'Unauthorized' })
-        };
-      }
-
-      if (!sessionId) {
-        return {
-          statusCode: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'sessionId is required' })
-        };
-      }
-
-      try {
-        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = getS3();
-
-        // Try both prefixes if source not specified
-        const prefixes = source ? [`chats/${source}/`] : ['chats/landing/', 'chats/apply/'];
-
-        for (const prefix of prefixes) {
-          try {
-            const result = await s3.send(new GetObjectCommand({
-              Bucket: S3_BUCKET,
-              Key: `${prefix}${sessionId}.json`
-            }));
-            const session = JSON.parse(await result.Body.transformToString());
-            return {
-              statusCode: 200,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ success: true, session })
-            };
-          } catch (e) {
-            // Try next prefix
-          }
-        }
-
-        return {
-          statusCode: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'Session not found' })
-        };
-      } catch (error) {
-        return {
-          statusCode: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: error.message })
-        };
-      }
-    }
+    if (action === 'admin-chat-detail') return await handleAdminChatDetail(body, event);
 
     // Admin Get Client Profile Detail
-    if (action === 'admin-client-detail') {
-      const { password, clientId } = body;
-      if (password !== ADMIN_PASSWORD) {
-        return {
-          statusCode: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'Unauthorized' })
-        };
-      }
-
-      if (!clientId) {
-        return {
-          statusCode: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'clientId is required' })
-        };
-      }
-
-      try {
-        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = getS3();
-
-        const result = await s3.send(new GetObjectCommand({
-          Bucket: S3_BUCKET,
-          Key: `clients/${clientId}.json`
-        }));
-        const client = JSON.parse(await result.Body.transformToString());
-        return {
-          statusCode: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: true, client })
-        };
-      } catch (error) {
-        return {
-          statusCode: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'Client not found' })
-        };
-      }
-    }
+    if (action === 'admin-client-detail') return await handleAdminClientDetail(body, event);
 
     // Admin Get Build Detail with Agent Log
-    if (action === 'admin-build-detail') {
-      const { password, buildId } = body;
-      if (password !== ADMIN_PASSWORD) {
-        return {
-          statusCode: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'Unauthorized' })
-        };
-      }
-
-      if (!buildId) {
-        return {
-          statusCode: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'buildId is required' })
-        };
-      }
-
-      try {
-        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = getS3();
-
-        let metadata = null;
-
-        // Try builds/ metadata first
-        try {
-          const metadataResult = await s3.send(new GetObjectCommand({
-            Bucket: S3_BUCKET,
-            Key: `builds/${buildId}/metadata.json`
-          }));
-          metadata = JSON.parse(await metadataResult.Body.transformToString());
-        } catch (e) {
-          // Not in builds/, try jobs/
-        }
-
-        // Fallback to jobs/ prefix
-        if (!metadata) {
-          try {
-            const jobResult = await s3.send(new GetObjectCommand({
-              Bucket: S3_BUCKET,
-              Key: `jobs/${buildId}.json`
-            }));
-            const job = JSON.parse(await jobResult.Body.transformToString());
-            metadata = {
-              buildId: job.jobId,
-              status: 'pending',
-              client: job.client,
-              business: job.business,
-              preferences: job.preferences,
-              timestamps: { created: job.createdAt },
-              createdAt: job.createdAt
-            };
-          } catch (e) {
-            // Not in jobs/ either
-          }
-        }
-
-        if (!metadata) {
-          return {
-            statusCode: 404,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ success: false, error: 'Build not found' })
-          };
-        }
-
-        // Try to get agent log
-        let agentLog = null;
-        try {
-          const logResult = await s3.send(new GetObjectCommand({
-            Bucket: S3_BUCKET,
-            Key: `builds/${buildId}/agent-log.json`
-          }));
-          agentLog = JSON.parse(await logResult.Body.transformToString());
-        } catch (e) {
-          // Agent log may not exist yet
-        }
-
-        // Try to get progress data
-        let progress = null;
-        try {
-          const progressResult = await s3.send(new GetObjectCommand({
-            Bucket: S3_BUCKET,
-            Key: `progress/${buildId}.json`
-          }));
-          progress = JSON.parse(await progressResult.Body.transformToString());
-        } catch (e) {
-          // Progress may not exist
-        }
-
-        return {
-          statusCode: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: true, build: { ...metadata, agentLog, progress } })
-        };
-      } catch (error) {
-        return {
-          statusCode: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'Build not found' })
-        };
-      }
-    }
+    if (action === 'admin-build-detail') return await handleAdminBuildDetail(body, event);
 
     // ========== BUILD STATUS UPDATE (deploy/fail notifications) ==========
-    if (action === 'update-build-status') {
-      const { jobId, status: buildStatus, guid, projectName, deploymentUrl, errorMessage } = body;
-
-      if (!jobId || !buildStatus) {
-        return {
-          statusCode: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'jobId and status are required' })
-        };
-      }
-
-      try {
-        const { GetObjectCommand, PutObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = getS3();
-
-        // Update the progress file with new status
-        let progressData = {};
-        try {
-          const progressResult = await s3.send(new GetObjectCommand({
-            Bucket: S3_BUCKET,
-            Key: `progress/${jobId}.json`
-          }));
-          progressData = JSON.parse(await progressResult.Body.transformToString());
-        } catch (e) {
-          console.warn('Could not read progress file for', jobId);
-        }
-
-        progressData.status = buildStatus;
-        progressData.updatedAt = new Date().toISOString();
-        if (deploymentUrl) progressData.deploymentUrl = deploymentUrl;
-        if (errorMessage) progressData.errorMessage = errorMessage;
-
-        await s3.send(new PutObjectCommand({
-          Bucket: S3_BUCKET,
-          Key: `progress/${jobId}.json`,
-          Body: JSON.stringify(progressData, null, 2),
-          ContentType: 'application/json'
-        }));
-
-        // Resolve applicant info from the progress data or the request body
-        const applicantEmail = progressData.clientEmail || body.applicantEmail;
-        const applicantName = progressData.clientName || body.applicantName || 'Partner';
-
-        // Send deployment success email
-        if ((buildStatus === 'completed' || buildStatus === 'deployed') && applicantEmail) {
-          const { html, text, subject } = renderProjectDeployed({
-            name: applicantName,
-            projectName: projectName || progressData.projectName || 'Your Project',
-            deploymentUrl: deploymentUrl || progressData.deploymentUrl || '',
-            guid: guid || progressData.guid || ''
-          });
-          sendTemplatedEmail(applicantEmail, subject, html, text).catch(e => console.error('Deploy notification failed:', e.message));
-        }
-
-        // Send build failed emails
-        if (buildStatus === 'failed') {
-          if (applicantEmail) {
-            const { html, text, subject } = renderBuildFailedUser({
-              name: applicantName,
-              projectName: projectName || progressData.projectName || 'Your Project',
-              errorSummary: errorMessage || 'An unexpected error occurred during the build process.'
-            });
-            sendTemplatedEmail(applicantEmail, subject, html, text).catch(e => console.error('Build failed user email error:', e.message));
-          }
-          const adminEmail = renderBuildFailedAdmin({
-            userName: applicantName,
-            userEmail: applicantEmail || 'unknown',
-            guid: guid || progressData.guid || '',
-            projectName: projectName || progressData.projectName || 'Unknown Project',
-            jobId,
-            errorDetails: errorMessage || 'No error details available.'
-          });
-          sendToAdmins(adminEmail.subject, adminEmail.html, adminEmail.text).catch(e => console.error('Build failed admin email error:', e.message));
-        }
-
-        return {
-          statusCode: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: true, status: buildStatus })
-        };
-      } catch (error) {
-        console.error('Update build status error:', error.message);
-        return {
-          statusCode: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: error.message })
-        };
-      }
-    }
+    if (action === 'update-build-status') return await handleUpdateBuildStatus(body, event);
 
     // Admin Delete Chats
-    if (action === 'admin-delete-chats') {
-      const { password, sessionIds } = body;
-      if (password !== ADMIN_PASSWORD) {
-        return {
-          statusCode: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'Unauthorized' })
-        };
-      }
-
-      if (!sessionIds || !Array.isArray(sessionIds) || sessionIds.length === 0) {
-        return {
-          statusCode: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: 'sessionIds array is required' })
-        };
-      }
-
-      try {
-        const { DeleteObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = getS3();
-
-        const deletePromises = sessionIds.map(async (sessionInfo) => {
-          const { sessionId, source } = sessionInfo;
-          const key = `chats/${source}/${sessionId}.json`;
-
-          try {
-            await s3.send(new DeleteObjectCommand({
-              Bucket: S3_BUCKET,
-              Key: key
-            }));
-            return { sessionId, success: true };
-          } catch (e) {
-            console.error('Error deleting session:', sessionId, e.message);
-            return { sessionId, success: false, error: e.message };
-          }
-        });
-
-        const results = await Promise.all(deletePromises);
-        const successCount = results.filter(r => r.success).length;
-        const failedCount = results.filter(r => !r.success).length;
-
-        return {
-          statusCode: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            success: true,
-            deleted: successCount,
-            failed: failedCount,
-            results
-          })
-        };
-      } catch (error) {
-        console.error('Delete chats error:', error.message);
-        return {
-          statusCode: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, error: error.message })
-        };
-      }
-    }
+    if (action === 'admin-delete-chats') return await handleAdminDeleteChats(body, event);
 
     // ========== SESSION LOOKUP ENDPOINT ==========
 
