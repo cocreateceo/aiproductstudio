@@ -18,10 +18,10 @@ window.PROJECTS_DATA = [
     icon: "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z",
     projects: [
       { name: "Vedic Astro",            description: "Full Vedic astrology platform — kundli, horoscopes, panchang, and compatibility readings.", liveUrl: "https://astro.vedics.net" },
-      { name: "Vedic Transform",        description: "Vedic transformation and spiritual-growth web app with guided journeys.",                  liveUrl: "" },
+      { name: "Vedic Transform",        description: "Vedic transformation and spiritual-growth web app with guided journeys.",                  liveUrl: "https://10x.vedics.net" },
       { name: "Vedic Avatar",           description: "AI avatar that delivers personalized Vedic guidance and consultations.",                   liveUrl: "" },
-      { name: "Vedic YouTube Studio",   description: "Automated pipeline that generates and publishes Vedic content to YouTube.",                liveUrl: "" },
-      { name: "Transform YouTube",      description: "YouTube content-automation engine for transformation and spiritual channels.",            liveUrl: "" },
+      { name: "Vedic YouTube Studio",   description: "Astro Vedics YouTube channel — automated Vedic astrology content.",                       liveUrl: "https://www.youtube.com/@astrovedic-s" },
+      { name: "Transform YouTube",      description: "Vedics Transform YouTube channel — transformation and spiritual content.",              liveUrl: "https://www.youtube.com/@Vedics_Transform" },
       { name: "Vedic Wellness Store",   description: "AyurVeda Living — e-commerce storefront for Vedic wellness products.",                    liveUrl: "https://wellnessstore.vedics.net" },
       { name: "Vedic Landing",          description: "Vedics.net — ancient wisdom, modern living. Vedic services landing.",                     liveUrl: "https://www.vedics.net" }
     ]
