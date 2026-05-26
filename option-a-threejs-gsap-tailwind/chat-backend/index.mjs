@@ -4650,3 +4650,6 @@ export const handler = async (event) => {
     };
   }
 };
+
+// Exposed for the routing test (populated by the registry in a later refactor task).
+export const ROUTES = {};
