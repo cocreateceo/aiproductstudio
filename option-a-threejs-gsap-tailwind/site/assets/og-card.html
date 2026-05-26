@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    position: relative;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: #1A0A00;
+    color: #FFF8F0;
+  }
+  .bg {
+    position: absolute; inset: 0;
+    background: url('cocreate_bg.png') center bottom / cover no-repeat;
+  }
+  .overlay {
+    position: absolute; inset: 0;
+    background:
+      linear-gradient(90deg, rgba(26,10,0,0.92) 0%, rgba(26,10,0,0.72) 45%, rgba(26,10,0,0.25) 100%),
+      linear-gradient(180deg, rgba(26,10,0,0.45) 0%, transparent 35%, rgba(26,10,0,0.55) 100%);
+  }
+  .content {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: 70px 80px;
+  }
+  .brand { display: flex; align-items: center; gap: 18px; }
+  .brand img { width: 64px; height: 64px; object-fit: contain; }
+  .wordmark { font-family: 'Outfit'; font-weight: 800; font-size: 34px; letter-spacing: 0.02em; }
+  .wordmark .co { color: #FFF8F0; }
+  .wordmark .create {
+    background: linear-gradient(135deg, #FFC36A 0%, #FD6C71 50%, #FC2A0D 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .middle { margin-top: auto; margin-bottom: auto; }
+  .descriptor {
+    font-family: 'Outfit'; font-weight: 600; font-size: 22px; letter-spacing: 0.28em;
+    text-transform: uppercase; color: #FFC36A; margin-bottom: 26px;
+  }
+  h1 {
+    font-family: 'Outfit'; font-weight: 800; font-size: 96px; line-height: 1.02;
+    letter-spacing: -0.03em;
+  }
+  h1 .grad {
+    background: linear-gradient(135deg, #FFC36A 0%, #FD6C71 45%, #FC2A0D 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .tagline { margin-top: 30px; font-size: 30px; font-weight: 500; color: #FFCBA4; max-width: 880px; }
+  .footer { display: flex; align-items: center; justify-content: space-between; }
+  .url { font-family: 'Outfit'; font-weight: 700; font-size: 26px; color: #FFF8F0; }
+  .pill {
+    font-family: 'Outfit'; font-weight: 600; font-size: 18px; letter-spacing: 0.05em;
+    padding: 12px 24px; border-radius: 100px;
+    background: linear-gradient(135deg, #FC2A0D, #FD6C71); color: #fff;
+  }
+</style>
+</head>
+<body>
+  <div class="bg"></div>
+  <div class="overlay"></div>
+  <div class="content">
+    <div class="brand">
+      <img src="logo.png" alt="CoCreate">
+      <span class="wordmark"><span class="co">CO</span><span class="create">CREATE</span></span>
+    </div>
+    <div class="middle">
+      <div class="descriptor">AI-Powered Product Studio</div>
+      <h1>Imagine. <span class="grad">CoCreate.</span> Done!</h1>
+      <div class="tagline">Your AI Partner. Launch your business in 2 weeks.</div>
+    </div>
+    <div class="footer">
+      <span class="url">cocreateidea.com</span>
+      <span class="pill">Let's CoCreate in 24 Hrs</span>
+    </div>
+  </div>
+</body>
+</html>

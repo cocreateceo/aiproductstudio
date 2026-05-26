@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+# Internal / app pages — keep out of search results
+Disallow: /admin.html
+Disallow: /awscost.html
+Disallow: /costs.html
+Disallow: /user.html
+Disallow: /chat.html
+Disallow: /premium-demo.html
+Disallow: /schedule.html
+
+Sitemap: https://www.cocreateidea.com/sitemap.xml
