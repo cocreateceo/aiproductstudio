@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="ember">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecting… | CoCreate Idea</title>
+    <meta name="robots" content="noindex">
+    <!-- Client-side router: handles /ref/CODE and other clean URLs served via 404 fallback -->
+    <script>
+        (function() {
+            var path = window.location.pathname || '';
+
+            // /ref/CODE → /apply.html?ref=CODE (partner referral links)
+            var refMatch = path.match(/^\/ref\/([A-Za-z0-9_-]+)\/?$/);
+            if (refMatch) {
+                window.location.replace('/apply.html?ref=' + encodeURIComponent(refMatch[1]));
+                return;
+            }
+
+            // /user.id=xyz → /user.html?id=xyz (legacy)
+            var userMatch = path.match(/\/user\.id=([^\/]+)/);
+            if (userMatch) {
+                window.location.replace('/user.html?id=' + encodeURIComponent(userMatch[1]));
+                return;
+            }
+        })();
+    </script>
+    <link rel="icon" href="/favicon.ico" sizes="32x32 48x48">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="stylesheet" href="/css/themes/ember.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'DM Sans', system-ui, sans-serif;
+            background: var(--bg-primary, #1A0A00);
+            color: var(--text-primary, #FFF8F0);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            background-image:
+                radial-gradient(ellipse 80% 60% at 30% 20%, rgba(255,195,106,0.35) 0%, transparent 55%),
+                radial-gradient(ellipse 70% 80% at 70% 60%, rgba(252,42,13,0.35) 0%, transparent 55%),
+                linear-gradient(180deg, #1A0A00 0%, #0D0500 100%);
+        }
+        .card {
+            max-width: 560px;
+            text-align: center;
+            padding: 3rem 2rem;
+            background: rgba(45, 20, 8, 0.65);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,195,106,0.25);
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(252,42,13,0.25);
+        }
+        h1 {
+            font-family: 'Outfit', system-ui, sans-serif;
+            font-size: clamp(2.5rem, 8vw, 4rem);
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            background: linear-gradient(135deg, #FFC36A 0%, #FD6C71 50%, #FC2A0D 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+        }
+        p {
+            color: #FFCBA4;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+        a {
+            display: inline-block;
+            padding: 0.875rem 2rem;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #FC2A0D 0%, #FD6C71 100%);
+            color: #FFF8F0;
+            text-decoration: none;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        a:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(252,42,13,0.4);
+        }
+        .small {
+            display: block;
+            margin-top: 1.5rem;
+            color: rgba(255,203,164,0.6);
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Page not found</h1>
+        <p>The page you're looking for doesn't exist or has been moved.</p>
+        <a href="/">Back to CoCreate Idea</a>
+        <span class="small">Imagine. CoCreate. Done!</span>
+    </div>
+</body>
+</html>

@@ -11,10 +11,20 @@
             var userMatch = path.match(/\/user\.id=([^\/]+)/);
             if (userMatch) {
                 window.location.replace('/user.html?id=' + userMatch[1]);
+                return;
+            }
+            // Route /ref/CODE to apply.html?ref=CODE (partner referral links)
+            var refMatch = path.match(/^\/ref\/([A-Za-z0-9_-]+)\/?$/);
+            if (refMatch) {
+                window.location.replace('/apply.html?ref=' + encodeURIComponent(refMatch[1]));
+                return;
             }
         })();
     </script>
+    <link rel="icon" href="favicon.ico" sizes="32x32 48x48">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png">
+    <link rel="apple-touch-icon" href="favicon-192.png">
     <title>CoCreate | AI-Powered Product Studio</title>
     <meta name="description" content="CoCreate: Your AI Partner. Launch your business in 2 weeks.">
 
@@ -1919,6 +1929,7 @@
                 <!-- Hidden for now: <a href="careers.html" class="nav-link-new">Careers</a> -->
 
                 <!-- Theme Switcher - CoCreate Themes -->
+                <a href="projects.html" class="nav-link-new">Projects</a>
                 <div class="theme-switcher">
                     <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle theme">
                         <svg class="w-4 h-4" id="theme-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1962,6 +1973,7 @@
                     </div>
                 </div>
 
+                <a href="event.html" class="nav-cta-btn" style="background: linear-gradient(135deg, #22c55e, #16a34a); margin-right: 6px;">Live Event</a>
                 <a href="contact.html" class="nav-cta-btn">Contact</a>
                 <button class="nav-search-btn" aria-label="Search">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2025,6 +2037,8 @@
                     </div>
                 </div>
                 <!-- Hidden for now: <a href="careers.html" class="mobile-nav-link">Careers</a> -->
+                <a href="event.html" class="mobile-nav-cta" style="background: linear-gradient(135deg, #22c55e, #16a34a);">Live Event - Register Free</a>
+                <a href="projects.html" class="mobile-nav-btn" style="color: var(--primary);">Projects</a>
                 <a href="contact.html" class="mobile-nav-cta">Contact Us</a>
             </div>
         </div>

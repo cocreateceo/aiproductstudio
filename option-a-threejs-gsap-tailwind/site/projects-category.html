@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="ember">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="favicon.ico" sizes="32x32 48x48">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png">
+    <link rel="apple-touch-icon" href="favicon-192.png">
+    <title id="page-title">Projects | CoCreate</title>
+    <meta name="description" content="Explore CoCreate's products by category.">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: 'var(--primary)',
+                        secondary: 'var(--secondary)',
+                        accent: 'var(--accent)',
+                    },
+                    fontFamily: {
+                        sans: ['DM Sans', 'system-ui', 'sans-serif'],
+                        display: ['Outfit', 'DM Sans', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts - CoCreate Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- CoCreate Theme CSS -->
+    <link rel="stylesheet" href="css/themes/ember.css">
+    <link rel="stylesheet" href="css/themes/coral.css">
+    <link rel="stylesheet" href="css/themes/sunset.css">
+    <link rel="stylesheet" href="css/themes/aurora.css">
+    <link rel="stylesheet" href="css/themes/legacy.css">
+    <link rel="stylesheet" href="css/themes/sandstone.css">
+    <link rel="stylesheet" href="css/themes/champagne.css">
+    <link rel="stylesheet" href="css/themes/zoom.css">
+
+    <!-- Unified Theme System (MUST be before any rendering) -->
+    <script src="js/theme.js"></script>
+
+    <!-- GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <script src="js/config.js"></script>
+    <link rel="stylesheet" href="css/chat-widget.css">
+    <link rel="stylesheet" href="css/responsive.css">
+
+    <style>
+        /* Fixed Page Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('assets/cocreate_bg.png') center bottom / cover no-repeat;
+            z-index: -2;
+            pointer-events: none;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(ellipse 120% 100% at 50% 100%, transparent 30%, rgba(26, 10, 0, 0.6) 100%),
+                linear-gradient(90deg, rgba(26, 10, 0, 0.65) 0%, rgba(26, 10, 0, 0.3) 40%, transparent 60%),
+                linear-gradient(180deg, rgba(26, 10, 0, 0.5) 0%, transparent 40%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        :root { --transition-speed: 0.4s; --nav-height: 80px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'DM Sans', system-ui, sans-serif;
+            background: transparent;
+            color: var(--text-primary);
+            overflow-x: hidden;
+            transition: background var(--transition-speed) ease, color var(--transition-speed) ease;
+        }
+
+        h1, h2, h3, h4, h5, h6, .font-display {
+            font-family: 'Outfit', 'DM Sans', system-ui, sans-serif;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+        h1 { font-weight: 700; letter-spacing: -0.03em; }
+
+        .gradient-text {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .glass-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            transition: background var(--transition-speed) ease, border-color var(--transition-speed) ease;
+        }
+
+        .text-theme-primary { color: var(--text-primary); }
+        .text-theme-secondary { color: var(--text-secondary); }
+        .text-theme-muted { color: var(--text-muted); }
+        .bg-theme-primary { background: transparent; }
+        .bg-theme-secondary { background: rgba(26, 10, 0, 0.3); }
+        .border-theme { border-color: var(--border-color); }
+
+        .section-reveal { opacity: 0; transform: translateY(40px); }
+
+        /* Navigation Styles */
+        .nav-main { width: 100%; backdrop-filter: blur(20px) saturate(180%); transition: all 0.3s ease; }
+        .nav-inner { max-width: 1400px; margin: 0 auto; }
+        .nav-item { position: relative; }
+        .nav-link-new {
+            display: inline-flex; align-items: center; padding: 0.5rem 1rem;
+            font-size: 0.8125rem; font-weight: 500; color: var(--text-secondary);
+            text-transform: uppercase; letter-spacing: 0.05em; transition: color 0.2s ease;
+            white-space: nowrap; background: none; border: none; cursor: pointer;
+        }
+        .nav-link-new:hover { color: var(--text-primary); }
+        .nav-link-new.active { color: var(--primary); }
+        .nav-dropdown-new {
+            position: absolute; top: 100%; left: 0; min-width: 200px;
+            background: var(--bg-card); backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color); padding: 0.75rem 0;
+            opacity: 0; visibility: hidden; transform: translateY(8px);
+            transition: all 0.2s ease; z-index: 9999; border-radius: 12px;
+        }
+        .nav-item:hover .nav-dropdown-new { opacity: 1; visibility: visible; transform: translateY(0); }
+        .nav-dropdown-new a {
+            display: block; padding: 0.625rem 1.25rem; font-size: 0.875rem;
+            color: var(--text-secondary); transition: all 0.15s ease;
+        }
+        .nav-dropdown-new a:hover { color: var(--text-primary); background: var(--bg-secondary); }
+        .nav-cta-btn {
+            display: inline-flex; align-items: center; padding: 0.5rem 1.25rem;
+            font-size: 0.8125rem; font-weight: 600; color: white; text-transform: uppercase;
+            letter-spacing: 0.05em; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            border-radius: 6px; transition: all 0.2s ease;
+        }
+        .nav-cta-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px var(--glow-color); }
+
+        /* Theme Switcher */
+        .theme-switcher { position: relative; }
+        .theme-toggle-btn {
+            display: flex; align-items: center; gap: 6px; padding: 0.5rem 0.75rem;
+            background: transparent; border: none; color: var(--text-secondary);
+            cursor: pointer; transition: color 0.2s ease;
+        }
+        .theme-toggle-btn:hover { color: var(--text-primary); }
+        .theme-dropdown {
+            position: absolute; top: calc(100% + 8px); right: 0; background: var(--bg-card);
+            backdrop-filter: blur(20px); border: 1px solid var(--border-color); border-radius: 16px;
+            padding: 8px; min-width: 180px; opacity: 0; visibility: hidden;
+            transform: translateY(-10px); transition: all 0.3s ease; z-index: 100;
+        }
+        .theme-dropdown.active { opacity: 1; visibility: visible; transform: translateY(0); }
+        .theme-option {
+            display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+            border-radius: 12px; cursor: pointer; transition: all 0.2s ease; color: var(--text-secondary);
+        }
+        .theme-option:hover { background: var(--bg-secondary); color: var(--text-primary); }
+        .theme-option.active { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; }
+        .theme-preview { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--border-color); }
+
+        /* Hero Section */
+        .hero-section {
+            position: relative; min-height: 48vh; display: flex; align-items: center;
+            justify-content: center; padding: 130px 24px 50px;
+            background: linear-gradient(180deg, transparent 0%, rgba(26, 10, 0, 0.3) 100%); overflow: hidden;
+        }
+        .hero-section::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(var(--primary-rgb, 252, 42, 13), 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(var(--secondary-rgb, 253, 108, 113), 0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        .hero-icon {
+            width: 72px; height: 72px; border-radius: 20px; margin: 0 auto 1.5rem;
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            box-shadow: 0 10px 40px var(--glow-color);
+        }
+        .back-link {
+            display: inline-flex; align-items: center; gap: 6px; margin-bottom: 1.5rem;
+            font-size: 0.8125rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+            color: var(--text-secondary); transition: color 0.2s ease;
+        }
+        .back-link:hover { color: var(--primary); }
+
+        /* Project Card */
+        .project-card {
+            display: flex; flex-direction: column;
+            background: var(--bg-card); backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color); border-radius: 1.5rem;
+            padding: 2rem; height: 100%;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .project-card:hover {
+            transform: translateY(-6px); box-shadow: 0 16px 44px var(--glow-color); border-color: var(--primary);
+        }
+        .visit-btn {
+            display: inline-flex; align-items: center; gap: 8px; margin-top: auto;
+            padding: 0.6rem 1.1rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600;
+            background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white;
+            transition: all 0.2s ease; align-self: flex-start;
+        }
+        .visit-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 24px var(--glow-color); }
+        .coming-soon {
+            display: inline-flex; align-items: center; gap: 6px; margin-top: auto;
+            padding: 0.6rem 1.1rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.04em; align-self: flex-start;
+            color: var(--text-muted); border: 1px dashed var(--border-color);
+        }
+
+        /* CTA Button */
+        .cta-button {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            box-shadow: 0 4px 20px var(--glow-color); transition: all 0.3s ease;
+            position: relative; overflow: hidden;
+        }
+        .cta-button::before {
+            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent); transition: left 0.5s ease;
+        }
+        .cta-button:hover::before { left: 100%; }
+        .cta-button:hover { transform: translateY(-2px); box-shadow: 0 10px 40px var(--glow-color); }
+
+        /* Mobile Menu */
+        .mobile-menu {
+            display: none; position: absolute; top: 100%; left: 0; right: 0;
+            background: var(--bg-card); backdrop-filter: blur(20px); border-top: 1px solid var(--border-color);
+        }
+        .mobile-menu.active { display: block; }
+        .mobile-nav-btn {
+            display: flex; align-items: center; justify-content: space-between; width: 100%;
+            padding: 1rem; background: none; border: none; color: var(--text-primary);
+            font-size: 1rem; cursor: pointer; text-decoration: none;
+        }
+        .mobile-dropdown { display: none; padding-left: 1rem; }
+        .mobile-dropdown.active { display: block; }
+        .mobile-dropdown a { display: block; padding: 0.75rem 1rem; color: var(--text-secondary); }
+        .mobile-nav-cta {
+            display: block; margin: 1rem; padding: 1rem; text-align: center;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white; border-radius: 8px; font-weight: 600;
+        }
+
+        /* Footer */
+        footer { background: rgba(26, 10, 0, 0.3); border-top: 1px solid var(--border-color); }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 glass-card border-b border-theme nav-main" style="z-index: 10000;">
+        <div class="nav-inner flex items-center justify-between h-16 px-6 lg:px-10">
+            <a href="index.html" class="flex items-center gap-3 shrink-0 group">
+                <div class="w-10 h-10 flex items-center justify-center transition-transform group-hover:scale-105">
+                    <img src="assets/logo.png" alt="CoCreate Logo" class="w-10 h-10 object-contain">
+                </div>
+                <span class="text-lg font-display font-bold tracking-tight hidden sm:block">
+                    <span class="text-theme-primary">CO</span><span class="gradient-text">CREATE</span>
+                </span>
+            </a>
+
+            <div class="hidden lg:flex items-center gap-1">
+                <div class="nav-item">
+                    <button class="nav-link-new" type="button">
+                        Who We Are
+                        <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="nav-dropdown-new">
+                        <a href="who-we-are.html">Who We Are</a>
+                        <a href="partners.html">Partners</a>
+                        <a href="culture.html">Culture</a>
+                    </div>
+                </div>
+                <div class="nav-item">
+                    <button class="nav-link-new" type="button">
+                        What We Do
+                        <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="nav-dropdown-new">
+                        <a href="what-we-do.html">Overview</a>
+                        <a href="ai.html">AI Solutions</a>
+                        <a href="product.html">Product Development</a>
+                        <a href="platforms.html">Platforms</a>
+                    </div>
+                </div>
+                <a href="projects.html" class="nav-link-new active">Projects</a>
+
+                <div class="theme-switcher">
+                    <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle theme">
+                        <svg class="w-4 h-4" id="theme-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+                        </svg>
+                        <span class="text-xs font-medium uppercase tracking-wide" id="theme-label">Ember</span>
+                    </button>
+                    <div class="theme-dropdown" id="theme-dropdown">
+                        <div class="theme-option active" data-theme="ember">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #1A0A00 50%, #FC2A0D 50%);"></div>
+                            <span>Ember</span>
+                        </div>
+                        <div class="theme-option" data-theme="coral">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #FFF8F0 50%, #FD6C71 50%);"></div>
+                            <span>Coral</span>
+                        </div>
+                        <div class="theme-option" data-theme="sunset">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #2D1B3D 50%, #FF6B9D 50%);"></div>
+                            <span>Sunset</span>
+                        </div>
+                        <div class="theme-option" data-theme="aurora">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #FFF5F8 50%, #E6A4FF 50%);"></div>
+                            <span>Aurora</span>
+                        </div>
+                        <div class="theme-option" data-theme="legacy">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #020617 50%, #6366f1 50%);"></div>
+                            <span>Legacy</span>
+                        </div>
+                    </div>
+                </div>
+
+                <a href="contact.html" class="nav-cta-btn">Contact</a>
+            </div>
+
+            <button class="lg:hidden flex items-center justify-center w-10 h-10 rounded-lg hover:bg-white/10 transition" id="mobile-menu-btn" aria-label="Open menu">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="lg:hidden mobile-menu" id="mobile-menu">
+            <div class="px-6 py-4 space-y-1 border-t border-theme">
+                <div class="mobile-nav-item">
+                    <button class="mobile-nav-btn" data-dropdown="mobile-who">
+                        Who We Are
+                        <svg class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="mobile-dropdown" id="mobile-who">
+                        <a href="who-we-are.html">Who We Are</a>
+                        <a href="partners.html">Partners</a>
+                        <a href="culture.html">Culture</a>
+                    </div>
+                </div>
+                <div class="mobile-nav-item">
+                    <button class="mobile-nav-btn" data-dropdown="mobile-what">
+                        What We Do
+                        <svg class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="mobile-dropdown" id="mobile-what">
+                        <a href="what-we-do.html">Overview</a>
+                        <a href="ai.html">AI Solutions</a>
+                        <a href="product.html">Product Development</a>
+                        <a href="platforms.html">Platforms</a>
+                    </div>
+                </div>
+                <a href="projects.html" class="mobile-nav-btn" style="color: var(--primary);">Projects</a>
+                <a href="contact.html" class="mobile-nav-cta">Contact Us</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="max-w-4xl mx-auto text-center relative z-10">
+            <a href="projects.html" class="back-link">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                All Projects
+            </a>
+            <div class="hero-icon" id="hero-icon">
+                <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path id="hero-icon-path" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d=""/>
+                </svg>
+            </div>
+            <h1 class="text-4xl md:text-6xl font-display font-bold mb-6 leading-tight">
+                <span class="gradient-text" id="category-name">Projects</span>
+            </h1>
+            <p class="text-lg md:text-xl text-theme-secondary max-w-2xl mx-auto leading-relaxed" id="category-tagline"></p>
+        </div>
+    </section>
+
+    <!-- Projects Grid -->
+    <section class="py-12 px-6 pb-28">
+        <div class="max-w-6xl mx-auto">
+            <div id="projects-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Project cards injected by JS -->
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-24 px-6" style="background: transparent;">
+        <div class="max-w-4xl mx-auto text-center">
+            <h2 class="text-3xl md:text-5xl font-display font-bold mb-8">Want Something Like This?</h2>
+            <p class="text-xl text-theme-secondary mb-10">Tell us your idea — we'll build it with you.</p>
+            <a href="apply.html" class="cta-button inline-block px-10 py-5 rounded-full text-lg font-display font-semibold text-white">
+                Let's CoCreate in 24 Hrs
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-16 px-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-8">
+                <div class="flex items-center gap-3">
+                    <img src="assets/logo.png" alt="CoCreate Logo" class="w-8 h-8 object-contain">
+                    <span class="font-display font-bold text-lg">
+                        <span class="text-theme-primary">CO</span><span class="gradient-text">CREATE</span>
+                    </span>
+                </div>
+                <p class="text-theme-secondary text-sm">&copy; 2026 CoCreate. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Projects data + chat widget -->
+    <script src="js/projects-data.js"></script>
+    <script src="js/chat-widget.js"></script>
+    <script src="js/chat-loader.js"></script>
+
+    <script>
+        function escapeHtml(str) {
+            return String(str || '').replace(/[&<>"']/g, c => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[c]));
+        }
+
+        (function renderCategory() {
+            const params = new URLSearchParams(window.location.search);
+            const key = params.get('cat');
+            const data = window.PROJECTS_DATA || [];
+            const cat = data.find(c => c.key === key);
+
+            const grid = document.getElementById('projects-grid');
+
+            if (!cat) {
+                document.getElementById('category-name').textContent = 'Category Not Found';
+                document.getElementById('category-tagline').textContent = "We couldn't find that category. Browse all projects instead.";
+                document.getElementById('hero-icon').style.display = 'none';
+                grid.innerHTML = `<div class="md:col-span-2 lg:col-span-3 text-center">
+                    <a href="projects.html" class="visit-btn" style="margin: 0 auto;">Back to All Projects</a>
+                </div>`;
+                return;
+            }
+
+            document.getElementById('page-title').textContent = cat.name + ' | CoCreate';
+            document.getElementById('category-name').textContent = cat.name;
+            document.getElementById('category-tagline').textContent = cat.tagline;
+            document.getElementById('hero-icon-path').setAttribute('d', cat.icon);
+
+            grid.innerHTML = cat.projects.map(p => {
+                const action = (p.liveUrl && p.liveUrl !== '#')
+                    ? `<a class="visit-btn" href="${escapeHtml(p.liveUrl)}" target="_blank" rel="noopener noreferrer">
+                           Visit Live
+                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                           </svg>
+                       </a>`
+                    : `<span class="coming-soon">
+                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                           </svg>
+                           Coming Soon
+                       </span>`;
+                return `
+                <div class="project-card section-reveal">
+                    <h3 class="text-xl font-display font-bold mb-3">${escapeHtml(p.name)}</h3>
+                    <p class="text-theme-secondary leading-relaxed mb-6">${escapeHtml(p.description)}</p>
+                    ${action}
+                </div>`;
+            }).join('');
+
+            if (window.gsap) {
+                gsap.utils.toArray('#projects-grid .section-reveal').forEach((elem) => {
+                    gsap.to(elem, {
+                        opacity: 1, y: 0, duration: 0.7, ease: 'power3.out',
+                        scrollTrigger: { trigger: elem, start: 'top 92%' }
+                    });
+                });
+            }
+        })();
+
+        // GSAP base
+        gsap.registerPlugin(ScrollTrigger);
+
+        // Theme Switcher
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeDropdown = document.getElementById('theme-dropdown');
+        const themeLabel = document.getElementById('theme-label');
+        const themeOptions = document.querySelectorAll('.theme-option');
+        function updateThemeUI() {
+            const current = window.ThemeManager?.get() || 'ember';
+            themeLabel.textContent = current.charAt(0).toUpperCase() + current.slice(1);
+            themeOptions.forEach(opt => opt.classList.toggle('active', opt.dataset.theme === current));
+        }
+        themeToggle.addEventListener('click', (e) => { e.stopPropagation(); themeDropdown.classList.toggle('active'); });
+        document.addEventListener('click', () => themeDropdown.classList.remove('active'));
+        themeOptions.forEach(option => {
+            option.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (window.ThemeManager) window.ThemeManager.set(option.dataset.theme);
+                updateThemeUI();
+                themeDropdown.classList.remove('active');
+            });
+        });
+        window.addEventListener('themechange', updateThemeUI);
+        updateThemeUI();
+
+        // Mobile Menu
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const mobileNavBtns = document.querySelectorAll('.mobile-nav-btn[data-dropdown]');
+        mobileMenuBtn?.addEventListener('click', () => mobileMenu.classList.toggle('active'));
+        mobileNavBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const dropdown = document.getElementById(btn.dataset.dropdown);
+                dropdown?.classList.toggle('active');
+                btn.querySelector('svg')?.classList.toggle('rotate-180');
+            });
+        });
+    </script>
+</body>
+</html>

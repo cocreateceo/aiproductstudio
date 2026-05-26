@@ -11,8 +11,14 @@
         ? AppConfig.api.chat
         : 'https://mcndu8ynsa.execute-api.us-east-1.amazonaws.com/prod/';
 
-    // Lambda Function URL for heavy batch calls (no 30s API Gateway timeout limit)
-    const BATCH_API_URL = 'https://2jeprn5g4yodsr3sa43fwbasgu0pfoah.lambda-url.us-east-1.on.aws/';
+    // Batch calls use the same API Gateway endpoint — CUR data is fast enough (<30s)
+    function fetchBatch(payload) {
+        return fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(function (r) { return r.json(); });
+    }
 
     // ── State ───────────────────────────────────────────────────
     let adminPassword = '';
@@ -238,19 +244,9 @@
         toast('Loading AWS cost data...', 'info');
 
         try {
-            // Batch: 2 calls instead of 10 (shared AWS data fetched once server-side)
-            // Uses Lambda Function URL directly to avoid API Gateway 30s timeout
             var results = await Promise.all([
-                fetch(BATCH_API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'aws-cost-dashboard-batch', password: adminPassword, startDate: startDate, endDate: endDate })
-                }).then(function (r) { return r.json(); }),
-                fetch(BATCH_API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'aws-cost-storage-batch', password: adminPassword })
-                }).then(function (r) { return r.json(); })
+                fetchBatch({ action: 'aws-cost-dashboard-batch', password: adminPassword, startDate: startDate, endDate: endDate }),
+                fetchBatch({ action: 'aws-cost-storage-batch', password: adminPassword })
             ]);
 
             var batch1 = results[0]; // dashboard batch

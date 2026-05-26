@@ -3,7 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- URL Router: handle /ref/CODE if served here directly -->
+    <script>
+        (function() {
+            var path = window.location.pathname;
+            var refMatch = path.match(/^\/ref\/([A-Za-z0-9_-]+)\/?$/);
+            if (refMatch) {
+                window.location.replace('/apply.html?ref=' + encodeURIComponent(refMatch[1]));
+            }
+        })();
+    </script>
+    <link rel="icon" href="favicon.ico" sizes="32x32 48x48">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png">
+    <link rel="apple-touch-icon" href="favicon-192.png">
     <title>Let's CoCreate | CoCreate</title>
     <meta name="description" content="Apply to partner with CoCreate. Launch your AI-powered product in 2 weeks with our unique co-founder partnership model.">
 
@@ -559,6 +572,7 @@
                 </div>
 
                 <!-- Theme Switcher -->
+                <a href="projects.html" class="nav-link-new">Projects</a>
                 <div class="theme-switcher">
                     <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle theme">
                         <svg class="w-4 h-4" id="theme-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -644,6 +658,7 @@
                         <a href="success-stories.html">Success Stories</a>
                     </div>
                 </div>
+                <a href="projects.html" class="mobile-nav-btn" style="color: var(--primary);">Projects</a>
                 <a href="contact.html" class="mobile-nav-cta">Contact Us</a>
             </div>
         </div>
@@ -671,9 +686,27 @@
     <!-- Main Content -->
     <main class="py-16 px-6">
         <div class="max-w-3xl mx-auto">
+            <!-- Referral Banner (shown only when ?ref=CODE is present) -->
+            <div id="referral-banner" class="hidden mb-6 rounded-xl p-5 section-reveal" style="background: linear-gradient(135deg, var(--accent), var(--primary)); box-shadow: 0 8px 32px var(--glow-color);">
+                <div class="flex items-center justify-between gap-4 flex-wrap">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-8 h-8 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <div>
+                            <p class="font-display font-bold text-white text-lg leading-tight">Exclusive partner referral applied</p>
+                            <p class="text-white/90 text-sm">Code: <span id="referral-code-display" class="font-mono font-bold">—</span> · Your custom rate will be confirmed on the call.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Application Form -->
             <div id="form-container" class="value-card section-reveal">
                 <form id="partnership-form">
+                    <!-- Hidden referral code field (auto-populated from URL) -->
+                    <input type="hidden" id="referralCode" name="referralCode" value="">
+
                     <!-- Contact Info -->
                     <div class="mb-8">
                         <div class="grid md:grid-cols-2 gap-6">
@@ -829,6 +862,28 @@ Example: I'm a restaurant consultant and I want to build an AI tool that helps r
         const formContainer = document.getElementById('form-container');
         const successMessage = document.getElementById('success-message');
 
+        // Referral code capture — read ?ref=CODE from URL (or sessionStorage fallback)
+        (function captureReferralCode() {
+            const urlParams = new URLSearchParams(window.location.search);
+            let refCode = (urlParams.get('ref') || '').trim().toUpperCase();
+            if (refCode) {
+                // Persist so it survives navigation within the session
+                try { sessionStorage.setItem('cocreate_ref', refCode); } catch (e) {}
+            } else {
+                try { refCode = sessionStorage.getItem('cocreate_ref') || ''; } catch (e) {}
+            }
+            if (refCode && /^[A-Z0-9_-]+$/.test(refCode)) {
+                const hiddenField = document.getElementById('referralCode');
+                if (hiddenField) hiddenField.value = refCode;
+                const banner = document.getElementById('referral-banner');
+                const display = document.getElementById('referral-code-display');
+                if (banner && display) {
+                    display.textContent = refCode;
+                    banner.classList.remove('hidden');
+                }
+            }
+        })();
+
         // Fill form with AI extracted data
         function fillFormFromAI(formData) {
             const filledFields = [];
@@ -959,7 +1014,8 @@ Example: I'm a restaurant consultant and I want to build an AI tool that helps r
             const formData = {
                 name: document.getElementById('fullName').value,
                 email: document.getElementById('email').value,
-                productIdea: document.getElementById('productIdea').value
+                productIdea: document.getElementById('productIdea').value,
+                referralCode: (document.getElementById('referralCode')?.value || '').trim().toUpperCase()
             };
 
             try {

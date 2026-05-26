@@ -7,8 +7,8 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png">
     <link rel="apple-touch-icon" href="favicon-192.png">
-    <title>Success Stories | CoCreate</title>
-    <meta name="description" content="Real results from real partners. See how we've helped businesses launch successful AI-powered products.">
+    <title>Projects | CoCreate</title>
+    <meta name="description" content="Explore the products CoCreate has built — across Vedic, trading, healthcare, education, data, and more.">
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -101,7 +101,6 @@
             transition: background var(--transition-speed) ease, color var(--transition-speed) ease;
         }
 
-        /* CoCreate Typography - Outfit for headings */
         h1, h2, h3, h4, h5, h6, .font-display {
             font-family: 'Outfit', 'DM Sans', system-ui, sans-serif;
             font-weight: 600;
@@ -134,20 +133,9 @@
         .section-reveal { opacity: 0; transform: translateY(40px); }
 
         /* Navigation Styles */
-        .nav-main {
-            width: 100%;
-            backdrop-filter: blur(20px) saturate(180%);
-            transition: all 0.3s ease;
-        }
-
-        .nav-inner {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .nav-item {
-            position: relative;
-        }
+        .nav-main { width: 100%; backdrop-filter: blur(20px) saturate(180%); transition: all 0.3s ease; }
+        .nav-inner { max-width: 1400px; margin: 0 auto; }
+        .nav-item { position: relative; }
 
         .nav-link-new {
             display: inline-flex;
@@ -166,6 +154,7 @@
         }
 
         .nav-link-new:hover { color: var(--text-primary); }
+        .nav-link-new.active { color: var(--primary); }
 
         .nav-dropdown-new {
             position: absolute;
@@ -184,11 +173,7 @@
             border-radius: 12px;
         }
 
-        .nav-item:hover .nav-dropdown-new {
-            opacity: 1;
-            visibility: visible;
-            transform: translateY(0);
-        }
+        .nav-item:hover .nav-dropdown-new { opacity: 1; visibility: visible; transform: translateY(0); }
 
         .nav-dropdown-new a {
             display: block;
@@ -198,10 +183,7 @@
             transition: all 0.15s ease;
         }
 
-        .nav-dropdown-new a:hover {
-            color: var(--text-primary);
-            background: var(--bg-secondary);
-        }
+        .nav-dropdown-new a:hover { color: var(--text-primary); background: var(--bg-secondary); }
 
         .nav-cta-btn {
             display: inline-flex;
@@ -217,228 +199,115 @@
             transition: all 0.2s ease;
         }
 
-        .nav-cta-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 20px var(--glow-color);
-        }
+        .nav-cta-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px var(--glow-color); }
 
         /* Theme Switcher */
         .theme-switcher { position: relative; }
-
         .theme-toggle-btn {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 0.5rem 0.75rem;
-            background: transparent;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: color 0.2s ease;
+            display: flex; align-items: center; gap: 6px;
+            padding: 0.5rem 0.75rem; background: transparent; border: none;
+            color: var(--text-secondary); cursor: pointer; transition: color 0.2s ease;
         }
-
         .theme-toggle-btn:hover { color: var(--text-primary); }
-
         .theme-dropdown {
-            position: absolute;
-            top: calc(100% + 8px);
-            right: 0;
-            background: var(--bg-card);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 8px;
-            min-width: 180px;
-            opacity: 0;
-            visibility: hidden;
-            transform: translateY(-10px);
-            transition: all 0.3s ease;
-            z-index: 100;
+            position: absolute; top: calc(100% + 8px); right: 0;
+            background: var(--bg-card); backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color); border-radius: 16px;
+            padding: 8px; min-width: 180px; opacity: 0; visibility: hidden;
+            transform: translateY(-10px); transition: all 0.3s ease; z-index: 100;
         }
-
-        .theme-dropdown.active {
-            opacity: 1;
-            visibility: visible;
-            transform: translateY(0);
-        }
-
+        .theme-dropdown.active { opacity: 1; visibility: visible; transform: translateY(0); }
         .theme-option {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 16px;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            color: var(--text-secondary);
+            display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+            border-radius: 12px; cursor: pointer; transition: all 0.2s ease; color: var(--text-secondary);
         }
-
-        .theme-option:hover {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-        }
-
-        .theme-option.active {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-        }
-
-        .theme-preview {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            border: 2px solid var(--border-color);
-        }
+        .theme-option:hover { background: var(--bg-secondary); color: var(--text-primary); }
+        .theme-option.active { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; }
+        .theme-preview { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--border-color); }
 
         /* Hero Section */
         .hero-section {
-            position: relative;
-            min-height: 70vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 120px 24px 80px;
-            background: transparent;
-            overflow: hidden;
+            position: relative; min-height: 60vh; display: flex; align-items: center;
+            justify-content: center; padding: 120px 24px 60px;
+            background: linear-gradient(180deg, transparent 0%, rgba(26, 10, 0, 0.3) 100%); overflow: hidden;
         }
-
         .hero-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: transparent;
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(var(--primary-rgb, 252, 42, 13), 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(var(--secondary-rgb, 253, 108, 113), 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 50% 80%, rgba(var(--accent-rgb, 255, 195, 106), 0.08) 0%, transparent 50%);
             pointer-events: none;
         }
 
-        /* Stats Card */
-        .stat-card {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            border-radius: 1.5rem;
-            padding: 2rem;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 40px var(--glow-color);
-        }
-
-        /* Case Study Card */
-        .case-study {
+        /* Category Card */
+        .category-card {
+            display: flex;
+            flex-direction: column;
             background: var(--bg-card);
             backdrop-filter: blur(20px);
             border: 1px solid var(--border-color);
             border-radius: 1.5rem;
-            overflow: hidden;
+            padding: 2.5rem;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            height: 100%;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
         }
-
-        .case-study:hover {
-            transform: translateY(-4px);
+        .category-card:hover {
+            transform: translateY(-8px);
             box-shadow: 0 20px 50px var(--glow-color);
             border-color: var(--primary);
         }
-
-        /* Industry Tag */
-        .industry-tag {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.25rem 0.75rem;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            color: var(--text-secondary);
+        .category-icon {
+            width: 64px; height: 64px; border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 1.5rem; background: linear-gradient(135deg, var(--primary), var(--secondary));
+        }
+        .category-count {
+            display: inline-flex; align-items: center; gap: 6px;
+            margin-top: auto; padding-top: 1.5rem;
+            font-size: 0.8125rem; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.05em; color: var(--primary);
         }
 
         /* CTA Button */
         .cta-button {
             background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            box-shadow: 0 4px 20px var(--glow-color);
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
+            box-shadow: 0 4px 20px var(--glow-color); transition: all 0.3s ease;
+            position: relative; overflow: hidden;
         }
-
         .cta-button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
+            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
             background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
             transition: left 0.5s ease;
         }
-
         .cta-button:hover::before { left: 100%; }
-
-        .cta-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 40px var(--glow-color);
-        }
+        .cta-button:hover { transform: translateY(-2px); box-shadow: 0 10px 40px var(--glow-color); }
 
         /* Mobile Menu */
         .mobile-menu {
-            display: none;
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: var(--bg-card);
-            backdrop-filter: blur(20px);
-            border-top: 1px solid var(--border-color);
+            display: none; position: absolute; top: 100%; left: 0; right: 0;
+            background: var(--bg-card); backdrop-filter: blur(20px); border-top: 1px solid var(--border-color);
         }
-
         .mobile-menu.active { display: block; }
-
         .mobile-nav-btn {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 100%;
-            padding: 1rem;
-            background: none;
-            border: none;
-            color: var(--text-primary);
-            font-size: 1rem;
-            cursor: pointer;
+            display: flex; align-items: center; justify-content: space-between; width: 100%;
+            padding: 1rem; background: none; border: none; color: var(--text-primary);
+            font-size: 1rem; cursor: pointer; text-decoration: none;
         }
-
-        .mobile-dropdown {
-            display: none;
-            padding-left: 1rem;
-        }
-
+        .mobile-dropdown { display: none; padding-left: 1rem; }
         .mobile-dropdown.active { display: block; }
-
-        .mobile-dropdown a {
-            display: block;
-            padding: 0.75rem 1rem;
-            color: var(--text-secondary);
-        }
-
+        .mobile-dropdown a { display: block; padding: 0.75rem 1rem; color: var(--text-secondary); }
         .mobile-nav-cta {
-            display: block;
-            margin: 1rem;
-            padding: 1rem;
-            text-align: center;
+            display: block; margin: 1rem; padding: 1rem; text-align: center;
             background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-            border-radius: 8px;
-            font-weight: 600;
+            color: white; border-radius: 8px; font-weight: 600;
         }
 
         /* Footer */
-        footer {
-            background: rgba(26, 10, 0, 0.3);
-            border-top: 1px solid var(--border-color);
-        }
+        footer { background: rgba(26, 10, 0, 0.3); border-top: 1px solid var(--border-color); }
     </style>
 </head>
 <body>
@@ -484,22 +353,9 @@
                         <a href="platforms.html">Platforms</a>
                     </div>
                 </div>
-                <div class="nav-item" style="display: none;">
-                    <button class="nav-link-new" type="button">
-                        Insights
-                        <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                        </svg>
-                    </button>
-                    <div class="nav-dropdown-new">
-                        <a href="insights.html">All Insights</a>
-                        <a href="blogs.html">Blog</a>
-                        <a href="success-stories.html">Success Stories</a>
-                    </div>
-                </div>
+                <a href="projects.html" class="nav-link-new active">Projects</a>
 
                 <!-- Theme Switcher -->
-                <a href="projects.html" class="nav-link-new">Projects</a>
                 <div class="theme-switcher">
                     <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle theme">
                         <svg class="w-4 h-4" id="theme-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -572,19 +428,6 @@
                         <a href="platforms.html">Platforms</a>
                     </div>
                 </div>
-                <div class="mobile-nav-item" style="display: none;">
-                    <button class="mobile-nav-btn" data-dropdown="mobile-insights">
-                        Insights
-                        <svg class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                        </svg>
-                    </button>
-                    <div class="mobile-dropdown" id="mobile-insights">
-                        <a href="insights.html">All Insights</a>
-                        <a href="blogs.html">Blog</a>
-                        <a href="success-stories.html">Success Stories</a>
-                    </div>
-                </div>
                 <a href="projects.html" class="mobile-nav-btn" style="color: var(--primary);">Projects</a>
                 <a href="contact.html" class="mobile-nav-cta">Contact Us</a>
             </div>
@@ -594,138 +437,33 @@
     <!-- Hero Section -->
     <section class="hero-section">
         <div class="max-w-5xl mx-auto text-center section-reveal relative z-10">
-            <p class="text-accent font-display font-semibold tracking-widest uppercase mb-6">Success Stories</p>
+            <p class="text-accent font-display font-semibold tracking-widest uppercase mb-6">Our Portfolio</p>
             <h1 class="text-4xl md:text-6xl lg:text-7xl font-display font-bold mb-8 leading-tight">
-                <span class="text-theme-primary">Real Results,</span><br>
-                <span class="gradient-text">Real Impact</span>
+                <span class="text-theme-primary">Products We've</span><br>
+                <span class="gradient-text">CoCreated</span>
             </h1>
             <p class="text-xl md:text-2xl text-theme-secondary max-w-3xl mx-auto leading-relaxed">
-                See how we've helped businesses across industries launch successful AI-powered products.
+                A growing portfolio of AI-powered products across industries. Explore by category to see what we've built.
             </p>
         </div>
     </section>
 
-    <!-- Stats Section -->
-    <section class="py-16 px-6">
+    <!-- Categories Grid -->
+    <section class="py-16 px-6 pb-28">
         <div class="max-w-6xl mx-auto">
-            <div class="grid md:grid-cols-4 gap-6 mb-16">
-                <div class="stat-card section-reveal">
-                    <p class="text-4xl font-display font-bold text-white mb-1">50+</p>
-                    <p class="text-white/80 text-sm">Products Launched</p>
-                </div>
-                <div class="stat-card section-reveal">
-                    <p class="text-4xl font-display font-bold text-white mb-1">$100M+</p>
-                    <p class="text-white/80 text-sm">Revenue Generated</p>
-                </div>
-                <div class="stat-card section-reveal">
-                    <p class="text-4xl font-display font-bold text-white mb-1">95%</p>
-                    <p class="text-white/80 text-sm">Success Rate</p>
-                </div>
-                <div class="stat-card section-reveal">
-                    <p class="text-4xl font-display font-bold text-white mb-1">12</p>
-                    <p class="text-white/80 text-sm">Industries Served</p>
-                </div>
-            </div>
-
-            <!-- Case Studies -->
-            <div class="space-y-12">
-                <article class="case-study section-reveal">
-                    <div class="grid lg:grid-cols-2">
-                        <img src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&q=80" alt="Healthcare AI" class="w-full h-64 lg:h-full object-cover">
-                        <div class="p-8 lg:p-12">
-                            <div class="flex items-center gap-3 mb-4">
-                                <span class="industry-tag">Healthcare</span>
-                                <span class="industry-tag">AI Diagnostics</span>
-                            </div>
-                            <h2 class="text-2xl font-display font-bold mb-4">MedAI: AI-Powered Medical Imaging Analysis</h2>
-                            <p class="text-theme-secondary mb-6">Helped a healthcare startup build an AI system that analyzes medical images with 98% accuracy, reducing diagnosis time by 60%.</p>
-                            <div class="grid grid-cols-3 gap-4 mb-6">
-                                <div>
-                                    <p class="text-2xl font-display font-bold gradient-text">98%</p>
-                                    <p class="text-sm text-theme-secondary">Accuracy</p>
-                                </div>
-                                <div>
-                                    <p class="text-2xl font-display font-bold gradient-text">60%</p>
-                                    <p class="text-sm text-theme-secondary">Faster Diagnosis</p>
-                                </div>
-                                <div>
-                                    <p class="text-2xl font-display font-bold gradient-text">10 Days</p>
-                                    <p class="text-sm text-theme-secondary">To Launch</p>
-                                </div>
-                            </div>
-                            <blockquote class="border-l-4 border-primary pl-4 italic text-theme-secondary">"CoCreate delivered a production-ready AI system faster than we thought possible. Game-changing."</blockquote>
-                        </div>
-                    </div>
-                </article>
-
-                <article class="case-study section-reveal">
-                    <div class="grid lg:grid-cols-2">
-                        <div class="p-8 lg:p-12 order-2 lg:order-1">
-                            <div class="flex items-center gap-3 mb-4">
-                                <span class="industry-tag">Fintech</span>
-                                <span class="industry-tag">Fraud Detection</span>
-                            </div>
-                            <h2 class="text-2xl font-display font-bold mb-4">SecureBank: Real-Time Fraud Prevention</h2>
-                            <p class="text-theme-secondary mb-6">Built an ML-powered fraud detection system that processes millions of transactions in real-time, preventing over $50M in fraud annually.</p>
-                            <div class="grid grid-cols-3 gap-4 mb-6">
-                                <div>
-                                    <p class="text-2xl font-display font-bold gradient-text">$50M+</p>
-                                    <p class="text-sm text-theme-secondary">Fraud Prevented</p>
-                                </div>
-                                <div>
-                                    <p class="text-2xl font-display font-bold gradient-text">99.9%</p>
-                                    <p class="text-sm text-theme-secondary">Uptime</p>
-                                </div>
-                                <div>
-                                    <p class="text-2xl font-display font-bold gradient-text">&lt; 50ms</p>
-                                    <p class="text-sm text-theme-secondary">Response Time</p>
-                                </div>
-                            </div>
-                            <blockquote class="border-l-4 border-secondary pl-4 italic text-theme-secondary">"The system paid for itself within the first month. Incredible ROI."</blockquote>
-                        </div>
-                        <img src="https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&q=80" alt="Fintech" class="w-full h-64 lg:h-full object-cover order-1 lg:order-2">
-                    </div>
-                </article>
-
-                <article class="case-study section-reveal">
-                    <div class="grid lg:grid-cols-2">
-                        <img src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&q=80" alt="E-commerce" class="w-full h-64 lg:h-full object-cover">
-                        <div class="p-8 lg:p-12">
-                            <div class="flex items-center gap-3 mb-4">
-                                <span class="industry-tag">E-commerce</span>
-                                <span class="industry-tag">Personalization</span>
-                            </div>
-                            <h2 class="text-2xl font-display font-bold mb-4">ShopSmart: AI-Driven Product Recommendations</h2>
-                            <p class="text-theme-secondary mb-6">Developed a personalization engine that increased conversion rates by 35% and average order value by 28% for an e-commerce platform.</p>
-                            <div class="grid grid-cols-3 gap-4 mb-6">
-                                <div>
-                                    <p class="text-2xl font-display font-bold gradient-text">35%</p>
-                                    <p class="text-sm text-theme-secondary">Conversion Lift</p>
-                                </div>
-                                <div>
-                                    <p class="text-2xl font-display font-bold gradient-text">28%</p>
-                                    <p class="text-sm text-theme-secondary">Higher AOV</p>
-                                </div>
-                                <div>
-                                    <p class="text-2xl font-display font-bold gradient-text">2 Weeks</p>
-                                    <p class="text-sm text-theme-secondary">To Launch</p>
-                                </div>
-                            </div>
-                            <blockquote class="border-l-4 border-accent pl-4 italic text-theme-secondary">"Our revenue increased by 40% in the first quarter after implementation."</blockquote>
-                        </div>
-                    </div>
-                </article>
+            <div id="categories-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Category cards injected by JS -->
             </div>
         </div>
     </section>
 
     <!-- CTA Section -->
-    <section class="py-24 px-6" style="background: rgba(26, 10, 0, 0.3);">
+    <section class="py-24 px-6" style="background: transparent;">
         <div class="max-w-4xl mx-auto text-center section-reveal">
-            <h2 class="text-3xl md:text-5xl font-display font-bold mb-8">Ready to Write Your Success Story?</h2>
-            <p class="text-xl text-theme-secondary mb-10">Let's discuss how we can help you achieve similar results.</p>
-            <a href="contact.html" class="cta-button inline-block px-10 py-5 rounded-full text-lg font-display font-semibold text-white">
-                Start Your Project
+            <h2 class="text-3xl md:text-5xl font-display font-bold mb-8">Have an Idea to Build?</h2>
+            <p class="text-xl text-theme-secondary mb-10">Let's CoCreate and turn your idea into reality.</p>
+            <a href="apply.html" class="cta-button inline-block px-10 py-5 rounded-full text-lg font-display font-semibold text-white">
+                Let's CoCreate in 24 Hrs
             </a>
         </div>
     </section>
@@ -745,24 +483,56 @@
         </div>
     </footer>
 
-    <!-- Chat Widget -->
+    <!-- Projects data + chat widget -->
+    <script src="js/projects-data.js"></script>
     <script src="js/chat-widget.js"></script>
     <script src="js/chat-loader.js"></script>
 
     <script>
-        // GSAP Animations
-        gsap.registerPlugin(ScrollTrigger);
+        // --- Render category cards ---
+        (function renderCategories() {
+            const grid = document.getElementById('categories-grid');
+            const data = window.PROJECTS_DATA || [];
+            if (!grid) return;
+            grid.innerHTML = data.map(cat => {
+                const count = cat.projects.length;
+                const label = count === 1 ? '1 project' : count + ' projects';
+                return `
+                <a class="category-card section-reveal" href="projects-category.html?cat=${encodeURIComponent(cat.key)}">
+                    <div class="category-icon">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${cat.icon}"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-display font-bold mb-3">${cat.name}</h3>
+                    <p class="text-theme-secondary leading-relaxed">${cat.tagline}</p>
+                    <span class="category-count">
+                        ${label}
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                        </svg>
+                    </span>
+                </a>`;
+            }).join('');
 
-        gsap.utils.toArray('.section-reveal').forEach((elem, i) => {
-            const isHero = elem.closest('.hero-section');
-            if (isHero) {
-                gsap.to(elem, { opacity: 1, y: 0, duration: 1, ease: 'power3.out', delay: 0.3 });
-            } else {
-                gsap.to(elem, {
-                    opacity: 1, y: 0, duration: 0.8, ease: 'power3.out',
-                    scrollTrigger: { trigger: elem, start: 'top 85%' }
+            // Animate the freshly-injected cards
+            if (window.gsap) {
+                gsap.utils.toArray('#categories-grid .section-reveal').forEach((elem) => {
+                    gsap.to(elem, {
+                        opacity: 1, y: 0, duration: 0.7, ease: 'power3.out',
+                        scrollTrigger: { trigger: elem, start: 'top 90%' }
+                    });
                 });
             }
+        })();
+
+        // GSAP Animations
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.utils.toArray('.hero-section .section-reveal').forEach((elem) => {
+            gsap.to(elem, { opacity: 1, y: 0, duration: 1, ease: 'power3.out', delay: 0.3 });
+        });
+        gsap.utils.toArray('section:not(.hero-section) > .max-w-4xl.section-reveal').forEach((elem) => {
+            gsap.to(elem, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', scrollTrigger: { trigger: elem, start: 'top 85%' } });
         });
 
         // Theme Switcher
@@ -771,55 +541,32 @@
         const themeLabel = document.getElementById('theme-label');
         const themeOptions = document.querySelectorAll('.theme-option');
 
-        // Update UI based on current theme
         function updateThemeUI() {
             const current = window.ThemeManager?.get() || 'ember';
             themeLabel.textContent = current.charAt(0).toUpperCase() + current.slice(1);
-            themeOptions.forEach(opt => {
-                opt.classList.toggle('active', opt.dataset.theme === current);
-            });
+            themeOptions.forEach(opt => opt.classList.toggle('active', opt.dataset.theme === current));
         }
-
-        themeToggle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            themeDropdown.classList.toggle('active');
-        });
-
-        document.addEventListener('click', () => {
-            themeDropdown.classList.remove('active');
-        });
-
+        themeToggle.addEventListener('click', (e) => { e.stopPropagation(); themeDropdown.classList.toggle('active'); });
+        document.addEventListener('click', () => themeDropdown.classList.remove('active'));
         themeOptions.forEach(option => {
             option.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const theme = option.dataset.theme;
-                if (window.ThemeManager) {
-                    window.ThemeManager.set(theme);
-                }
+                if (window.ThemeManager) window.ThemeManager.set(option.dataset.theme);
                 updateThemeUI();
                 themeDropdown.classList.remove('active');
             });
         });
-
-        // Listen for theme changes from ThemeManager
         window.addEventListener('themechange', updateThemeUI);
-
-        // Initial UI update
         updateThemeUI();
 
         // Mobile Menu
         const mobileMenuBtn = document.getElementById('mobile-menu-btn');
         const mobileMenu = document.getElementById('mobile-menu');
-        const mobileNavBtns = document.querySelectorAll('.mobile-nav-btn');
-
-        mobileMenuBtn?.addEventListener('click', () => {
-            mobileMenu.classList.toggle('active');
-        });
-
+        const mobileNavBtns = document.querySelectorAll('.mobile-nav-btn[data-dropdown]');
+        mobileMenuBtn?.addEventListener('click', () => mobileMenu.classList.toggle('active'));
         mobileNavBtns.forEach(btn => {
             btn.addEventListener('click', () => {
-                const dropdownId = btn.dataset.dropdown;
-                const dropdown = document.getElementById(dropdownId);
+                const dropdown = document.getElementById(btn.dataset.dropdown);
                 dropdown?.classList.toggle('active');
                 btn.querySelector('svg')?.classList.toggle('rotate-180');
             });
