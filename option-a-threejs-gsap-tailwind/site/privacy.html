@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="ember">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="favicon.ico" sizes="32x32 48x48">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png">
+    <link rel="apple-touch-icon" href="favicon-192.png">
+    <title>Privacy Policy | CoCreate</title>
+    <meta name="description" content="How CoCreate Idea collects, uses, and protects your information.">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { theme: { extend: {
+            colors: { primary: 'var(--primary)', secondary: 'var(--secondary)', accent: 'var(--accent)' },
+            fontFamily: { sans: ['DM Sans', 'system-ui', 'sans-serif'], display: ['Outfit', 'DM Sans', 'system-ui', 'sans-serif'] }
+        } } }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/themes/ember.css">
+    <link rel="stylesheet" href="css/themes/coral.css">
+    <link rel="stylesheet" href="css/themes/sunset.css">
+    <link rel="stylesheet" href="css/themes/aurora.css">
+    <link rel="stylesheet" href="css/themes/legacy.css">
+    <link rel="stylesheet" href="css/themes/sandstone.css">
+    <link rel="stylesheet" href="css/themes/champagne.css">
+    <link rel="stylesheet" href="css/themes/zoom.css">
+    <script src="js/theme.js"></script>
+    <link rel="stylesheet" href="css/chat-widget.css">
+    <link rel="stylesheet" href="css/responsive.css">
+
+    <!-- cocreate-seo -->
+    <link rel="canonical" href="https://www.cocreateidea.com/privacy.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="CoCreate Idea">
+    <meta property="og:title" content="Privacy Policy | CoCreate">
+    <meta property="og:description" content="How CoCreate Idea collects, uses, and protects your information.">
+    <meta property="og:url" content="https://www.cocreateidea.com/privacy.html">
+    <meta property="og:image" content="https://www.cocreateidea.com/assets/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Privacy Policy | CoCreate">
+    <meta name="twitter:description" content="How CoCreate Idea collects, uses, and protects your information.">
+    <meta name="twitter:image" content="https://www.cocreateidea.com/assets/og-image.png">
+    <script defer data-domain="cocreateidea.com" src="https://plausible.io/js/script.js"></script>
+    <!-- /cocreate-seo -->
+
+    <style>
+        body::before { content:''; position:fixed; inset:0; background:url('assets/cocreate_bg.png') center bottom / cover no-repeat; z-index:-2; pointer-events:none; }
+        body::after { content:''; position:fixed; inset:0; background: radial-gradient(ellipse 120% 100% at 50% 100%, transparent 30%, rgba(26,10,0,0.6) 100%), linear-gradient(90deg, rgba(26,10,0,0.65) 0%, rgba(26,10,0,0.3) 40%, transparent 60%), linear-gradient(180deg, rgba(26,10,0,0.5) 0%, transparent 40%); z-index:-1; pointer-events:none; }
+        :root { --transition-speed: 0.4s; }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        html { scroll-behavior:smooth; }
+        body { font-family:'DM Sans', system-ui, sans-serif; background:transparent; color:var(--text-primary); overflow-x:hidden; }
+        h1,h2,h3,.font-display { font-family:'Outfit','DM Sans',system-ui,sans-serif; font-weight:600; letter-spacing:-0.02em; }
+        h1 { font-weight:700; letter-spacing:-0.03em; }
+        .gradient-text { background:linear-gradient(135deg,var(--primary) 0%,var(--secondary) 50%,var(--accent) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+        .glass-card { background:var(--bg-card); backdrop-filter:blur(20px); border:1px solid var(--border-color); }
+        .text-theme-primary { color:var(--text-primary); } .text-theme-secondary { color:var(--text-secondary); } .text-theme-muted { color:var(--text-muted); }
+        .border-theme { border-color:var(--border-color); }
+        .nav-main { width:100%; backdrop-filter:blur(20px) saturate(180%); }
+        .nav-inner { max-width:1400px; margin:0 auto; }
+        .nav-link-new { display:inline-flex; align-items:center; padding:0.5rem 1rem; font-size:0.8125rem; font-weight:500; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; transition:color 0.2s ease; }
+        .nav-link-new:hover { color:var(--text-primary); }
+        .nav-cta-btn { display:inline-flex; align-items:center; padding:0.5rem 1.25rem; font-size:0.8125rem; font-weight:600; color:#fff; text-transform:uppercase; letter-spacing:0.05em; background:linear-gradient(135deg,var(--primary) 0%,var(--secondary) 100%); border-radius:6px; transition:all 0.2s ease; }
+        .nav-cta-btn:hover { transform:translateY(-1px); box-shadow:0 4px 20px var(--glow-color); }
+        .theme-switcher { position:relative; }
+        .theme-toggle-btn { display:flex; align-items:center; gap:6px; padding:0.5rem 0.75rem; background:transparent; border:none; color:var(--text-secondary); cursor:pointer; }
+        .theme-toggle-btn:hover { color:var(--text-primary); }
+        .theme-dropdown { position:absolute; top:calc(100% + 8px); right:0; background:var(--bg-card); backdrop-filter:blur(20px); border:1px solid var(--border-color); border-radius:16px; padding:8px; min-width:180px; opacity:0; visibility:hidden; transform:translateY(-10px); transition:all 0.3s ease; z-index:100; }
+        .theme-dropdown.active { opacity:1; visibility:visible; transform:translateY(0); }
+        .theme-option { display:flex; align-items:center; gap:12px; padding:12px 16px; border-radius:12px; cursor:pointer; transition:all 0.2s ease; color:var(--text-secondary); }
+        .theme-option:hover { background:var(--bg-secondary); color:var(--text-primary); }
+        .theme-option.active { background:linear-gradient(135deg,var(--primary),var(--secondary)); color:#fff; }
+        .theme-preview { width:24px; height:24px; border-radius:50%; border:2px solid var(--border-color); }
+        footer { background:rgba(26,10,0,0.3); border-top:1px solid var(--border-color); }
+
+        .legal { max-width: 820px; margin: 0 auto; }
+        .legal h2 { font-size:1.4rem; margin:2.25rem 0 0.75rem; color:var(--text-primary); }
+        .legal p, .legal li { color:var(--text-secondary); line-height:1.7; margin-bottom:0.75rem; }
+        .legal ul { padding-left:1.25rem; margin-bottom:0.75rem; }
+        .legal li { list-style:disc; }
+        .legal a { color:var(--primary); }
+        .legal strong { color:var(--text-primary); }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 glass-card border-b border-theme nav-main" style="z-index:10000;">
+        <div class="nav-inner flex items-center justify-between h-16 px-6 lg:px-10">
+            <a href="index.html" class="flex items-center gap-3 shrink-0 group">
+                <div class="w-10 h-10 flex items-center justify-center transition-transform group-hover:scale-105">
+                    <img src="assets/logo.png" alt="CoCreate Logo" class="w-10 h-10 object-contain">
+                </div>
+                <span class="text-lg font-display font-bold tracking-tight hidden sm:block">
+                    <span class="text-theme-primary">CO</span><span class="gradient-text">CREATE</span>
+                </span>
+            </a>
+            <div class="hidden lg:flex items-center gap-1">
+                <a href="projects.html" class="nav-link-new">Projects</a>
+                <a href="what-we-do.html" class="nav-link-new">What We Do</a>
+                <div class="theme-switcher">
+                    <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle theme">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
+                        <span class="text-xs font-medium uppercase tracking-wide" id="theme-label">Ember</span>
+                    </button>
+                    <div class="theme-dropdown" id="theme-dropdown">
+                        <div class="theme-option active" data-theme="ember"><div class="theme-preview" style="background:linear-gradient(135deg,#1A0A00 50%,#FC2A0D 50%);"></div><span>Ember</span></div>
+                        <div class="theme-option" data-theme="coral"><div class="theme-preview" style="background:linear-gradient(135deg,#FFF8F0 50%,#FD6C71 50%);"></div><span>Coral</span></div>
+                        <div class="theme-option" data-theme="sunset"><div class="theme-preview" style="background:linear-gradient(135deg,#2D1B3D 50%,#FF6B9D 50%);"></div><span>Sunset</span></div>
+                        <div class="theme-option" data-theme="aurora"><div class="theme-preview" style="background:linear-gradient(135deg,#FFF5F8 50%,#E6A4FF 50%);"></div><span>Aurora</span></div>
+                        <div class="theme-option" data-theme="legacy"><div class="theme-preview" style="background:linear-gradient(135deg,#020617 50%,#6366f1 50%);"></div><span>Legacy</span></div>
+                    </div>
+                </div>
+                <a href="contact.html" class="nav-cta-btn">Contact</a>
+            </div>
+            <a href="index.html" class="lg:hidden nav-link-new">Home</a>
+        </div>
+    </nav>
+
+    <!-- Content -->
+    <section class="px-6 pt-32 pb-24">
+        <div class="legal">
+            <p class="text-accent font-display font-semibold tracking-widest uppercase mb-3">Legal</p>
+            <h1 class="text-4xl md:text-5xl font-display font-bold mb-4">Privacy <span class="gradient-text">Policy</span></h1>
+            <p class="text-theme-muted mb-8">Last updated: 26 May 2026</p>
+
+            <p>CoCreate Idea ("CoCreate", "we", "us") is operated by CoCreate Technologies. This policy explains what information we collect, how we use it, and the choices you have. By using <a href="https://www.cocreateidea.com">cocreateidea.com</a> you agree to this policy.</p>
+
+            <h2>Information we collect</h2>
+            <ul>
+                <li><strong>Information you give us</strong> — when you submit the application or contact form, or chat with our assistant, we collect details such as your name, email, and the project information you share.</li>
+                <li><strong>Usage analytics</strong> — we use <a href="https://plausible.io/data-policy" target="_blank" rel="noopener">Plausible Analytics</a>, a privacy-friendly, <strong>cookieless</strong> service that records aggregate page views and referrers. It does <strong>not</strong> use cookies or collect personal data, and does not track you across sites.</li>
+                <li><strong>Preferences</strong> — your selected theme is stored locally in your browser (localStorage); it never leaves your device.</li>
+            </ul>
+
+            <h2>How we use your information</h2>
+            <ul>
+                <li>To respond to your enquiry and provide the services you request.</li>
+                <li>To design, build, and deliver your product (MVP) and send you progress updates.</li>
+                <li>To improve our website and understand which content is useful (via aggregate analytics).</li>
+            </ul>
+
+            <h2>How your information is stored &amp; shared</h2>
+            <p>Form submissions and chat transcripts are stored securely on Amazon Web Services (AWS). Transactional emails are sent via AWS Simple Email Service (SES) and Microsoft 365. Chat replies may be generated using Anthropic and OpenAI APIs. We <strong>do not sell</strong> your personal information. We share data only with the service providers needed to deliver our services, and where required by law.</p>
+
+            <h2>Cookies</h2>
+            <p>We do not use advertising or cross-site tracking cookies. Our analytics (Plausible) is cookieless. We use browser localStorage only to remember your theme preference.</p>
+
+            <h2>Your rights</h2>
+            <p>You may request access to, correction of, or deletion of the personal information you have shared with us. To do so, email <a href="mailto:hello@cocreateidea.com">hello@cocreateidea.com</a> and we will respond within a reasonable timeframe.</p>
+
+            <h2>Contact</h2>
+            <p>Questions about this policy? Email <a href="mailto:hello@cocreateidea.com">hello@cocreateidea.com</a>.</p>
+
+            <p class="text-theme-muted" style="margin-top:2rem; font-size:0.9rem;">This policy is provided as a general starting point and should be reviewed by a qualified professional for your jurisdiction.</p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-16 px-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-8">
+                <div class="flex items-center gap-3">
+                    <img src="assets/logo.png" alt="CoCreate Logo" class="w-8 h-8 object-contain">
+                    <span class="font-display font-bold text-lg"><span class="text-theme-primary">CO</span><span class="gradient-text">CREATE</span></span>
+                </div>
+                <p class="text-theme-secondary text-sm">&copy; 2026 CoCreate Technologies. All rights reserved. &middot; <a href="privacy.html" class="hover:text-primary transition">Privacy</a></p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/chat-widget.js"></script>
+    <script src="js/chat-loader.js"></script>
+    <script>
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeDropdown = document.getElementById('theme-dropdown');
+        const themeLabel = document.getElementById('theme-label');
+        const themeOptions = document.querySelectorAll('.theme-option');
+        function updateThemeUI() {
+            const current = window.ThemeManager?.get() || 'ember';
+            themeLabel.textContent = current.charAt(0).toUpperCase() + current.slice(1);
+            themeOptions.forEach(o => o.classList.toggle('active', o.dataset.theme === current));
+        }
+        themeToggle?.addEventListener('click', e => { e.stopPropagation(); themeDropdown.classList.toggle('active'); });
+        document.addEventListener('click', () => themeDropdown?.classList.remove('active'));
+        themeOptions.forEach(o => o.addEventListener('click', e => { e.stopPropagation(); if (window.ThemeManager) window.ThemeManager.set(o.dataset.theme); updateThemeUI(); themeDropdown.classList.remove('active'); }));
+        window.addEventListener('themechange', updateThemeUI);
+        updateThemeUI();
+    </script>
+</body>
+</html>
