@@ -7,6 +7,9 @@
  * TO ADD A PROJECT:   add an object to the relevant category's `projects` array.
  * TO ADD A CATEGORY:  add an object to PROJECTS_DATA with a unique `key`.
  * TO SET A LIVE URL:  fill in `liveUrl`. Leave "" to show a "Coming soon" badge.
+ * CARD PREVIEW IMAGE: live cards show an auto screenshot of `liveUrl`. If a site
+ *                     screenshots poorly (blank SPA, empty page), add `noShot: true`
+ *                     to fall back to the branded gradient + icon.
  *
  * Each `icon` is an SVG path `d` string (Heroicons outline style).
  */
@@ -17,13 +20,13 @@ window.PROJECTS_DATA = [
     tagline: "Astrology, wellness, and spiritual-growth platforms powered by AI.",
     icon: "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z",
     projects: [
-      { name: "Vedic Astro",            description: "Full Vedic astrology platform — kundli, horoscopes, panchang, and compatibility readings.", liveUrl: "https://astro.vedics.net", featured: true },
+      { name: "Vedic Astro",            description: "Full Vedic astrology platform — kundli, horoscopes, panchang, and compatibility readings.", liveUrl: "https://astro.vedics.net", featured: true, noShot: true },
       { name: "Vedic Transform",        description: "Vedic transformation and spiritual-growth web app with guided journeys.",                  liveUrl: "https://10x.vedics.net" },
       { name: "Vedic Avatar",           description: "AI avatar that delivers personalized Vedic guidance and consultations.",                   liveUrl: "" },
       { name: "Vedic YouTube Studio",   description: "Astro Vedics YouTube channel — automated Vedic astrology content.",                       liveUrl: "https://www.youtube.com/@astrovedic-s" },
-      { name: "Transform YouTube",      description: "Vedics Transform YouTube channel — transformation and spiritual content.",              liveUrl: "https://www.youtube.com/@Vedics_Transform" },
+      { name: "Transform YouTube",      description: "Vedics Transform YouTube channel — transformation and spiritual content.",              liveUrl: "https://www.youtube.com/@Vedics_Transform", noShot: true },
       { name: "Vedic Wellness Store",   description: "AyurVeda Living — e-commerce storefront for Vedic wellness products.",                    liveUrl: "https://wellnessstore.vedics.net" },
-      { name: "Vedic Landing",          description: "Vedics.net — ancient wisdom, modern living. Vedic services landing.",                     liveUrl: "https://www.vedics.net" }
+      { name: "Vedic Landing",          description: "Vedics.net — ancient wisdom, modern living. Vedic services landing.",                     liveUrl: "https://www.vedics.net", noShot: true }
     ]
   },
   {
@@ -32,7 +35,7 @@ window.PROJECTS_DATA = [
     tagline: "AI-driven trading, market prediction, and live charting tools.",
     icon: "M3 3v18h18M7 14l3-3 3 3 5-5",
     projects: [
-      { name: "TradeWell",    description: "Self-hosted live trading-charts dashboard — your markets, all on one screen.", liveUrl: "https://d39c48qrzwnhha.cloudfront.net" },
+      { name: "TradeWell",    description: "Self-hosted live trading-charts dashboard — your markets, all on one screen.", liveUrl: "https://d39c48qrzwnhha.cloudfront.net", noShot: true },
       { name: "TradePredict", description: "AI-powered automated trading platform by CoCreate.",                          liveUrl: "https://trade.cocreateidea.com", featured: true },
       { name: "Tradewise",    description: "Smart trading insights and portfolio analytics.",                             liveUrl: "" }
     ]
@@ -44,7 +47,7 @@ window.PROJECTS_DATA = [
     icon: "M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z",
     projects: [
       { name: "SpeakWell",        description: "AI-powered spoken-language training application with real-time feedback.", liveUrl: "https://speakwell.cocreateidea.com" },
-      { name: "Career Builder",   description: "CareerX — AI-powered career platform and job-application assistant.",       liveUrl: "https://career.cocreateidea.com", featured: true },
+      { name: "Career Builder",   description: "CareerX — AI-powered career platform and job-application assistant.",       liveUrl: "https://career.cocreateidea.com", featured: true, noShot: true },
       { name: "Resume Builder",   description: "ResumeX — free AI resume builder that tailors resumes to each role.",       liveUrl: "https://resume.cocreateidea.com", featured: true },
       { name: "LearnAI",          description: "AI education platform — learn to build with AI (5-day intensive).",         liveUrl: "https://learnai.cocreateidea.com" },
       { name: "Hiring Assistant", description: "AI agent orchestration that scores a candidate's join-probability.",        liveUrl: "" },
@@ -88,7 +91,7 @@ window.PROJECTS_DATA = [
     tagline: "Multi-tenant SaaS that runs the front office with AI.",
     icon: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4",
     projects: [
-      { name: "FrontDesk", description: "Appointment SaaS with an AI voice receptionist — multi-tenant, multi-vertical.", liveUrl: "https://www.dcoreax.com" },
+      { name: "FrontDesk", description: "Appointment SaaS with an AI voice receptionist — multi-tenant, multi-vertical.", liveUrl: "" },
       { name: "Trustwise",  description: "Online wills, done right — guided estate planning.",                            liveUrl: "https://trustwise.cocreateidea.com" }
     ]
   },

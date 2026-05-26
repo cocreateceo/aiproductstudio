@@ -27,7 +27,7 @@
 /* Branded gradient tile */
 .proj-tile {
   position: relative;
-  height: 130px;
+  height: 150px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -59,6 +59,26 @@
   color: rgba(255, 255, 255, 0.16);
   z-index: 0;
 }
+
+/* Real live-site screenshot — covers the gradient+icon when it loads.
+   Sits above the icon (z-index 1) but below the status badge (z-index 2). */
+.proj-tile .tile-shot {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  z-index: 1;
+  background: var(--bg-card);
+  animation: tile-shot-in 0.5s ease;
+}
+@keyframes tile-shot-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.proj-card:hover .tile-shot { transform: scale(1.04); }
+.proj-tile.has-shot .tile-shot { transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
 
 /* Status badge */
 .proj-badge {
