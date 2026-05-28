@@ -99,30 +99,53 @@
     </div>
   </section>
 
+  <!-- BLOCK 4 — FEATURED PRODUCTS -->
+  <section class="section">
+    <div class="container">
+      <p class="eyebrow">What we've shipped</p>
+      <h2 class="display-l">Real products, in market today.</h2>
+      <p class="lede">A few of the founder-led products we've co-built. Click any card for the story.</p>
+      <div class="proj-grid" id="js-home-featured" style="margin-top: var(--sp-9);"></div>
+      <div style="margin-top: var(--sp-7);">
+        <a class="btn btn--ghost btn--lg" href="/projects.html">See all <span id="js-total-count">29</span> products →</a>
+      </div>
+    </div>
+  </section>
+
   <script src="js/projects-data.js"></script>
+  <script src="js/projects-render.js"></script>
   <script>
-    // Live count from PROJECTS_DATA so the trust strip stays accurate.
     (function () {
-      var lives = [];
-      (window.PROJECTS_DATA || []).forEach(function (c) {
-        c.projects.forEach(function (p) {
-          if (p.liveUrl && p.liveUrl !== '#') lives.push(p.name);
-        });
-      });
-      // Trust-strip + outcomes stat
-      var n = lives.length;
+      var CP = window.CoCreateProjects;
+      if (!CP) return;
+
+      var all = CP.flatten();
+      var lives = all.filter(function (p) { return p.isLive; });
+      var featured = all.filter(function (p) { return p.featured; }).slice(0, 6);
+
+      // Trust strip + outcomes count
       ['js-live-count', 'js-live-count-2'].forEach(function (id) {
         var el = document.getElementById(id);
-        if (el && n) el.textContent = String(n);
+        if (el && lives.length) el.textContent = String(lives.length);
       });
-      // Marquee — duplicate track for seamless loop
+      // Totals
+      var total = document.getElementById('js-total-count');
+      if (total) total.textContent = String(all.length);
+
+      // Marquee
       var track = document.getElementById('js-marquee-track');
       if (track && lives.length) {
-        var html = lives.map(function (name) {
-          return '<span class="marquee__item">' + name + '</span>';
+        var html = lives.map(function (p) {
+          return '<span class="marquee__item">' + p.name + '</span>';
         }).join('');
-        track.innerHTML = html + html; // double for seamless scroll
+        track.innerHTML = html + html;
       }
+
+      // Featured cards
+      var grid = document.getElementById('js-home-featured');
+      if (grid) grid.innerHTML = featured.map(function (p) {
+        return CP.productCardHTML(p, { showCategory: true });
+      }).join('');
     })();
   </script>
 </body>
