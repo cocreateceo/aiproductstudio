@@ -1,2936 +1,934 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="ember">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- URL Router for clean URLs (handles 404 redirects) -->
-    <script>
-        (function() {
-            var path = window.location.pathname;
-            // Route /user.id=xyz to user.html
-            var userMatch = path.match(/\/user\.id=([^\/]+)/);
-            if (userMatch) {
-                window.location.replace('/user.html?id=' + userMatch[1]);
-                return;
-            }
-            // Route /ref/CODE to apply.html?ref=CODE (partner referral links)
-            var refMatch = path.match(/^\/ref\/([A-Za-z0-9_-]+)\/?$/);
-            if (refMatch) {
-                window.location.replace('/apply.html?ref=' + encodeURIComponent(refMatch[1]));
-                return;
-            }
-        })();
-    </script>
-    <link rel="icon" href="favicon.ico" sizes="32x32 48x48">
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png">
-    <link rel="apple-touch-icon" href="favicon-192.png">
-    <title>CoCreate | AI-Powered Product Studio</title>
-    <meta name="description" content="CoCreate: Your AI Partner. Launch your business in 2 weeks.">
-
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: 'var(--primary)',
-                        secondary: 'var(--secondary)',
-                        accent: 'var(--accent)',
-                    },
-                    fontFamily: {
-                        sans: ['DM Sans', 'system-ui', 'sans-serif'],
-                        display: ['Outfit', 'DM Sans', 'system-ui', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
-
-    <!-- Google Fonts - CoCreate Typography -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
-    <!-- CoCreate Theme CSS -->
-    <link rel="stylesheet" href="css/themes/ember.css">
-    <link rel="stylesheet" href="css/themes/coral.css">
-    <link rel="stylesheet" href="css/themes/sunset.css">
-    <link rel="stylesheet" href="css/themes/aurora.css">
-    <link rel="stylesheet" href="css/themes/legacy.css">
-    <link rel="stylesheet" href="css/themes/sandstone.css">
-    <link rel="stylesheet" href="css/themes/champagne.css">
-    <link rel="stylesheet" href="css/themes/zoom.css">
-
-    <!-- Unified Theme System (MUST be before any rendering) -->
-    <script src="js/theme.js"></script>
-
-    <!-- GSAP -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
-
-    <!-- html2canvas for screenshots -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
-    <!-- Centralized Configuration -->
-    <script src="js/config.js"></script>
-
-    <!-- Chat Widget -->
-    <link rel="stylesheet" href="css/chat-widget.css">
-    <link rel="stylesheet" href="css/responsive.css">
-
-    <style>
-        /* Theme CSS Variables - themes defined in css/themes/*.css and applied via ThemeManager */
-        :root {
-            --transition-speed: 0.4s;
-            --nav-height: 80px;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        html {
-            scroll-behavior: smooth;
-        }
-
-        body {
-            font-family: 'DM Sans', system-ui, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            overflow-x: hidden;
-            transition: background var(--transition-speed) ease, color var(--transition-speed) ease;
-        }
-
-        /* CoCreate Typography - Outfit for headings */
-        h1, h2, h3, h4, h5, h6,
-        .font-display,
-        .text-5xl, .text-6xl, .text-7xl, .text-8xl {
-            font-family: 'Outfit', 'DM Sans', system-ui, sans-serif;
-            font-weight: 600;
-            letter-spacing: -0.02em;
-        }
-
-        h1, .text-6xl, .text-7xl, .text-8xl {
-            font-weight: 700;
-            letter-spacing: -0.03em;
-        }
-
-        /* Fixed Page Background - visible throughout entire page */
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: url('assets/cocreate_bg.png') center bottom / cover no-repeat;
-            z-index: -2;
-            pointer-events: none;
-        }
-
-        /* Fixed gradient overlay for readability */
-        body::after {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background:
-                radial-gradient(ellipse 120% 100% at 50% 100%, transparent 30%, rgba(26, 10, 0, 0.6) 100%),
-                linear-gradient(90deg, rgba(26, 10, 0, 0.65) 0%, rgba(26, 10, 0, 0.3) 40%, transparent 60%),
-                linear-gradient(180deg, rgba(26, 10, 0, 0.5) 0%, transparent 40%);
-            z-index: -1;
-            pointer-events: none;
-        }
-
-        /* Hero Section */
-        #hero {
-            position: relative;
-            min-height: 100vh;
-            display: flex;
-            align-items: flex-start;
-            padding-top: 140px;
-        }
-
-        /* All hero content above background layers */
-        #hero > * {
-            position: relative;
-            z-index: 2;
-        }
-
-        /* Hero content - responsive full width */
-        #hero .hero-content {
-            text-align: center;
-            width: 100%;
-            max-width: min(90vw, 1600px);
-            margin: 0 auto;
-            padding: 0 clamp(1rem, 3vw, 3rem);
-        }
-
-        #hero .hero-content h1 {
-            text-align: center;
-            text-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
-            font-size: clamp(1.75rem, 5vw, 4.5rem);
-        }
-
-        #hero .hero-content p {
-            text-shadow: 0 1px 10px rgba(0, 0, 0, 0.3);
-        }
-
-        #hero .hero-content .flex {
-            justify-content: center;
-        }
-
-        /* Partner cards grid - responsive */
-        #hero .hero-content .grid {
-            max-width: min(95vw, 1400px);
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        /* Stats positioned at bottom center */
-        #hero .stats-row {
-            position: absolute;
-            bottom: 40px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: min(90vw, 700px);
-            max-width: 700px;
-        }
-
-        #hero .stats-row .glass-card {
-            background: rgba(26, 10, 0, 0.6);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 195, 106, 0.2);
-        }
-
-        @media (max-width: 768px) {
-            #hero {
-                padding-top: 90px;
-                min-height: auto;
-                padding-bottom: 1.5rem;
-            }
-            #hero::before {
-                background-position: 70% bottom;
-            }
-            #hero .hero-content {
-                text-align: center;
-                padding: 0 15px;
-                max-width: 100%;
-            }
-            #hero .hero-content h1 {
-                text-align: center;
-                font-size: 1.75rem !important;
-                line-height: 1.3;
-                margin-bottom: 0.75rem;
-            }
-            #hero .hero-content p {
-                font-size: 0.95rem;
-                margin-bottom: 1.5rem;
-            }
-            #hero .hero-content .flex {
-                justify-content: center;
-                flex-direction: column;
-                align-items: center;
-                gap: 0.75rem;
-            }
-            #hero .hero-content .flex > a {
-                width: 100%;
-                max-width: 280px;
-                padding: 0.875rem 1.5rem;
-                font-size: 0.95rem;
-            }
-            /* Partner cards - stack on mobile */
-            #hero .grid {
-                grid-template-columns: 1fr !important;
-                gap: 0.75rem;
-                margin-top: 1.25rem;
-            }
-            #hero .partner-card {
-                padding: 1rem;
-            }
-            #hero .partner-card h3 {
-                font-size: 1rem;
-                margin-bottom: 0.25rem;
-            }
-            #hero .partner-card > p {
-                font-size: 0.75rem;
-                margin-bottom: 0.5rem;
-            }
-            #hero .partner-card ul {
-                font-size: 0.8rem;
-                gap: 0.25rem;
-            }
-            #hero .partner-card .w-16 {
-                width: 2.5rem !important;
-                height: 2.5rem !important;
-                margin-bottom: 0.5rem;
-            }
-            #hero .partner-card .w-16 svg,
-            #hero .partner-card .w-8 {
-                width: 1.25rem !important;
-                height: 1.25rem !important;
-            }
-            #hero .stats-row {
-                position: relative;
-                bottom: auto;
-                left: auto;
-                transform: none;
-                max-width: 100%;
-                margin-top: 1.25rem;
-                gap: 0.5rem;
-            }
-            #hero .stats-row .glass-card {
-                padding: 0.625rem 0.375rem;
-            }
-            #hero .stats-row .stat-number {
-                font-size: 1.1rem !important;
-            }
-            #hero .stats-row .text-sm {
-                font-size: 0.6rem !important;
-            }
-            #hero .scroll-indicator {
-                display: none;
-            }
-        }
-
-        .gradient-text {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .glass-card {
-            background: var(--bg-card);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--border-color);
-            transition: background var(--transition-speed) ease, border-color var(--transition-speed) ease;
-        }
-
-        .glow {
-            box-shadow: 0 0 60px var(--glow-color);
-        }
-
-        .section-reveal {
-            opacity: 0;
-            transform: translateY(60px);
-        }
-
-        .stat-number {
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .partner-card {
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .partner-card:hover {
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: 0 25px 50px var(--glow-color);
-        }
-
-        .cta-button {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .cta-button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s ease;
-        }
-
-        .cta-button:hover::before {
-            left: 100%;
-        }
-
-        .cta-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 40px var(--glow-color);
-        }
-
-        .timeline-line {
-            background: linear-gradient(180deg, var(--primary), var(--accent));
-        }
-
-        .floating {
-            animation: floating 6s ease-in-out infinite;
-        }
-
-        @keyframes floating {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
-        }
-
-        .pulse-glow {
-            animation: pulse-glow 3s ease-in-out infinite;
-        }
-
-        @keyframes pulse-glow {
-            0%, 100% { box-shadow: 0 0 20px var(--glow-color); }
-            50% { box-shadow: 0 0 40px var(--glow-color); }
-        }
-
-        /* Theme Switcher Styles */
-        .theme-switcher {
-            position: relative;
-        }
-
-        .theme-toggle-btn {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 0.5rem 0.75rem;
-            background: transparent;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: color 0.2s ease;
-        }
-
-        .theme-toggle-btn:hover {
-            color: var(--text-primary);
-        }
-
-        .theme-dropdown {
-            position: absolute;
-            top: calc(100% + 8px);
-            right: 0;
-            background: var(--bg-card);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 8px;
-            min-width: 180px;
-            opacity: 0;
-            visibility: hidden;
-            transform: translateY(-10px);
-            transition: all 0.3s ease;
-            z-index: 100;
-        }
-
-        .theme-dropdown.active {
-            opacity: 1;
-            visibility: visible;
-            transform: translateY(0);
-        }
-
-        .theme-option {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 16px;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            color: var(--text-secondary);
-        }
-
-        .theme-option:hover {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-        }
-
-        .theme-option.active {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-        }
-
-        .theme-preview {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            border: 2px solid var(--border-color);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .theme-preview-dark {
-            background: linear-gradient(135deg, #020617 50%, #6366f1 50%);
-        }
-
-        .theme-preview-midnight {
-            background: linear-gradient(135deg, #0c0a1d 50%, #a78bfa 50%);
-        }
-
-        .theme-preview-dusk {
-            background: linear-gradient(135deg, #1e1b2e 50%, #fb923c 50%);
-        }
-
-        .theme-preview-light {
-            background: linear-gradient(135deg, #f8fafc 50%, #4f46e5 50%);
-        }
-
-        /* Text color utilities that respond to theme */
-        .text-theme-primary { color: var(--text-primary); }
-        .text-theme-secondary { color: var(--text-secondary); }
-        .text-theme-muted { color: var(--text-muted); }
-        .bg-theme-primary { background: var(--bg-primary); }
-        .bg-theme-secondary { background: var(--bg-secondary); }
-        .border-theme { border-color: var(--border-color); }
-
-        /* Light theme specific overrides */
-        [data-theme="ember"] .glass-card {
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-        }
-
-        [data-theme="ember"] nav {
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-
-        [data-theme="ember"] .text-slate-400,
-        [data-theme="ember"] .text-slate-500 {
-            color: var(--text-secondary);
-        }
-
-        [data-theme="ember"] .text-slate-300 {
-            color: var(--text-primary);
-        }
-
-        [data-theme="ember"] .border-slate-600,
-        [data-theme="ember"] .border-slate-800,
-        [data-theme="ember"] .border-slate-800\/50 {
-            border-color: var(--border-color);
-        }
-
-        /* Mobile theme switcher */
-        @media (max-width: 768px) {
-            .theme-dropdown {
-                right: -50px;
-            }
-        }
-
-        /* Chat widget theme variable overrides */
-        :root {
-            --chat-primary: var(--primary);
-            --chat-secondary: var(--secondary);
-            --chat-bg: var(--bg-secondary);
-            --chat-messages-bg: var(--bg-primary);
-            --chat-input-bg: var(--bg-card);
-            --chat-border: var(--border-color);
-            --chat-text-primary: var(--text-primary);
-            --chat-text-secondary: var(--text-secondary);
-            --chat-text-muted: var(--text-muted);
-            --chat-msg-assistant-bg: var(--bg-card);
-            --chat-msg-assistant-text: var(--text-primary);
-        }
-
-        /* ============================================ */
-        /* PREMIUM ENHANCEMENTS - FULL TRANSFORMATION */
-        /* ============================================ */
-
-        /* Animated Gradient Text */
-        .gradient-text {
-            background: linear-gradient(270deg, #667eea, #764ba2, #f857a6, #667eea);
-            background-size: 400% 400%;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: gradientText 8s ease infinite;
-        }
-
-        @keyframes gradientText {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-        }
-
-        /* Text Glow Effects */
-        .text-glow {
-            text-shadow:
-                0 0 10px rgba(99, 102, 241, 0.5),
-                0 0 20px rgba(99, 102, 241, 0.3),
-                0 0 30px rgba(99, 102, 241, 0.2);
-        }
-
-        .text-glow-strong {
-            text-shadow:
-                0 0 20px var(--glow-color),
-                0 0 40px var(--glow-color),
-                0 0 60px var(--glow-color);
-        }
-
-        /* Premium Glass Card */
-        .glass-card-premium {
-            background: rgba(15, 23, 42, 0.4);
-            backdrop-filter: blur(30px) saturate(180%);
-            border: 1px solid rgba(139, 92, 246, 0.3);
-            box-shadow:
-                0 8px 32px 0 rgba(99, 102, 241, 0.2),
-                inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .glass-card-premium:hover {
-            transform: translateY(-8px) scale(1.02);
-            border-color: rgba(139, 92, 246, 0.6);
-            box-shadow:
-                0 20px 60px 0 rgba(99, 102, 241, 0.4),
-                inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
-        }
-
-        /* Enhanced Glass Card Hover */
-        .glass-card {
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .glass-card:hover {
-            transform: translateY(-4px);
-            border-color: rgba(139, 92, 246, 0.4);
-            box-shadow: 0 12px 40px rgba(99, 102, 241, 0.25);
-        }
-
-        /* Card Glow */
-        .card-glow {
-            box-shadow:
-                0 0 20px rgba(99, 102, 241, 0.3),
-                0 0 40px rgba(139, 92, 246, 0.2),
-                0 8px 32px rgba(0, 0, 0, 0.3);
-        }
-
-        .card-glow-hover:hover {
-            box-shadow:
-                0 0 30px rgba(99, 102, 241, 0.5),
-                0 0 60px rgba(139, 92, 246, 0.3),
-                0 12px 48px rgba(0, 0, 0, 0.4);
-        }
-
-        /* Animated Border */
-        .animated-border {
-            position: relative;
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(20px);
-        }
-
-        .animated-border::before {
-            content: '';
-            position: absolute;
-            inset: -2px;
-            background: linear-gradient(45deg, #667eea, #764ba2, #f857a6, #667eea);
-            background-size: 400% 400%;
-            border-radius: inherit;
-            z-index: -1;
-            animation: borderFlow 8s linear infinite;
-            opacity: 0.6;
-        }
-
-        @keyframes borderFlow {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-        }
-
-        /* Premium Button Enhanced */
-        .btn-premium {
-            position: relative;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            font-weight: 600;
-            padding: 1rem 2.5rem;
-            border-radius: 9999px;
-            overflow: hidden;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
-        }
-
-        .btn-premium::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            transition: left 0.5s;
-        }
-
-        .btn-premium:hover::before {
-            left: 100%;
-        }
-
-        .btn-premium:hover {
-            transform: translateY(-2px) scale(1.05);
-            box-shadow: 0 8px 30px rgba(99, 102, 241, 0.6);
-        }
-
-        /* Enhanced CTA Button */
-        .cta-button {
-            box-shadow: 0 4px 20px var(--glow-color);
-        }
-
-        .cta-button:hover {
-            transform: translateY(-3px) scale(1.05);
-            box-shadow: 0 12px 40px var(--glow-color);
-        }
-
-        /* 3D Card Tilt */
-        .card-3d {
-            transform-style: preserve-3d;
-            transition: transform 0.3s ease;
-        }
-
-        .card-3d:hover {
-            transform: perspective(1000px) rotateX(2deg) rotateY(3deg) translateY(-4px);
-        }
-
-        /* Shimmer Effect */
-        .shimmer {
-            position: relative;
-            overflow: hidden;
-        }
-
-        .shimmer::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            animation: shimmer 3s infinite;
-        }
-
-        @keyframes shimmer {
-            0% { left: -100%; }
-            100% { left: 100%; }
-        }
-
-        /* Neural Network Background */
-        .neural-bg {
-            background-image:
-                radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
-                radial-gradient(circle at 40% 20%, rgba(248, 87, 166, 0.15) 0%, transparent 50%);
-        }
-
-        /* Holographic Effect */
-        .holographic {
-            background: linear-gradient(135deg,
-                rgba(99, 102, 241, 0.2) 0%,
-                rgba(139, 92, 246, 0.2) 25%,
-                rgba(248, 87, 166, 0.2) 50%,
-                rgba(139, 92, 246, 0.2) 75%,
-                rgba(99, 102, 241, 0.2) 100%);
-            background-size: 200% 200%;
-            animation: holographicShift 4s ease infinite;
-        }
-
-        @keyframes holographicShift {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-        }
-
-        /* Matrix Background (Subtle) */
-        .matrix-bg {
-            background-image:
-                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(99, 102, 241, 0.03) 2px, rgba(99, 102, 241, 0.03) 4px),
-                repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(99, 102, 241, 0.03) 2px, rgba(99, 102, 241, 0.03) 4px);
-        }
-
-        /* Float Animation */
-        .float {
-            animation: float 6s ease-in-out infinite;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
-        }
-
-        /* Pulse Glow Enhanced */
-        .pulse-glow-strong {
-            animation: pulseGlowStrong 2s ease-in-out infinite;
-        }
-
-        @keyframes pulseGlowStrong {
-            0%, 100% {
-                box-shadow: 0 0 20px rgba(99, 102, 241, 0.4), 0 0 40px rgba(139, 92, 246, 0.2);
-            }
-            50% {
-                box-shadow: 0 0 40px rgba(99, 102, 241, 0.8), 0 0 80px rgba(139, 92, 246, 0.4);
-            }
-        }
-
-        /* Stat Number Enhanced */
-        .stat-number {
-            font-family: 'Space Grotesk', 'Inter', sans-serif;
-            font-weight: 700;
-            font-size: 4rem;
-            background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        /* ========== NAVIGATION ENHANCEMENTS ========== */
-
-        /* Premium Nav Bar */
-        nav {
-            backdrop-filter: blur(20px) saturate(180%);
-            background: rgba(15, 23, 42, 0.8);
-            box-shadow:
-                0 4px 30px rgba(0, 0, 0, 0.1),
-                0 0 0 1px rgba(139, 92, 246, 0.1);
-            transition: all 0.3s ease;
-        }
-
-        nav:hover {
-            box-shadow:
-                0 8px 40px rgba(99, 102, 241, 0.2),
-                0 0 0 1px rgba(139, 92, 246, 0.3);
-        }
-
-        /* Logo Container Enhanced */
-        nav .w-10.h-10 {
-            position: relative;
-            animation: logoGlow 3s ease-in-out infinite;
-            box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
-            transition: all 0.3s ease;
-        }
-
-        nav .w-10.h-10:hover {
-            transform: scale(1.1) rotate(5deg);
-            box-shadow: 0 0 30px rgba(99, 102, 241, 0.6);
-        }
-
-        @keyframes logoGlow {
-            0%, 100% {
-                box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
-            }
-            50% {
-                box-shadow: 0 0 30px rgba(139, 92, 246, 0.6);
-            }
-        }
-
-        /* Brand Text Enhanced */
-        nav .text-xl {
-            background: linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-        }
-
-        [data-theme="ember"] nav .text-xl {
-            background: none;
-            -webkit-background-clip: border-box;
-            -webkit-text-fill-color: var(--text-primary);
-            color: var(--text-primary);
-        }
-
-        /* Nav Links Enhanced */
-        nav .nav-link {
-            position: relative;
-            font-weight: 500;
-            padding: 0.5rem 0;
-            transition: all 0.3s ease;
-            font-size: 0.95rem;
-        }
-
-        nav .nav-link::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%) scaleX(0);
-            width: 80%;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, var(--primary), transparent);
-            transition: transform 0.3s ease;
-        }
-
-        nav .nav-link:hover {
-            color: var(--primary) !important;
-            text-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
-        }
-
-        nav .nav-link:hover::after {
-            transform: translateX(-50%) scaleX(1);
-        }
-
-        /* Active Nav Link */
-        nav .nav-link.active {
-            color: var(--primary) !important;
-            font-weight: 600;
-        }
-
-        nav .nav-link.active::after {
-            transform: translateX(-50%) scaleX(1);
-            background: linear-gradient(90deg, var(--primary), var(--accent), var(--primary));
-        }
-
-        /* Dropdown Navigation */
-        .nav-item {
-            position: relative;
-        }
-
-        .nav-dropdown {
-            position: absolute;
-            top: calc(100% + 12px);
-            left: 0;
-            min-width: 260px;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            box-shadow: 0 20px 45px rgba(2, 6, 23, 0.4);
-            backdrop-filter: blur(22px);
-            border-radius: 16px;
-            padding: 16px 18px;
-            opacity: 0;
-            transform: translateY(12px);
-            pointer-events: none;
-            transition: all 0.25s ease;
-            z-index: 9999;
-        }
-
-        .nav-item:hover .nav-dropdown,
-        .nav-item:focus-within .nav-dropdown {
-            opacity: 1;
-            transform: translateY(0);
-            pointer-events: auto;
-        }
-
-        .nav-dropdown a {
-            display: block;
-            padding: 8px 6px;
-            border-radius: 10px;
-            color: var(--text-secondary);
-            transition: all 0.2s ease;
-        }
-
-        .nav-dropdown a:hover {
-            color: var(--text-primary);
-            background: rgba(99, 102, 241, 0.12);
-        }
-
-        .nav-dropdown .dropdown-title {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.16em;
-            color: var(--text-muted);
-            font-weight: 600;
-            margin: 4px 6px 10px;
-        }
-
-        .nav-dropdown.nav-mega {
-            min-width: 560px;
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 16px 28px;
-        }
-
-        .nav-mega-column {
-            min-width: 220px;
-        }
-
-        .nav-mega-column a {
-            font-size: 0.95rem;
-        }
-
-        nav .nav-inner {
-            padding-right: var(--chat-offset, 0px);
-            transition: padding-right 0.3s ease;
-        }
-
-        /* ============================================ */
-        /* NEW PERFICIENT-STYLE NAVIGATION */
-        /* ============================================ */
-
-        .nav-main {
-            right: 0;
-            transition: right 0.3s ease;
-        }
-
-        /* Dynamic adjustment for chat widget */
-        .nav-main.chat-open {
-            right: var(--chat-sidebar-width, 380px);
-        }
-
-        /* Nav Link - CoCreate Style */
-        .nav-link-new {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.5rem 1rem;
-            font-family: 'Outfit', 'DM Sans', sans-serif;
-            font-size: 0.8125rem;
-            font-weight: 500;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            transition: color 0.2s ease, text-shadow 0.2s ease;
-            white-space: nowrap;
-            background: none;
-            border: none;
-            cursor: pointer;
-        }
-
-        .nav-link-new:hover {
-            color: var(--text-primary);
-            text-shadow: 0 0 20px var(--glow-color);
-        }
-
-        /* Contact CTA Button - CoCreate Brand */
-        .nav-cta-btn {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.5rem 1.25rem;
-            font-family: 'Outfit', 'DM Sans', sans-serif;
-            font-size: 0.8125rem;
-            font-weight: 600;
-            color: white;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            border-radius: 4px;
-            transition: all 0.2s ease;
-            white-space: nowrap;
-            box-shadow: 0 2px 10px var(--glow-color);
-        }
-
-        .nav-cta-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 20px var(--glow-color);
-        }
-
-        /* Search Button */
-        .nav-search-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 2.25rem;
-            height: 2.25rem;
-            color: var(--text-secondary);
-            background: none;
-            border: none;
-            cursor: pointer;
-            transition: color 0.2s ease;
-        }
-
-        .nav-search-btn:hover {
-            color: var(--text-primary);
-        }
-
-        /* Search Overlay */
-        .search-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(8px);
-            z-index: 20000;
-            display: flex;
-            align-items: flex-start;
-            justify-content: center;
-            padding-top: 10vh;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-        }
-        .search-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-        .search-modal {
-            width: 90%;
-            max-width: 600px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 1rem;
-            overflow: hidden;
-            transform: translateY(-20px);
-            transition: transform 0.3s ease;
-        }
-        .search-overlay.active .search-modal {
-            transform: translateY(0);
-        }
-        .search-header {
-            display: flex;
-            align-items: center;
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid var(--border-color);
-            gap: 1rem;
-        }
-        .search-input-wrapper {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        .search-input-wrapper input {
-            flex: 1;
-            background: transparent;
-            border: none;
-            outline: none;
-            font-size: 1.125rem;
-            color: var(--text-primary);
-        }
-        .search-input-wrapper input::placeholder {
-            color: var(--text-muted);
-        }
-        .search-close-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 2.5rem;
-            height: 2.5rem;
-            border-radius: 0.5rem;
-            background: transparent;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        .search-close-btn:hover {
-            background: var(--bg-card);
-            color: var(--text-primary);
-        }
-        .search-results {
-            padding: 1rem 1.5rem;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        .search-hint {
-            color: var(--text-muted);
-            text-align: center;
-            padding: 2rem 0;
-        }
-        .search-result-item {
-            display: block;
-            padding: 0.875rem 1rem;
-            border-radius: 0.5rem;
-            color: var(--text-primary);
-            text-decoration: none;
-            transition: all 0.2s ease;
-            margin-bottom: 0.5rem;
-        }
-        .search-result-item:hover {
-            background: var(--bg-card);
-        }
-        .search-result-item .result-title {
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-        }
-        .search-result-item .result-desc {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-        }
-        .no-results {
-            text-align: center;
-            color: var(--text-muted);
-            padding: 2rem 0;
-        }
-
-        /* New Dropdown Styles */
-        .nav-dropdown-new {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            min-width: 200px;
-            background: rgba(15, 15, 20, 0.98);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            padding: 0.75rem 0;
-            opacity: 0;
-            visibility: hidden;
-            transform: translateY(8px);
-            transition: all 0.2s ease;
-            z-index: 9999;
-        }
-
-        .nav-item:hover .nav-dropdown-new {
-            opacity: 1;
-            visibility: visible;
-            transform: translateY(0);
-        }
-
-        .nav-dropdown-new a {
-            display: block;
-            padding: 0.625rem 1.25rem;
-            font-size: 0.875rem;
-            color: rgba(255, 255, 255, 0.7);
-            transition: all 0.15s ease;
-        }
-
-        .nav-dropdown-new a:hover {
-            color: white;
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .nav-dropdown-label {
-            display: block;
-            padding: 0.5rem 1.25rem 0.75rem;
-            font-size: 0.6875rem;
-            font-weight: 600;
-            color: rgba(255, 255, 255, 0.4);
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-        }
-
-        /* Mega Dropdown */
-        .nav-dropdown-mega {
-            min-width: 480px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0;
-        }
-
-        .nav-mega-col {
-            padding: 0.5rem 0;
-        }
-
-        .nav-mega-col:first-child {
-            border-right: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        /* Mobile Menu */
-        .mobile-menu {
-            display: none;
-            background: var(--bg-secondary);
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease;
-        }
-
-        .mobile-menu.open {
-            display: block;
-            max-height: 500px;
-        }
-
-        .mobile-nav-btn {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 100%;
-            padding: 0.875rem 0;
-            font-size: 0.9375rem;
-            font-weight: 500;
-            color: var(--text-primary);
-            background: none;
-            border: none;
-            cursor: pointer;
-            text-align: left;
-        }
-
-        .mobile-nav-btn.active svg {
-            transform: rotate(180deg);
-        }
-
-        .mobile-dropdown {
-            display: none;
-            padding-left: 1rem;
-            padding-bottom: 0.5rem;
-        }
-
-        .mobile-dropdown.open {
-            display: block;
-        }
-
-        .mobile-dropdown a {
-            display: block;
-            padding: 0.625rem 0;
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-        }
-
-        .mobile-dropdown a:hover {
-            color: var(--text-primary);
-        }
-
-        .mobile-nav-link {
-            display: block;
-            padding: 0.875rem 0;
-            font-size: 0.9375rem;
-            font-weight: 500;
-            color: var(--text-primary);
-        }
-
-        .mobile-nav-cta {
-            display: block;
-            margin-top: 1rem;
-            padding: 0.875rem 1.5rem;
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: white;
-            text-align: center;
-            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-            border-radius: 4px;
-        }
-
-        /* Light theme nav adjustments */
-        [data-theme="ember"] .nav-dropdown-new {
-            background: rgba(255, 255, 255, 0.98);
-            border-color: rgba(0, 0, 0, 0.08);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-        }
-
-        [data-theme="ember"] .nav-dropdown-new a {
-            color: rgba(0, 0, 0, 0.6);
-        }
-
-        [data-theme="ember"] .nav-dropdown-new a:hover {
-            color: rgba(0, 0, 0, 0.9);
-            background: rgba(0, 0, 0, 0.04);
-        }
-
-        [data-theme="ember"] .nav-dropdown-label {
-            color: rgba(0, 0, 0, 0.4);
-        }
-
-        [data-theme="ember"] .nav-mega-col:first-child {
-            border-color: rgba(0, 0, 0, 0.08);
-        }
-
-        /* Start Building Button Enhanced */
-        nav .cta-button {
-            position: relative;
-            overflow: hidden;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
-            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
-            animation: navButtonPulse 3s ease-in-out infinite;
-        }
-
-        nav .cta-button::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.3);
-            transform: translate(-50%, -50%);
-            transition: width 0.6s ease, height 0.6s ease;
-        }
-
-        nav .cta-button:hover::before {
-            width: 300px;
-            height: 300px;
-        }
-
-        nav .cta-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 30px rgba(99, 102, 241, 0.6);
-            animation: none;
-        }
-
-        @keyframes navButtonPulse {
-            0%, 100% {
-                box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
-            }
-            50% {
-                box-shadow: 0 4px 30px rgba(139, 92, 246, 0.6);
-            }
-        }
-
-        /* Scroll Progress Indicator */
-        nav::before {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            height: 2px;
-            width: 0%;
-            background: linear-gradient(90deg, var(--primary), var(--accent));
-            transition: width 0.1s ease;
-            box-shadow: 0 0 10px var(--primary);
-        }
-
-        /* Portfolio Card Enhanced */
-        .portfolio-card {
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .portfolio-card:hover {
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: 0 20px 60px rgba(99, 102, 241, 0.4);
-        }
-
-        .portfolio-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-            transition: left 0.6s;
-        }
-
-        .portfolio-card:hover::before {
-            left: 100%;
-        }
-
-        /* Portfolio Card - Visit Button Overlay */
-        .portfolio-card > div:first-child::after {
-            content: 'Visit Site';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) translateY(20px);
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 1rem 2.5rem;
-            border-radius: 50px;
-            font-size: 1.125rem;
-            font-weight: 600;
-            letter-spacing: 0.025em;
-            opacity: 0;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            pointer-events: none;
-            z-index: 10;
-            box-shadow:
-                0 10px 40px rgba(99, 102, 241, 0.4),
-                0 0 0 0 rgba(255, 255, 255, 0.1);
-            white-space: nowrap;
-        }
-
-        .portfolio-card:hover > div:first-child::after {
-            opacity: 1;
-            transform: translate(-50%, -50%) translateY(0);
-            box-shadow:
-                0 10px 40px rgba(99, 102, 241, 0.6),
-                0 0 0 2px rgba(255, 255, 255, 0.2);
-        }
-
-        /* Portfolio Card - Icon Animation */
-        .portfolio-card:hover svg {
-            transform: scale(0.8);
-            opacity: 0.3;
-            filter: blur(2px);
-        }
-
-        /* Portfolio Card - Cursor */
-        .portfolio-card {
-            cursor: pointer;
-        }
-
-        /* Portfolio Card - Pulse Animation */
-        .portfolio-card > div:first-child::after {
-            animation: buttonPulse 2s ease-in-out infinite;
-        }
-
-        @keyframes buttonPulse {
-            0%, 100% {
-                box-shadow:
-                    0 10px 40px rgba(99, 102, 241, 0.4),
-                    0 0 0 0 rgba(99, 102, 241, 0.4);
-            }
-            50% {
-                box-shadow:
-                    0 10px 40px rgba(99, 102, 241, 0.6),
-                    0 0 0 8px rgba(99, 102, 241, 0);
-            }
-        }
-
-        .portfolio-card:hover > div:first-child::after {
-            animation: none;
-        }
-
-        /* Tech Badge */
-        .tech-badge {
-            padding: 0.375rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
-        }
-
-        .tech-badge:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-
-        /* Icon Glow */
-        .icon-glow {
-            transition: all 0.3s ease;
-        }
-
-        .icon-glow:hover {
-            filter: drop-shadow(0 0 10px currentColor);
-            transform: scale(1.1);
-        }
-
-        /* Section Reveal Enhanced */
-        .section-reveal {
-            opacity: 0;
-            transform: translateY(60px);
-            transition: opacity 0.8s ease, transform 0.8s ease;
-        }
-
-        .section-reveal.revealed {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        /* Gradient Overlay */
-        .gradient-overlay {
-            position: relative;
-        }
-
-        .gradient-overlay::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(180deg, transparent 0%, rgba(99, 102, 241, 0.1) 100%);
-            pointer-events: none;
-        }
-
-        /* Premium Scroll Indicator */
-        .scroll-indicator {
-            animation: scrollBounce 2s ease-in-out infinite;
-        }
-
-        @keyframes scrollBounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(10px); }
-        }
-
-        /* Light theme adjustments for premium features */
-        [data-theme="ember"] .glass-card-premium {
-            background: rgba(255, 255, 255, 0.6);
-            border-color: rgba(99, 102, 241, 0.2);
-            box-shadow:
-                0 8px 32px 0 rgba(0, 0, 0, 0.1),
-                inset 0 1px 0 0 rgba(255, 255, 255, 0.8);
-        }
-
-        [data-theme="ember"] .neural-bg {
-            background-image:
-                radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 40% 20%, rgba(248, 87, 166, 0.08) 0%, transparent 50%);
-        }
-
-        /* ============================================ */
-        /* MOBILE OPTIMIZATIONS */
-        /* ============================================ */
-
-        /* Mobile and Tablet optimizations */
-        @media (max-width: 1024px) {
-            /* Reduce animation complexity on tablets */
-            .shimmer::after {
-                animation-duration: 4s; /* Slower shimmer */
-            }
-
-            .holographic {
-                animation-duration: 6s; /* Slower holographic */
-            }
-
-            /* Smaller glow effects */
-            .text-glow {
-                text-shadow:
-                    0 0 5px rgba(99, 102, 241, 0.4),
-                    0 0 10px rgba(99, 102, 241, 0.2);
-            }
-
-            .pulse-glow-strong {
-                animation: pulseGlowMobile 3s ease-in-out infinite;
-            }
-
-            @keyframes pulseGlowMobile {
-                0%, 100% {
-                    box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
-                }
-                50% {
-                    box-shadow: 0 0 25px rgba(99, 102, 241, 0.5);
-                }
-            }
-        }
-
-        /* Mobile-specific optimizations */
-        @media (max-width: 768px) {
-            /* Disable heavy animations on mobile */
-            .shimmer::after {
-                animation: none;
-            }
-
-            .holographic {
-                background: linear-gradient(135deg,
-                    rgba(99, 102, 241, 0.15) 0%,
-                    rgba(139, 92, 246, 0.15) 100%);
-                animation: none;
-            }
-
-            .animated-border::before {
-                animation: none;
-                background: linear-gradient(45deg, #667eea, #764ba2);
-            }
-
-            /* Reduce glow effects for performance */
-            .text-glow,
-            .text-glow-strong {
-                text-shadow: 0 0 5px rgba(99, 102, 241, 0.3);
-            }
-
-            .card-glow {
-                box-shadow: 0 4px 20px rgba(99, 102, 241, 0.2);
-            }
-
-            .pulse-glow,
-            .pulse-glow-strong {
-                animation: none;
-                box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
-            }
-
-            /* Disable 3D transforms on mobile */
-            .card-3d:hover {
-                transform: translateY(-4px);
-            }
-
-            /* Simplify portfolio card hover */
-            .portfolio-card:hover {
-                transform: translateY(-4px) scale(1.01);
-                box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
-            }
-
-            .portfolio-card::before {
-                display: none; /* Disable shimmer effect on mobile */
-            }
-
-            /* Simplify button on mobile */
-            .portfolio-card > div:first-child::after {
-                font-size: 0.875rem;
-                padding: 0.75rem 1.75rem;
-                animation: none; /* Disable pulse on mobile */
-            }
-
-            /* Active state for touch devices */
-            .portfolio-card:active > div:first-child::after {
-                opacity: 1;
-                transform: translate(-50%, -50%) translateY(0);
-            }
-
-            /* Optimize glass card hover */
-            .glass-card-premium:hover {
-                transform: translateY(-4px);
-                box-shadow: 0 10px 30px rgba(99, 102, 241, 0.25);
-            }
-
-            /* Reduce backdrop blur for better performance */
-            .glass-card,
-            .glass-card-premium {
-                backdrop-filter: blur(15px);
-            }
-
-            /* Simplify button animations */
-            .btn-premium::before,
-            .cta-button::before {
-                display: none;
-            }
-
-            /* Optimize stat numbers */
-            .stat-number {
-                font-size: 3rem;
-            }
-
-            /* Better touch targets (minimum 44px) */
-            .cta-button,
-            .btn-premium {
-                min-height: 44px;
-                padding: 0.875rem 2rem;
-            }
-
-            .theme-toggle-btn {
-                min-height: 44px;
-                min-width: 44px;
-            }
-
-            .tech-badge {
-                padding: 0.5rem 0.875rem;
-                font-size: 0.8rem;
-            }
-
-            /* Mobile typography adjustments */
-            h1 {
-                font-size: 2.5rem !important;
-                line-height: 1.2;
-            }
-
-            h2 {
-                font-size: 2rem !important;
-            }
-
-            h3 {
-                font-size: 1.5rem !important;
-            }
-
-            /* Optimize spacing */
-            section {
-                padding-top: 4rem !important;
-                padding-bottom: 4rem !important;
-            }
-
-            /* Stack stats vertically with better spacing */
-            .grid.grid-cols-3 {
-                grid-template-columns: 1fr;
-                gap: 1rem;
-            }
-
-            /* Portfolio cards - better mobile layout */
-            .grid.md\\:grid-cols-3 {
-                gap: 1.5rem;
-            }
-
-            /* Reduce neural background intensity */
-            .neural-bg {
-                background-image:
-                    radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
-                    radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 50%);
-            }
-
-            /* Disable matrix background on mobile */
-            .matrix-bg {
-                background-image: none;
-            }
-
-            /* Optimize icon sizes */
-            .icon-glow:hover {
-                filter: none;
-                transform: scale(1.05);
-            }
-
-            /* Better mobile navigation */
-            nav {
-                padding-top: 0.75rem;
-                padding-bottom: 0.75rem;
-            }
-
-            /* Optimize scroll indicator */
-            .scroll-indicator {
-                display: none; /* Hide on mobile to save space */
-            }
-
-            /* Better CTA layout on mobile */
-            .flex.flex-col.sm\\:flex-row {
-                gap: 0.75rem;
-            }
-
-            /* Optimize footer */
-            footer {
-                padding-top: 2rem;
-                padding-bottom: 2rem;
-            }
-        }
-
-        /* Small mobile devices */
-        @media (max-width: 480px) {
-            /* Even more conservative animations */
-            .gradient-text {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                background-clip: text;
-                animation: none;
-            }
-
-            .float {
-                animation: none;
-            }
-
-            /* Smaller typography */
-            h1 {
-                font-size: 2rem !important;
-            }
-
-            h2 {
-                font-size: 1.75rem !important;
-            }
-
-            /* Tighter spacing */
-            .p-6 {
-                padding: 1rem !important;
-            }
-
-            .p-8 {
-                padding: 1.25rem !important;
-            }
-
-            /* Smaller stat cards */
-            .glass-card-premium.p-6 {
-                padding: 1rem !important;
-            }
-
-            .stat-number {
-                font-size: 2.5rem;
-            }
-
-            /* Optimize button sizes */
-            .cta-button {
-                font-size: 1rem;
-                padding: 0.75rem 1.5rem;
-            }
-
-            /* Better mobile portfolio layout */
-            .portfolio-card .h-48 {
-                height: 10rem;
-            }
-
-            /* Reduce icon sizes */
-            .w-20.h-20 {
-                width: 4rem !important;
-                height: 4rem !important;
-            }
-        }
-
-        /* Touch device optimizations */
-        @media (hover: none) and (pointer: coarse) {
-            /* Disable hover effects on touch devices */
-            .glass-card:hover,
-            .glass-card-premium:hover,
-            .portfolio-card:hover {
-                transform: none;
-            }
-
-            /* Use active states instead */
-            .glass-card:active,
-            .glass-card-premium:active {
-                transform: scale(0.98);
-            }
-
-            .portfolio-card:active {
-                transform: scale(0.98);
-            }
-
-            /* Better touch feedback for buttons */
-            .cta-button:active,
-            .btn-premium:active {
-                transform: scale(0.95);
-            }
-
-            /* Remove hover-dependent effects */
-            .icon-glow:hover {
-                filter: none;
-                transform: none;
-            }
-        }
-
-        /* Landscape mobile optimization */
-        @media (max-width: 768px) and (orientation: landscape) {
-            /* Reduce vertical padding in landscape */
-            section {
-                padding-top: 2rem !important;
-                padding-bottom: 2rem !important;
-            }
-
-            /* Compact hero section */
-            #hero {
-                min-height: 80vh;
-            }
-
-            /* Smaller typography in landscape */
-            h1 {
-                font-size: 2rem !important;
-            }
-
-            h2 {
-                font-size: 1.5rem !important;
-            }
-        }
-
-        /* Reduce motion for accessibility */
-        @media (prefers-reduced-motion: reduce) {
-            *,
-            *::before,
-            *::after {
-                animation-duration: 0.01ms !important;
-                animation-iteration-count: 1 !important;
-                transition-duration: 0.01ms !important;
-            }
-
-            .shimmer::after,
-            .holographic,
-            .animated-border::before,
-            .gradient-text,
-            .pulse-glow,
-            .pulse-glow-strong,
-            .float,
-            .scroll-indicator {
-                animation: none !important;
-            }
-        }
-    </style>
-    <!-- cocreate-seo -->
-    <link rel="canonical" href="https://www.cocreateidea.com/">
-    <meta property="og:type" content="website">
-    <meta property="og:site_name" content="CoCreate Idea">
-    <meta property="og:title" content="CoCreate | AI-Powered Product Studio">
-    <meta property="og:description" content="CoCreate: Your AI Partner. Launch your business in 2 weeks.">
-    <meta property="og:url" content="https://www.cocreateidea.com/">
-    <meta property="og:image" content="https://www.cocreateidea.com/assets/og-image.png">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="CoCreate | AI-Powered Product Studio">
-    <meta name="twitter:description" content="CoCreate: Your AI Partner. Launch your business in 2 weeks.">
-    <meta name="twitter:image" content="https://www.cocreateidea.com/assets/og-image.png">
-    <script defer data-domain="cocreateidea.com" src="https://plausible.io/js/script.js"></script>
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"CoCreate Idea","alternateName":"CoCreate","url":"https://www.cocreateidea.com","logo":"https://www.cocreateidea.com/assets/logo.png","image":"https://www.cocreateidea.com/assets/og-image.png","description":"AI-Powered Product Studio — your AI partner to launch your business in 2 weeks.","slogan":"Imagine. CoCreate. Done!","email":"hello@cocreateidea.com"}</script>
-    <!-- /cocreate-seo -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CoCreate Idea — AI-Powered Product Studio</title>
+  <meta name="description" content="Your AI Partner. Launch your business in 2 weeks.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS (required by nav/footer utility classes) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    if (window.tailwind) tailwind.config = {
+      theme: { extend: {
+        colors: { primary: 'var(--primary)', secondary: 'var(--secondary)', accent: 'var(--accent)' },
+        fontFamily: {
+          sans: ['DM Sans', 'system-ui', 'sans-serif'],
+          display: ['Outfit', 'DM Sans', 'system-ui', 'sans-serif']
+        }
+      }}
+    };
+  </script>
+  <!-- Theme JS (must run before rendering for correct initial theme) -->
+  <script src="js/theme.js"></script>
+  <!-- All theme CSS (theme-switcher swaps data-theme attribute) -->
+  <link rel="stylesheet" href="css/themes/ember.css">
+  <link rel="stylesheet" href="css/themes/coral.css">
+  <link rel="stylesheet" href="css/themes/sunset.css">
+  <link rel="stylesheet" href="css/themes/aurora.css">
+  <link rel="stylesheet" href="css/themes/legacy.css">
+  <link rel="stylesheet" href="css/themes/sandstone.css">
+  <link rel="stylesheet" href="css/themes/champagne.css">
+  <link rel="stylesheet" href="css/themes/zoom.css">
+  <!-- Nav / footer CSS -->
+  <link rel="stylesheet" href="css/chat-widget.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components/section.css">
+  <link rel="stylesheet" href="css/components/button.css">
+  <link rel="stylesheet" href="css/components/badge.css">
+  <link rel="stylesheet" href="css/components/stat.css">
+  <link rel="stylesheet" href="css/components/marquee.css">
+  <link rel="stylesheet" href="css/components/card.css">
+  <link rel="stylesheet" href="css/components/modal.css">
+  <link rel="stylesheet" href="css/components/steps.css">
+  <link rel="stylesheet" href="css/components/quote.css">
+  <link rel="stylesheet" href="css/components/accordion.css">
+  <link rel="stylesheet" href="css/components/cinematic.css">
+  <link rel="stylesheet" href="css/components/cta.css">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+  <script>if (window.gsap && window.ScrollTrigger) window.gsap.registerPlugin(window.ScrollTrigger);</script>
+  <link rel="stylesheet" href="css/pages/home.css">
+  <link rel="preload" as="image" href="assets/projects/vedic-astro.webp">
+  <link rel="preload" as="image" href="assets/projects/tradewell.webp">
+  <style>
+    /* ======================================================
+       NAV + FOOTER INLINE STYLES (ported from index.html)
+       ====================================================== */
+
+    /* Utility classes used by nav/footer */
+    .text-theme-primary { color: var(--text-primary); }
+    .text-theme-secondary { color: var(--text-secondary); }
+    .text-theme-muted { color: var(--text-muted); }
+    .bg-theme-primary { background: var(--bg-primary); }
+    .bg-theme-secondary { background: var(--bg-secondary); }
+    .border-theme { border-color: var(--border-color); }
+
+    /* Animated Gradient Text (used in nav logo) */
+    .gradient-text {
+      background: linear-gradient(270deg, #667eea, #764ba2, #f857a6, #667eea);
+      background-size: 400% 400%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: gradientText 8s ease infinite;
+    }
+    @keyframes gradientText {
+      0%, 100% { background-position: 0% 50%; }
+      50%       { background-position: 100% 50%; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .gradient-text { animation: none !important; }
+    }
+
+    /* Glass Card */
+    .glass-card {
+      background: var(--bg-card, rgba(15,23,42,0.8));
+      backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid var(--border-color);
+      transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    /* Premium nav bar */
+    nav {
+      backdrop-filter: blur(20px) saturate(180%);
+      background: rgba(15,23,42,0.8);
+      box-shadow: 0 4px 30px rgba(0,0,0,0.1), 0 0 0 1px rgba(139,92,246,0.1);
+      transition: all 0.3s ease;
+    }
+    nav:hover {
+      box-shadow: 0 8px 40px rgba(99,102,241,0.2), 0 0 0 1px rgba(139,92,246,0.3);
+    }
+
+    /* Scroll progress bar */
+    nav::before {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0;
+      height: 2px; width: 0%;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      transition: width 0.1s ease;
+      box-shadow: 0 0 10px var(--primary);
+    }
+
+    .nav-main {
+      right: 0;
+      transition: right 0.3s ease;
+    }
+    .nav-main.chat-open {
+      right: var(--chat-sidebar-width, 380px);
+    }
+    nav .nav-inner {
+      padding-right: var(--chat-offset, 0px);
+      transition: padding-right 0.3s ease;
+    }
+
+    /* Nav link */
+    .nav-link-new {
+      display: inline-flex; align-items: center;
+      padding: 0.5rem 1rem;
+      font-family: 'Outfit','DM Sans',sans-serif;
+      font-size: 0.8125rem; font-weight: 500;
+      color: var(--text-secondary);
+      text-transform: uppercase; letter-spacing: 0.08em;
+      transition: color 0.2s ease, text-shadow 0.2s ease;
+      white-space: nowrap;
+      background: none; border: none; cursor: pointer;
+    }
+    .nav-link-new:hover {
+      color: var(--text-primary);
+      text-shadow: 0 0 20px var(--glow-color);
+    }
+
+    /* Nav CTA button */
+    .nav-cta-btn {
+      display: inline-flex; align-items: center;
+      padding: 0.5rem 1.25rem;
+      font-family: 'Outfit','DM Sans',sans-serif;
+      font-size: 0.8125rem; font-weight: 600;
+      color: white; text-transform: uppercase; letter-spacing: 0.05em;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      border-radius: 4px;
+      transition: all 0.2s ease; white-space: nowrap;
+      box-shadow: 0 2px 10px var(--glow-color);
+    }
+    .nav-cta-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px var(--glow-color);
+    }
+
+    /* Search button */
+    .nav-search-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 2.25rem; height: 2.25rem;
+      color: var(--text-secondary);
+      background: none; border: none; cursor: pointer;
+      transition: color 0.2s ease;
+    }
+    .nav-search-btn:hover { color: var(--text-primary); }
+
+    /* Nav dropdown */
+    .nav-item { position: relative; }
+    .nav-dropdown-new {
+      position: absolute; top: 100%; left: 0; min-width: 200px;
+      background: rgba(15,15,20,0.98);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 0.75rem 0;
+      opacity: 0; visibility: hidden; transform: translateY(8px);
+      transition: all 0.2s ease; z-index: 9999;
+    }
+    .nav-item:hover .nav-dropdown-new {
+      opacity: 1; visibility: visible; transform: translateY(0);
+    }
+    .nav-dropdown-new a {
+      display: block; padding: 0.625rem 1.25rem;
+      font-size: 0.875rem; color: rgba(255,255,255,0.7);
+      transition: all 0.15s ease;
+    }
+    .nav-dropdown-new a:hover {
+      color: white; background: rgba(255,255,255,0.05);
+    }
+    [data-theme="ember"] .nav-dropdown-new {
+      background: rgba(255,255,255,0.98);
+      border-color: rgba(0,0,0,0.08);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    }
+    [data-theme="ember"] .nav-dropdown-new a { color: rgba(0,0,0,0.6); }
+    [data-theme="ember"] .nav-dropdown-new a:hover {
+      color: rgba(0,0,0,0.9); background: rgba(0,0,0,0.04);
+    }
+
+    /* Theme Switcher */
+    .theme-switcher { position: relative; }
+    .theme-toggle-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 0.5rem 0.75rem;
+      background: transparent; border: none;
+      color: var(--text-secondary); cursor: pointer;
+      transition: color 0.2s ease;
+    }
+    .theme-toggle-btn:hover { color: var(--text-primary); }
+    .theme-dropdown {
+      position: absolute; top: calc(100% + 8px); right: 0;
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border-color);
+      border-radius: 16px; padding: 8px; min-width: 180px;
+      opacity: 0; visibility: hidden; transform: translateY(-10px);
+      transition: all 0.3s ease; z-index: 100;
+    }
+    .theme-dropdown.active {
+      opacity: 1; visibility: visible; transform: translateY(0);
+    }
+    .theme-option {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px; border-radius: 12px;
+      cursor: pointer; transition: all 0.2s ease;
+      color: var(--text-secondary);
+    }
+    .theme-option:hover { background: var(--bg-secondary); color: var(--text-primary); }
+    .theme-option.active {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+    }
+    .theme-preview {
+      width: 24px; height: 24px; border-radius: 50%;
+      border: 2px solid var(--border-color);
+      overflow: hidden;
+    }
+    @media (max-width: 768px) {
+      .theme-dropdown { right: -50px; }
+      .theme-toggle-btn { min-height: 44px; min-width: 44px; }
+    }
+
+    /* Mobile menu */
+    .mobile-menu {
+      display: none; background: var(--bg-secondary);
+      max-height: 0; overflow: hidden; transition: max-height 0.3s ease;
+    }
+    .mobile-menu.open { display: block; max-height: 500px; }
+    .mobile-nav-btn {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; padding: 0.875rem 0;
+      font-size: 0.9375rem; font-weight: 500; color: var(--text-primary);
+      background: none; border: none; cursor: pointer; text-align: left;
+    }
+    .mobile-nav-btn.active svg { transform: rotate(180deg); }
+    .mobile-dropdown { display: none; padding-left: 1rem; padding-bottom: 0.5rem; }
+    .mobile-dropdown.open { display: block; }
+    .mobile-dropdown a {
+      display: block; padding: 0.625rem 0;
+      font-size: 0.875rem; color: var(--text-secondary);
+    }
+    .mobile-dropdown a:hover { color: var(--text-primary); }
+    .mobile-nav-cta {
+      display: block; margin-top: 1rem; padding: 0.875rem 1.5rem;
+      font-size: 0.875rem; font-weight: 600; color: white; text-align: center;
+      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+      border-radius: 4px;
+    }
+
+    /* Search overlay */
+    .search-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
+      z-index: 20000;
+      display: flex; align-items: flex-start; justify-content: center;
+      padding-top: 10vh;
+      opacity: 0; visibility: hidden; transition: all 0.3s ease;
+    }
+    .search-overlay.active { opacity: 1; visibility: visible; }
+    .search-modal {
+      width: 90%; max-width: 600px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 1rem; overflow: hidden;
+      transform: translateY(-20px); transition: transform 0.3s ease;
+    }
+    .search-overlay.active .search-modal { transform: translateY(0); }
+    .search-header {
+      display: flex; align-items: center;
+      padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); gap: 1rem;
+    }
+    .search-input-wrapper { flex: 1; display: flex; align-items: center; gap: 0.75rem; }
+    .search-input-wrapper input {
+      flex: 1; background: transparent; border: none; outline: none;
+      font-size: 1.125rem; color: var(--text-primary);
+    }
+    .search-input-wrapper input::placeholder { color: var(--text-muted); }
+    .search-close-btn {
+      display: flex; align-items: center; justify-content: center;
+      width: 2.5rem; height: 2.5rem; border-radius: 0.5rem;
+      background: transparent; border: none;
+      color: var(--text-secondary); cursor: pointer; transition: all 0.2s ease;
+    }
+    .search-close-btn:hover { background: var(--bg-card); color: var(--text-primary); }
+    .search-results { padding: 1rem 1.5rem; max-height: 400px; overflow-y: auto; }
+    .search-hint { color: var(--text-muted); text-align: center; padding: 2rem 0; }
+    .search-result-item {
+      display: block; padding: 0.875rem 1rem; border-radius: 0.5rem;
+      color: var(--text-primary); text-decoration: none;
+      transition: all 0.2s ease; margin-bottom: 0.5rem;
+    }
+    .search-result-item:hover { background: var(--bg-card); }
+    .search-result-item .result-title { font-weight: 600; margin-bottom: 0.25rem; }
+    .search-result-item .result-desc { font-size: 0.875rem; color: var(--text-secondary); }
+    .no-results { text-align: center; color: var(--text-muted); padding: 2rem 0; }
+
+    /* Nav top offset for fixed nav (avoid hero being hidden behind it) */
+    .home-hero { padding-top: calc(var(--nav-height, 64px) + var(--sp-12, 3rem)); }
+  </style>
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="fixed top-0 left-0 glass-card border-b border-theme nav-main" style="z-index: 10000;">
-        <div class="nav-inner flex items-center justify-between h-16 px-6 lg:px-10">
-            <!-- CoCreate Logo -->
-            <a href="index.html" class="flex items-center gap-3 shrink-0 group">
-                <div class="w-10 h-10 flex items-center justify-center transition-transform group-hover:scale-105">
-                    <img src="assets/logo.png" alt="CoCreate Logo" class="w-10 h-10 object-contain">
-                </div>
-                <span class="text-lg font-display font-bold tracking-tight hidden sm:block">
-                    <span class="text-theme-primary">CO</span><span class="gradient-text">CREATE</span>
-                </span>
-            </a>
 
-            <!-- Desktop Navigation - Right Aligned -->
-            <div class="hidden lg:flex items-center gap-1">
-                <div class="nav-item">
-                    <button class="nav-link-new" type="button">
-                        Who We Are
-                        <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                        </svg>
-                    </button>
-                    <div class="nav-dropdown-new">
-                        <a href="who-we-are.html">Who We Are</a>
-                        <a href="partners.html">Partners</a>
-                        <!-- Hidden for now: <a href="leadership.html">Leadership</a> -->
-                        <a href="culture.html">Culture</a>
-                        <!-- Hidden for now: <a href="careers.html">Careers</a> -->
-                    </div>
-                </div>
-                <div class="nav-item">
-                    <button class="nav-link-new" type="button">
-                        What We Do
-                        <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                        </svg>
-                    </button>
-                    <div class="nav-dropdown-new">
-                        <a href="what-we-do.html">Overview</a>
-                        <a href="ai.html">AI Solutions</a>
-                        <a href="product.html">Product Development</a>
-                        <a href="platforms.html">Platforms</a>
-                    </div>
-                </div>
-                <!-- Hidden for now: Industries dropdown -->
-                <div class="nav-item" style="display: none;">
-                    <button class="nav-link-new" type="button">
-                        Insights
-                        <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                        </svg>
-                    </button>
-                    <div class="nav-dropdown-new">
-                        <a href="insights.html">All Insights</a>
-                        <a href="blogs.html">Blog</a>
-                        <a href="success-stories.html">Success Stories</a>
-                    </div>
-                </div>
-                <!-- Hidden for now: <a href="careers.html" class="nav-link-new">Careers</a> -->
-
-                <!-- Theme Switcher - CoCreate Themes -->
-                <a href="projects.html" class="nav-link-new">Projects</a>
-                <div class="theme-switcher">
-                    <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle theme">
-                        <svg class="w-4 h-4" id="theme-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
-                        </svg>
-                        <span class="text-xs font-medium uppercase tracking-wide" id="theme-label">Ember</span>
-                    </button>
-                    <div class="theme-dropdown" id="theme-dropdown">
-                        <div class="theme-option active" data-theme="ember">
-                            <div class="theme-preview" style="background: linear-gradient(135deg, #1A0A00 50%, #FC2A0D 50%);"></div>
-                            <span>Ember</span>
-                        </div>
-                        <div class="theme-option" data-theme="coral">
-                            <div class="theme-preview" style="background: linear-gradient(135deg, #FFF8F0 50%, #FD6C71 50%);"></div>
-                            <span>Coral</span>
-                        </div>
-                        <div class="theme-option" data-theme="sunset">
-                            <div class="theme-preview" style="background: linear-gradient(135deg, #2D1B3D 50%, #FF6B9D 50%);"></div>
-                            <span>Sunset</span>
-                        </div>
-                        <div class="theme-option" data-theme="aurora">
-                            <div class="theme-preview" style="background: linear-gradient(135deg, #FFF5F8 50%, #E6A4FF 50%);"></div>
-                            <span>Aurora</span>
-                        </div>
-                        <div class="theme-option" data-theme="legacy">
-                            <div class="theme-preview" style="background: linear-gradient(135deg, #020617 50%, #6366f1 50%);"></div>
-                            <span>Legacy</span>
-                        </div>
-                        <div class="theme-option" data-theme="sandstone">
-                            <div class="theme-preview" style="background: linear-gradient(135deg, #FAF6F1 50%, #E07B39 50%);"></div>
-                            <span>Sandstone</span>
-                        </div>
-                        <div class="theme-option" data-theme="champagne">
-                            <div class="theme-preview" style="background: linear-gradient(135deg, #FFFDF8 50%, #D4A535 50%);"></div>
-                            <span>Champagne</span>
-                        </div>
-                        <div class="theme-option" data-theme="zoom">
-                            <div class="theme-preview" style="background: linear-gradient(135deg, #FFFFFF 50%, #0B5CFF 50%);"></div>
-                            <span>Zoom</span>
-                        </div>
-                    </div>
-                </div>
-
-                <a href="event.html" class="nav-cta-btn" style="background: linear-gradient(135deg, #22c55e, #16a34a); margin-right: 6px;">Live Event</a>
-                <a href="contact.html" class="nav-cta-btn">Contact</a>
-                <button class="nav-search-btn" aria-label="Search">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
-                </button>
-            </div>
-
-            <!-- Mobile Menu Button -->
-            <button class="lg:hidden flex items-center justify-center w-10 h-10 rounded-lg hover:bg-white/10 transition" id="mobile-menu-btn" aria-label="Open menu">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-                </svg>
-            </button>
+  <!-- GLOBAL NAV (verbatim from index.html) -->
+  <nav class="fixed top-0 left-0 glass-card border-b border-theme nav-main" style="z-index: 10000; width: 100%;">
+    <div class="nav-inner flex items-center justify-between h-16 px-6 lg:px-10">
+      <!-- CoCreate Logo -->
+      <a href="index.html" class="flex items-center gap-3 shrink-0 group">
+        <div class="w-10 h-10 flex items-center justify-center transition-transform group-hover:scale-105">
+          <img src="assets/logo.png" alt="CoCreate Logo" class="w-10 h-10 object-contain">
         </div>
+        <span class="text-lg font-display font-bold tracking-tight hidden sm:block">
+          <span class="text-theme-primary">CO</span><span class="gradient-text">CREATE</span>
+        </span>
+      </a>
 
-        <!-- Mobile Menu -->
-        <div class="lg:hidden mobile-menu" id="mobile-menu">
-            <div class="px-6 py-4 space-y-1 border-t border-theme">
-                <div class="mobile-nav-item">
-                    <button class="mobile-nav-btn" data-dropdown="mobile-who">
-                        Who We Are
-                        <svg class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                        </svg>
-                    </button>
-                    <div class="mobile-dropdown" id="mobile-who">
-                        <a href="who-we-are.html">Who We Are</a>
-                        <a href="partners.html">Partners</a>
-                        <!-- Hidden for now: <a href="leadership.html">Leadership</a> -->
-                        <a href="culture.html">Culture</a>
-                        <!-- Hidden for now: <a href="careers.html">Careers</a> -->
-                    </div>
-                </div>
-                <div class="mobile-nav-item">
-                    <button class="mobile-nav-btn" data-dropdown="mobile-what">
-                        What We Do
-                        <svg class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                        </svg>
-                    </button>
-                    <div class="mobile-dropdown" id="mobile-what">
-                        <a href="what-we-do.html">Overview</a>
-                        <a href="ai.html">AI Solutions</a>
-                        <a href="product.html">Product Development</a>
-                        <a href="platforms.html">Platforms</a>
-                    </div>
-                </div>
-                <!-- Hidden for now: Industries mobile dropdown -->
-                <div class="mobile-nav-item" style="display: none;">
-                    <button class="mobile-nav-btn" data-dropdown="mobile-insights">
-                        Insights
-                        <svg class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                        </svg>
-                    </button>
-                    <div class="mobile-dropdown" id="mobile-insights">
-                        <a href="insights.html">All Insights</a>
-                        <a href="blogs.html">Blog</a>
-                        <a href="success-stories.html">Success Stories</a>
-                    </div>
-                </div>
-                <!-- Hidden for now: <a href="careers.html" class="mobile-nav-link">Careers</a> -->
-                <a href="event.html" class="mobile-nav-cta" style="background: linear-gradient(135deg, #22c55e, #16a34a);">Live Event - Register Free</a>
-                <a href="projects.html" class="mobile-nav-btn" style="color: var(--primary);">Projects</a>
-                <a href="contact.html" class="mobile-nav-cta">Contact Us</a>
-            </div>
+      <!-- Desktop Navigation - Right Aligned -->
+      <div class="hidden lg:flex items-center gap-1">
+        <div class="nav-item">
+          <button class="nav-link-new" type="button">
+            Who We Are
+            <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          <div class="nav-dropdown-new">
+            <a href="who-we-are.html">Who We Are</a>
+            <a href="partners.html">Partners</a>
+            <a href="culture.html">Culture</a>
+          </div>
         </div>
-    </nav>
-
-    <!-- Hero Section -->
-    <section id="hero" class="relative px-6 flex items-center justify-center">
-        <div class="relative z-10 hero-content w-full max-w-7xl mx-auto text-center">
-            <div class="section-reveal">
-                <p class="text-accent font-display font-semibold tracking-widest uppercase mb-6 text-glow">Your AI Co-Founder Awaits</p>
-                <h1 class="text-4xl md:text-6xl lg:text-7xl font-display font-bold mb-6 leading-tight">
-                    <span class="text-theme-primary">Imagine.</span> <span class="gradient-text">CoCreate.</span> <span class="text-theme-primary">Done!</span>
-                </h1>
-                <p class="text-lg md:text-xl text-theme-secondary mb-10 max-w-3xl mx-auto leading-relaxed">
-                    AI-powered co-founder model — we accelerate your ideas to market.<br>
-                    First review in 24 hours. You bring your idea; We build the product for you.
-                </p>
-                <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                    <a href="apply.html" class="cta-button px-8 py-4 rounded-full text-lg font-display font-semibold text-white">
-                        Let's CoCreate
-                    </a>
-                    <a href="#solution" class="glass-card px-8 py-4 rounded-full text-lg font-display font-semibold hover:scale-105 transition-transform">
-                        How It Works
-                    </a>
-                </div>
-
-                <!-- Partner Cards - moved here -->
-                <div class="grid md:grid-cols-3 gap-6 mt-12">
-                    <!-- Tech Founder Card -->
-                    <div class="partner-card glass-card rounded-2xl p-6 text-center section-reveal">
-                        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary mx-auto mb-4 flex items-center justify-center pulse-glow">
-                            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
-                            </svg>
-                        </div>
-                        <h3 class="text-xl font-bold mb-2">Tech Founder</h3>
-                        <p class="text-theme-secondary text-sm mb-4">That's us — CoCreate Idea</p>
-                        <ul class="text-left text-theme-primary space-y-2 text-sm">
-                            <li class="flex items-start gap-2">
-                                <svg class="w-4 h-4 text-accent mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                </svg>
-                                <span>AI-first architecture & build</span>
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <svg class="w-4 h-4 text-accent mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                </svg>
-                                <span>Automation & hosting</span>
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <svg class="w-4 h-4 text-accent mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                </svg>
-                                <span>Continuous evolution & support</span>
-                            </li>
-                        </ul>
-                    </div>
-
-                    <!-- Business Founder Card -->
-                    <div class="partner-card glass-card rounded-2xl p-6 text-center section-reveal">
-                        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent to-green-500 mx-auto mb-4 flex items-center justify-center pulse-glow">
-                            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                            </svg>
-                        </div>
-                        <h3 class="text-xl font-bold mb-2">Business Founder</h3>
-                        <p class="text-theme-secondary text-sm mb-4">That's you — the visionary</p>
-                        <ul class="text-left text-theme-primary space-y-2 text-sm">
-                            <li class="flex items-start gap-2">
-                                <svg class="w-4 h-4 text-accent mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                </svg>
-                                <span>Market validation & positioning</span>
-                            </li>
-                        </ul>
-                    </div>
-
-                    <!-- Services Card -->
-                    <div class="partner-card glass-card rounded-2xl p-6 text-center section-reveal">
-                        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-pink-500 mx-auto mb-4 flex items-center justify-center pulse-glow">
-                            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                            </svg>
-                        </div>
-                        <h3 class="text-xl font-bold mb-2">Services</h3>
-                        <p class="text-theme-secondary text-sm mb-4">Platform & governance</p>
-                        <ul class="text-left text-theme-primary space-y-2 text-sm">
-                            <li class="flex items-start gap-2">
-                                <svg class="w-4 h-4 text-accent mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                </svg>
-                                <span>Sales & partnerships</span>
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <svg class="w-4 h-4 text-accent mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                </svg>
-                                <span>Revenue & growth strategy</span>
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <svg class="w-4 h-4 text-accent mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                </svg>
-                                <span>Finance, legal & compliance</span>
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <svg class="w-4 h-4 text-accent mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                </svg>
-                                <span>Security & enterprise services</span>
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <svg class="w-4 h-4 text-accent mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                </svg>
-                                <span>Hosting expenses & advisory</span>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
+        <div class="nav-item">
+          <button class="nav-link-new" type="button">
+            What We Do
+            <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          <div class="nav-dropdown-new">
+            <a href="what-we-do.html">Overview</a>
+            <a href="ai.html">AI Solutions</a>
+            <a href="product.html">Product Development</a>
+            <a href="platforms.html">Platforms</a>
+          </div>
         </div>
-
-        <!-- Stats - positioned at bottom (hidden for now) -->
-        <div class="stats-row grid grid-cols-3 gap-4 section-reveal max-w-3xl mx-auto w-full" style="display: none;">
-            <div class="glass-card p-4 rounded-xl text-center pulse-glow">
-                <p class="text-3xl md:text-4xl font-display font-bold stat-number">2</p>
-                <p class="text-theme-secondary text-sm mt-1 font-medium">Weeks to Launch</p>
+        <a href="projects.html" class="nav-link-new">Projects</a>
+        <div class="theme-switcher">
+          <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle theme">
+            <svg class="w-4 h-4" id="theme-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/>
+            </svg>
+            <span class="text-xs font-medium uppercase tracking-wide" id="theme-label">Ember</span>
+          </button>
+          <div class="theme-dropdown" id="theme-dropdown">
+            <div class="theme-option active" data-theme="ember">
+              <div class="theme-preview" style="background: linear-gradient(135deg, #1A0A00 50%, #FC2A0D 50%);"></div>
+              <span>Ember</span>
             </div>
-            <div class="glass-card p-4 rounded-xl text-center pulse-glow" style="animation-delay: 0.2s;">
-                <p class="text-3xl md:text-4xl font-display font-bold stat-number">Equal</p>
-                <p class="text-theme-secondary text-sm mt-1 font-medium">Partnership Share</p>
+            <div class="theme-option" data-theme="coral">
+              <div class="theme-preview" style="background: linear-gradient(135deg, #FFF8F0 50%, #FD6C71 50%);"></div>
+              <span>Coral</span>
             </div>
-            <div class="glass-card p-4 rounded-xl text-center pulse-glow" style="animation-delay: 0.4s;">
-                <p class="text-3xl md:text-4xl font-display font-bold stat-number">$0</p>
-                <p class="text-theme-secondary text-sm mt-1 font-medium">Upfront Cost</p>
+            <div class="theme-option" data-theme="sunset">
+              <div class="theme-preview" style="background: linear-gradient(135deg, #2D1B3D 50%, #FF6B9D 50%);"></div>
+              <span>Sunset</span>
             </div>
+            <div class="theme-option" data-theme="aurora">
+              <div class="theme-preview" style="background: linear-gradient(135deg, #FFF5F8 50%, #E6A4FF 50%);"></div>
+              <span>Aurora</span>
+            </div>
+            <div class="theme-option" data-theme="legacy">
+              <div class="theme-preview" style="background: linear-gradient(135deg, #020617 50%, #6366f1 50%);"></div>
+              <span>Legacy</span>
+            </div>
+            <div class="theme-option" data-theme="sandstone">
+              <div class="theme-preview" style="background: linear-gradient(135deg, #FAF6F1 50%, #E07B39 50%);"></div>
+              <span>Sandstone</span>
+            </div>
+            <div class="theme-option" data-theme="champagne">
+              <div class="theme-preview" style="background: linear-gradient(135deg, #FFFDF8 50%, #D4A535 50%);"></div>
+              <span>Champagne</span>
+            </div>
+            <div class="theme-option" data-theme="zoom">
+              <div class="theme-preview" style="background: linear-gradient(135deg, #FFFFFF 50%, #0B5CFF 50%);"></div>
+              <span>Zoom</span>
+            </div>
+          </div>
         </div>
-
-        <!-- Scroll Indicator -->
-        <div class="absolute bottom-10 right-10 flex flex-col items-center gap-2 text-theme-muted scroll-indicator">
-            <div class="w-6 h-10 border-2 border-primary rounded-full flex justify-center pt-2 glow">
-                <div class="w-1.5 h-3 bg-primary rounded-full"></div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Problem Section - Page 2 -->
-    <section id="problem" class="relative py-32 px-6" style="min-height: 100vh; display: flex; align-items: center;">
-        <div class="max-w-6xl mx-auto">
-            <div class="text-center mb-20 section-reveal">
-                <p class="text-accent font-display font-semibold tracking-widest uppercase mb-4">The Challenge</p>
-                <h2 class="text-4xl md:text-5xl font-display font-bold mb-6">
-                    Great Ideas Remain Ideas<br>
-                    <span class="gradient-text">When You Don't Act FAST</span>
-                </h2>
-            </div>
-
-            <div class="grid md:grid-cols-2 gap-8">
-                <!-- Problem Card 1 -->
-                <div class="glass-card-premium rounded-2xl p-8 section-reveal card-3d shimmer">
-                    <div class="w-14 h-14 rounded-xl bg-red-500/20 flex items-center justify-center mb-6 icon-glow">
-                        <svg class="w-7 h-7 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                    </div>
-                    <h3 class="text-2xl font-bold mb-4 gradient-text">Tech Founders</h3>
-                    <p class="text-theme-secondary text-lg leading-relaxed">
-                        Lack distribution and sales. Build amazing products but struggle with go-to-market strategy.
-                        The product sits unused while competitors capture the market.
-                    </p>
-                </div>
-
-                <!-- Problem Card 2 -->
-                <div class="glass-card-premium rounded-2xl p-8 section-reveal card-3d shimmer">
-                    <div class="w-14 h-14 rounded-xl bg-orange-500/20 flex items-center justify-center mb-6 icon-glow">
-                        <svg class="w-7 h-7 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                    </div>
-                    <h3 class="text-2xl font-bold mb-4 gradient-text">Business Founders</h3>
-                    <p class="text-theme-secondary text-lg leading-relaxed">
-                        Lack "idea to market" speed. Have market insight and sales skills but without technical ability,
-                        months turn into years.
-                    </p>
-                </div>
-
-                <!-- Problem Card 3 - Hidden -->
-                <div class="glass-card-premium rounded-2xl p-8 md:col-span-2 section-reveal card-3d shimmer" style="display: none;">
-                    <div class="w-14 h-14 rounded-xl bg-yellow-500/20 flex items-center justify-center mb-6 icon-glow">
-                        <svg class="w-7 h-7 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                    </div>
-                    <h3 class="text-2xl font-bold mb-4 gradient-text">Agencies Don't Share Risk</h3>
-                    <p class="text-theme-secondary text-lg leading-relaxed">
-                        Traditional agencies charge $50K-$200K upfront with no stake in your success.
-                        They get paid whether you succeed or fail. Incentives are completely misaligned.
-                    </p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Solution Section - Page 3 -->
-    <section id="solution" class="relative py-32 px-6" style="min-height: 100vh; display: flex; align-items: center;">
-        <div class="max-w-6xl mx-auto">
-            <div class="text-center mb-20 section-reveal">
-                <p class="text-accent font-display font-semibold tracking-widest uppercase mb-4">The Solution</p>
-                <h2 class="text-4xl md:text-5xl font-display font-bold mb-6">
-                    AI-Powered<br>
-                    <span class="gradient-text">Co-Founder Model</span>
-                </h2>
-                <p class="text-xl text-theme-secondary max-w-3xl mx-auto">
-                    This isn't outsourcing. We become your technical co-founder.
-                    We build your idea together and launch as equal partners.
-                </p>
-            </div>
-
-            <!-- Milestones Timeline -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 section-reveal">
-                <!-- Day 1-4 -->
-                <div class="glass-card rounded-xl p-4 text-center hover:scale-105 transition-transform">
-                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent mx-auto mb-3 flex items-center justify-center text-white font-bold text-sm">1-4</div>
-                    <p class="text-accent font-semibold text-sm mb-2">Day 1-4</p>
-                    <ul class="text-xs text-theme-secondary space-y-1">
-                        <li>Company Name</li>
-                        <li>Logo & Branding</li>
-                        <li>Market Strategy</li>
-                        <li>Product Features</li>
-                        <li>Wireframes</li>
-                    </ul>
-                </div>
-
-                <!-- Day 5-6 -->
-                <div class="glass-card rounded-xl p-4 text-center hover:scale-105 transition-transform">
-                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent mx-auto mb-3 flex items-center justify-center text-white font-bold text-sm">5-6</div>
-                    <p class="text-accent font-semibold text-sm mb-2">Day 5-6</p>
-                    <ul class="text-xs text-theme-secondary space-y-1">
-                        <li>Demos</li>
-                        <li>Show & Tell</li>
-                        <li>Sign Off</li>
-                        <li>Web & Mobile Views</li>
-                        <li class="text-green-400 font-semibold">Soft Launch</li>
-                    </ul>
-                </div>
-
-                <!-- Day 7-13 -->
-                <div class="glass-card rounded-xl p-4 text-center hover:scale-105 transition-transform">
-                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-accent to-green-500 mx-auto mb-3 flex items-center justify-center text-white font-bold text-sm">7-13</div>
-                    <p class="text-accent font-semibold text-sm mb-2">Day 7-13</p>
-                    <ul class="text-xs text-theme-secondary space-y-1">
-                        <li>Sales & Marketing</li>
-                        <li>Social Media</li>
-                        <li>Demos to Customers</li>
-                    </ul>
-                </div>
-
-                <!-- Day 14 -->
-                <div class="glass-card rounded-xl p-4 text-center hover:scale-105 transition-transform border-2 border-accent">
-                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-accent mx-auto mb-3 flex items-center justify-center text-white font-bold">14</div>
-                    <p class="text-accent font-semibold text-sm mb-2">Day 14</p>
-                    <ul class="text-xs space-y-1">
-                        <li class="text-green-400 font-bold">LAUNCH</li>
-                        <li class="text-accent font-bold">Monetize $$</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Why Win-Win Section -->
-    <section id="why" class="relative py-32 px-6">
-        <div class="max-w-6xl mx-auto">
-            <div class="glass-card rounded-3xl p-12 md:p-16 section-reveal glow">
-                <div class="text-center mb-12">
-                    <h2 class="text-4xl md:text-5xl font-bold mb-6">
-                        Why This Is a<br>
-                        <span class="gradient-text">Win-Win</span>
-                    </h2>
-                </div>
-
-                <div class="grid md:grid-cols-2 gap-8">
-                    <div class="flex gap-4 section-reveal">
-                        <div class="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="text-xl font-bold mb-2">AI Reduces Build Cycles</h3>
-                            <p class="text-theme-secondary">What used to take months now takes weeks. AI-powered development accelerates everything.</p>
-                        </div>
-                    </div>
-
-                    <div class="flex gap-4 section-reveal">
-                        <div class="w-12 h-12 rounded-xl bg-accent/20 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="text-xl font-bold mb-2">Marginal Cost to Scale</h3>
-                            <p class="text-theme-secondary">Our AI infrastructure means we can scale multiple products simultaneously at minimal incremental cost.</p>
-                        </div>
-                    </div>
-
-                    <div class="flex gap-4 section-reveal">
-                        <div class="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="text-xl font-bold mb-2">Perfect Incentive Alignment</h3>
-                            <p class="text-theme-secondary">We win together. No hourly billing, no misaligned incentives. Pure partnership.</p>
-                        </div>
-                    </div>
-
-                    <div class="flex gap-4 section-reveal">
-                        <div class="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="text-xl font-bold mb-2">Scale as Equals</h3>
-                            <p class="text-theme-secondary">You bring you idea, and drive. We will build the product and business. We grow together as true partners.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Portfolio Section -->
-    <section id="portfolio" class="relative py-32 px-6" style="display: none;">
-        <div class="max-w-6xl mx-auto">
-            <div class="text-center mb-20 section-reveal">
-                <p class="text-accent font-semibold tracking-wider uppercase mb-4 text-glow">Portfolio</p>
-                <h2 class="text-4xl md:text-5xl font-bold mb-6">
-                    Products<br>
-                    <span class="gradient-text">In Flight</span>
-                </h2>
-            </div>
-
-            <div class="grid md:grid-cols-3 gap-8">
-                <!-- Product 1 -->
-                <a href="https://10x.vedics.net" class="glass-card-premium rounded-2xl overflow-hidden section-reveal portfolio-card shimmer">
-                    <div class="h-48 bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center holographic">
-                        <svg class="w-20 h-20 text-white/70 group-hover:text-white transition-all group-hover:scale-110 icon-glow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
-                        </svg>
-                    </div>
-                    <div class="p-6">
-                        <h3 class="text-xl font-bold mb-2 gradient-text">Personal Transformation</h3>
-                        <p class="text-theme-secondary text-sm mb-4">AI-powered personal growth and habit tracking platform.</p>
-                        <div class="flex gap-2 flex-wrap">
-                            <span class="tech-badge bg-purple-500/20 text-purple-300">Next.js</span>
-                            <span class="tech-badge bg-pink-500/20 text-pink-300">AI</span>
-                            <span class="tech-badge bg-blue-500/20 text-blue-300">Live</span>
-                        </div>
-                    </div>
-                </a>
-
-                <!-- Product 2 -->
-                <a href="https://d3r8o59ewzr723.cloudfront.net" class="glass-card-premium rounded-2xl overflow-hidden section-reveal portfolio-card shimmer">
-                    <div class="h-48 bg-gradient-to-br from-orange-500/30 to-yellow-500/30 flex items-center justify-center holographic">
-                        <svg class="w-20 h-20 text-white/70 group-hover:text-white transition-all group-hover:scale-110 icon-glow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
-                        </svg>
-                    </div>
-                    <div class="p-6">
-                        <h3 class="text-xl font-bold mb-2 gradient-text">Vedic Astrology</h3>
-                        <p class="text-theme-secondary text-sm mb-4">AI-enhanced astrological insights and guidance platform.</p>
-                        <div class="flex gap-2 flex-wrap">
-                            <span class="tech-badge bg-orange-500/20 text-orange-300">HTML</span>
-                            <span class="tech-badge bg-yellow-500/20 text-yellow-300">AI</span>
-                            <span class="tech-badge bg-blue-500/20 text-blue-300">Live</span>
-                        </div>
-                    </div>
-                </a>
-
-                <!-- Product 3 -->
-                <a href="https://d2rglxopjj9hqx.cloudfront.net" class="glass-card-premium rounded-2xl overflow-hidden section-reveal portfolio-card shimmer">
-                    <div class="h-48 bg-gradient-to-br from-green-500/30 to-emerald-500/30 flex items-center justify-center holographic">
-                        <svg class="w-20 h-20 text-white/70 group-hover:text-white transition-all group-hover:scale-110 icon-glow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                        </svg>
-                    </div>
-                    <div class="p-6">
-                        <h3 class="text-xl font-bold mb-2 gradient-text">Career Builder</h3>
-                        <p class="text-theme-secondary text-sm mb-4">AI career coaching and professional development platform.</p>
-                        <div class="flex gap-2 flex-wrap">
-                            <span class="tech-badge bg-green-500/20 text-green-300">React</span>
-                            <span class="tech-badge bg-emerald-500/20 text-emerald-300">AI</span>
-                            <span class="tech-badge bg-blue-500/20 text-blue-300">Live</span>
-                        </div>
-                    </div>
-                </a>
-            </div>
-        </div>
-    </section>
-
-    <!-- CTA Section -->
-    <section id="contact" class="relative py-32 px-6 neural-bg">
-        <div class="max-w-4xl mx-auto text-center section-reveal">
-            <h2 class="text-4xl md:text-6xl font-bold mb-8 text-glow">
-                Ready to Build<br>
-                <span class="gradient-text">Something Great?</span>
-            </h2>
-            <p class="text-xl text-theme-secondary mb-12 max-w-2xl mx-auto">
-                Have a business idea and market access? Let's launch together.
-                Your product launch is scheduled in two weeks from signup.
-            </p>
-            <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="apply.html" class="cta-button px-10 py-5 rounded-full text-xl font-semibold text-white inline-flex items-center justify-center gap-3 pulse-glow">
-                    <svg class="w-6 h-6 icon-glow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                    </svg>
-                    Lets CoCreate in 24 Hrs
-                </a>
-            </div>
-            <p class="text-theme-muted mt-8 font-medium">We review every application personally.</p>
-        </div>
-    </section>
-
-    <!-- Chat Widget Container -->
-    <div id="chat-widget-container"></div>
-
-    <!-- Footer -->
-    <footer class="border-t border-theme py-12 px-6">
-        <div class="max-w-6xl mx-auto">
-            <!-- Footer Bottom -->
-            <div class="flex flex-col md:flex-row justify-between items-center gap-6">
-                <div class="flex items-center gap-3">
-                    <img src="assets/logo.png" alt="CoCreate Logo" class="w-10 h-10 object-contain">
-                    <span class="font-display font-bold text-lg">
-                        <span class="text-theme-primary">CO</span><span class="gradient-text">CREATE</span>
-                    </span>
-                </div>
-                <p class="text-theme-muted text-sm font-medium">
-                    &copy; 2026 CoCreate Technologies. All rights reserved. &middot; <a href="privacy.html" class="hover:text-primary transition">Privacy</a></p>
-            </div>
-        </div>
-    </footer>
-
-    <!-- Scripts -->
-    <script>
-        // CoCreate Theme Management
-        const themes = {
-            ember: {
-                icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"/>`,
-                label: 'Ember',
-                particleColors: { r1: 0.99, g1: 0.16, b1: 0.05, r2: 1.0, g2: 0.76, b2: 0.42 }
-            },
-            coral: {
-                icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>`,
-                label: 'Coral',
-                particleColors: { r1: 0.99, g1: 0.42, b1: 0.44, r2: 1.0, g2: 0.62, b2: 0.49 }
-            },
-            sunset: {
-                icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>`,
-                label: 'Sunset',
-                particleColors: { r1: 1.0, g1: 0.42, b1: 0.62, r2: 0.75, g2: 0.52, b2: 0.99 }
-            },
-            aurora: {
-                icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>`,
-                label: 'Aurora',
-                particleColors: { r1: 0.9, g1: 0.64, b1: 1.0, r2: 1.0, g2: 0.71, b2: 0.76 }
-            },
-            legacy: {
-                icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>`,
-                label: 'Legacy',
-                particleColors: { r1: 0.39, g1: 0.4, b1: 0.95, r2: 0.02, g2: 0.71, b2: 0.83 }
-            },
-            sandstone: {
-                icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/>`,
-                label: 'Sandstone',
-                particleColors: { r1: 0.88, g1: 0.48, b1: 0.22, r2: 0.99, g2: 0.16, b2: 0.05 }
-            },
-            champagne: {
-                icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>`,
-                label: 'Champagne',
-                particleColors: { r1: 0.83, g1: 0.65, b1: 0.21, r2: 0.99, g2: 0.16, b2: 0.05 }
-            }
-        };
-
-        // Migrate old theme names to new CoCreate themes
-        function migrateTheme(oldTheme) {
-            const migrations = {
-                'dark': 'ember',
-                'midnight': 'sunset',
-                'dusk': 'sunset',
-                'light': 'coral'
-            };
-            return migrations[oldTheme] || (themes[oldTheme] ? oldTheme : 'ember');
-        }
-
-        let currentTheme = migrateTheme(localStorage.getItem('cocreate-theme') || localStorage.getItem('theme') || 'ember');
-
-        // Theme switcher elements
-        const themeToggle = document.getElementById('theme-toggle');
-        const themeDropdown = document.getElementById('theme-dropdown');
-        const themeIcon = document.getElementById('theme-icon');
-        const themeLabel = document.getElementById('theme-label');
-        const themeOptions = document.querySelectorAll('.theme-option');
-
-        // Initialize theme
-        function setTheme(theme) {
-            // Ensure theme exists, fallback to ember
-            if (!themes[theme]) {
-                theme = migrateTheme(theme);
-            }
-
-            // Use ThemeManager if available (applies CSS variables properly)
-            if (window.ThemeManager && window.ThemeManager.set) {
-                window.ThemeManager.set(theme);
-            } else {
-                document.documentElement.setAttribute('data-theme', theme);
-                localStorage.setItem('cocreate-theme', theme);
-                localStorage.setItem('theme', theme);
-            }
-
-            currentTheme = theme;
-
-            // Update icon and label
-            if (themeIcon && themes[theme]) {
-                themeIcon.innerHTML = themes[theme].icon;
-            }
-            if (themeLabel && themes[theme]) {
-                themeLabel.textContent = themes[theme].label;
-            }
-
-            // Update active state
-            themeOptions.forEach(option => {
-                option.classList.toggle('active', option.dataset.theme === theme);
-            });
-
-        }
-
-        // Toggle dropdown
-        themeToggle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            themeDropdown.classList.toggle('active');
-        });
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', () => {
-            themeDropdown.classList.remove('active');
-        });
-
-        // Theme option click
-        themeOptions.forEach(option => {
-            option.addEventListener('click', (e) => {
-                e.stopPropagation();
-                setTheme(option.dataset.theme);
-                themeDropdown.classList.remove('active');
-            });
-        });
-
-        // Initialize theme on load
-        setTheme(currentTheme);
-
-        // GSAP Scroll Animations
-        gsap.registerPlugin(ScrollTrigger);
-
-        // Immediate animation for hero section (visible on page load)
-        gsap.utils.toArray('#hero .section-reveal').forEach((elem, i) => {
-            gsap.to(elem, {
-                opacity: 1,
-                y: 0,
-                duration: 1.2,
-                ease: 'power3.out',
-                delay: 0.3 + (i * 0.2)
-            });
-        });
-
-        // Scroll-triggered animations for other sections
-        gsap.utils.toArray('.section-reveal').forEach((elem, i) => {
-            // Skip hero elements (already animated above)
-            if (elem.closest('#hero')) return;
-
-            gsap.to(elem, {
-                opacity: 1,
-                y: 0,
-                duration: 1,
-                ease: 'power3.out',
-                scrollTrigger: {
-                    trigger: elem,
-                    start: 'top 85%',
-                    toggleActions: 'play none none reverse'
-                },
-                delay: i % 3 * 0.1
-            });
-        });
-
-        ScrollTrigger.create({
-            start: 100,
-            onEnter: () => document.querySelector('nav').style.background = 'var(--nav-bg)',
-            onLeaveBack: () => document.querySelector('nav').style.background = ''
-        });
-
-        // ========== NAVIGATION ENHANCEMENTS ==========
-
-        // Scroll Progress Indicator
-        const style = document.createElement('style');
-        style.textContent = `
-            nav::before {
-                width: var(--scroll-width, 0%) !important;
-            }
-        `;
-        document.head.appendChild(style);
-
-        const syncNavHeight = () => {
-            const nav = document.querySelector('nav');
-            if (!nav) {
-                return;
-            }
-            document.documentElement.style.setProperty('--nav-height', `${nav.offsetHeight}px`);
-        };
-
-        window.addEventListener('resize', syncNavHeight);
-        syncNavHeight();
-
-        window.addEventListener('scroll', () => {
-            const nav = document.querySelector('nav');
-            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-            const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-            const scrollPercent = (scrollTop / scrollHeight) * 100;
-
-            if (nav) {
-                nav.style.setProperty('--scroll-width', scrollPercent + '%');
-            }
-        });
-
-        // Active Nav Link based on scroll position
-        const sections = document.querySelectorAll('section[id]');
-        const navLinks = document.querySelectorAll('nav a[data-scroll=\"true\"]');
-
-        function setActiveNavLink() {
-            let currentSection = '';
-
-            sections.forEach(section => {
-                const sectionTop = section.offsetTop;
-                const sectionHeight = section.clientHeight;
-                if (window.pageYOffset >= sectionTop - 200) {
-                    currentSection = section.getAttribute('id');
-                }
-            });
-
-            navLinks.forEach(link => {
-                link.classList.remove('active');
-                if (link.getAttribute('href') === `#${currentSection}`) {
-                    link.classList.add('active');
-                }
-            });
-        }
-
-        window.addEventListener('scroll', setActiveNavLink);
-        setActiveNavLink(); // Call on load
-
-        // Smooth scroll for nav links
-        navLinks.forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const targetId = link.getAttribute('href');
-                const targetSection = document.querySelector(targetId);
-
-                if (targetSection) {
-                    const navHeight = document.querySelector('nav').offsetHeight;
-                    const targetPosition = targetSection.offsetTop - navHeight;
-
-                    window.scrollTo({
-                        top: targetPosition,
-                        behavior: 'smooth'
-                    });
-                }
-            });
-        });
-
-        // ============================================
-        // MOBILE MENU FUNCTIONALITY
-        // ============================================
-
-        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
-        const mobileMenu = document.getElementById('mobile-menu');
-        const mobileNavBtns = document.querySelectorAll('.mobile-nav-btn');
-
-        // Toggle mobile menu
-        if (mobileMenuBtn && mobileMenu) {
-            mobileMenuBtn.addEventListener('click', () => {
-                mobileMenu.classList.toggle('open');
-                // Toggle hamburger to X
-                const icon = mobileMenuBtn.querySelector('svg');
-                if (mobileMenu.classList.contains('open')) {
-                    icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>';
-                } else {
-                    icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>';
-                }
-            });
-        }
-
-        // Toggle mobile dropdowns
-        mobileNavBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const dropdownId = btn.getAttribute('data-dropdown');
-                const dropdown = document.getElementById(dropdownId);
-
-                // Close other dropdowns
-                document.querySelectorAll('.mobile-dropdown.open').forEach(d => {
-                    if (d.id !== dropdownId) {
-                        d.classList.remove('open');
-                        const otherBtn = document.querySelector(`[data-dropdown="${d.id}"]`);
-                        if (otherBtn) otherBtn.classList.remove('active');
-                    }
-                });
-
-                // Toggle current
-                if (dropdown) {
-                    dropdown.classList.toggle('open');
-                    btn.classList.toggle('active');
-                }
-            });
-        });
-
-        // ============================================
-        // NAV + CHAT WIDGET INTEGRATION
-        // ============================================
-
-        // Watch for chat widget state changes
-        function updateNavForChat() {
-            const nav = document.querySelector('.nav-main');
-            const chatSidebar = document.querySelector('.chat-sidebar');
-
-            if (nav && chatSidebar) {
-                const isOpen = chatSidebar.classList.contains('open');
-                const sidebarWidth = chatSidebar.offsetWidth || 380;
-
-                if (isOpen) {
-                    nav.style.right = sidebarWidth + 'px';
-                    document.documentElement.style.setProperty('--chat-sidebar-width', sidebarWidth + 'px');
-                } else {
-                    nav.style.right = '0';
-                }
-            }
-        }
-
-        // Create observer to watch for chat sidebar class changes
-        const chatObserver = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                    updateNavForChat();
-                }
-            });
-        });
-
-        // Start observing once chat widget is loaded
-        setTimeout(() => {
-            const chatSidebar = document.querySelector('.chat-sidebar');
-            if (chatSidebar) {
-                chatObserver.observe(chatSidebar, { attributes: true });
-                updateNavForChat(); // Initial check
-            }
-        }, 500);
-
-        // Also listen for window resize
-        window.addEventListener('resize', updateNavForChat);
-
-    </script>
-
-    <!-- Search Overlay -->
-    <div id="search-overlay" class="search-overlay">
-        <div class="search-modal">
-            <div class="search-header">
-                <div class="search-input-wrapper">
-                    <svg class="w-5 h-5 text-theme-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
-                    <input type="text" id="search-input" placeholder="Search pages..." autocomplete="off">
-                </div>
-                <button id="search-close" class="search-close-btn" aria-label="Close search">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>
-            </div>
-            <div class="search-results" id="search-results">
-                <p class="search-hint">Start typing to search...</p>
-            </div>
-        </div>
+        <a href="event.html" class="nav-cta-btn" style="background: linear-gradient(135deg, #22c55e, #16a34a); margin-right: 6px;">Live Event</a>
+        <a href="contact.html" class="nav-cta-btn">Contact</a>
+        <button class="nav-search-btn" aria-label="Search">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Mobile Menu Button -->
+      <button class="lg:hidden flex items-center justify-center w-10 h-10 rounded-lg hover:bg-white/10 transition" id="mobile-menu-btn" aria-label="Open menu">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
     </div>
 
-    <!-- Chat Widget (iframe-based, persists across pages) -->
-    <script src="js/chat-widget.js"></script>
-    <script src="js/chat-loader.js"></script>
+    <!-- Mobile Menu -->
+    <div class="lg:hidden mobile-menu" id="mobile-menu">
+      <div class="px-6 py-4 space-y-1 border-t border-theme">
+        <div class="mobile-nav-item">
+          <button class="mobile-nav-btn" data-dropdown="mobile-who">
+            Who We Are
+            <svg class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          <div class="mobile-dropdown" id="mobile-who">
+            <a href="who-we-are.html">Who We Are</a>
+            <a href="partners.html">Partners</a>
+            <a href="culture.html">Culture</a>
+          </div>
+        </div>
+        <div class="mobile-nav-item">
+          <button class="mobile-nav-btn" data-dropdown="mobile-what">
+            What We Do
+            <svg class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          <div class="mobile-dropdown" id="mobile-what">
+            <a href="what-we-do.html">Overview</a>
+            <a href="ai.html">AI Solutions</a>
+            <a href="product.html">Product Development</a>
+            <a href="platforms.html">Platforms</a>
+          </div>
+        </div>
+        <a href="event.html" class="mobile-nav-cta" style="background: linear-gradient(135deg, #22c55e, #16a34a);">Live Event - Register Free</a>
+        <a href="projects.html" class="mobile-nav-btn" style="color: var(--primary);">Projects</a>
+        <a href="contact.html" class="mobile-nav-cta">Contact Us</a>
+      </div>
+    </div>
+  </nav>
 
-    <script>
-        // Search Functionality
-        const searchPages = [
-            { title: 'Home', desc: 'CoCreate Idea - Launch your product in 2 weeks', url: 'index.html' },
-            { title: 'Who We Are', desc: 'Learn about CoCreate Idea and our mission', url: 'who-we-are.html' },
-            { title: 'Partners', desc: 'Our technology partners and alliances', url: 'partners.html' },
-            // Hidden for now: { title: 'Leadership', desc: 'Meet our executive team', url: 'leadership.html' },
-            { title: 'Culture', desc: 'Our values and what makes us unique', url: 'culture.html' },
-            // Hidden for now: { title: 'Careers', desc: 'Join our team and build the future', url: 'careers.html' },
-            { title: 'What We Do', desc: 'Overview of our services', url: 'what-we-do.html' },
-            { title: 'AI Solutions', desc: 'Custom AI and machine learning solutions', url: 'ai.html' },
-            { title: 'Product Development', desc: 'End-to-end product development services', url: 'product.html' },
-            { title: 'Platforms', desc: 'Our technology platforms and frameworks', url: 'platforms.html' },
-            // Hidden for now: { title: 'Healthcare', desc: 'AI solutions for healthcare industry', url: 'industries/healthcare.html' },
-            // Hidden for now: { title: 'Financial Services', desc: 'AI solutions for financial industry', url: 'industries/financial-services.html' },
-            // Hidden for now: { title: 'Retail', desc: 'AI solutions for retail industry', url: 'industries/retail.html' },
-            // Hidden for now: { title: 'Manufacturing', desc: 'AI solutions for manufacturing', url: 'industries/manufacturing.html' },
-            { title: 'Insights', desc: 'Articles and thought leadership', url: 'insights.html' },
-            { title: 'Blog', desc: 'Latest articles and tutorials', url: 'blogs.html' },
-            { title: 'Success Stories', desc: 'Case studies and client results', url: 'success-stories.html' },
-            { title: 'Contact', desc: 'Get in touch with us', url: 'contact.html' },
-        ];
+  <!-- BLOCK 1 — HERO -->
+  <section class="home-hero">
+    <div class="container">
+      <div class="home-hero__grid">
+        <div class="home-hero__copy">
+          <p class="eyebrow">AI-Powered Product Studio</p>
+          <h1 class="home-hero__h1">Imagine. <span class="gradient">CoCreate</span>. Done!</h1>
+          <p class="home-hero__sub">Your AI Partner. Launch your business in 2 weeks.</p>
+          <div class="home-hero__ctas">
+            <a class="btn btn--primary btn--lg" href="https://calendly.com/cocreateceo/30min">Let's CoCreate</a>
+            <a class="btn btn--ghost btn--lg" href="/projects.html">See what we've built</a>
+          </div>
+          <div class="home-hero__trust">
+            <div class="trust-strip">
+              <span class="trust-strip__item">⚡ <strong>2 weeks</strong> to launch</span>
+              <span class="trust-strip__sep">·</span>
+              <span class="trust-strip__item"><strong>$0</strong> upfront</span>
+              <span class="trust-strip__sep">·</span>
+              <span class="trust-strip__item"><strong id="js-live-count">17</strong> products shipped</span>
+            </div>
+          </div>
+        </div>
+        <div class="home-hero__mosaic" aria-hidden="true">
+          <img src="assets/projects/vedic-astro.webp" alt="">
+          <img src="assets/projects/tradewell.webp" alt="">
+          <img src="assets/projects/career-builder.webp" alt="">
+          <img src="assets/projects/social-automation.webp" alt="">
+        </div>
+      </div>
+    </div>
+  </section>
 
-        const searchOverlay = document.getElementById('search-overlay');
-        const searchInput = document.getElementById('search-input');
-        const searchResults = document.getElementById('search-results');
-        const searchBtn = document.querySelector('.nav-search-btn');
-        const searchClose = document.getElementById('search-close');
+  <!-- BLOCK 2 — WORDMARK MARQUEE -->
+  <section class="section" style="padding-top: var(--sp-7); padding-bottom: var(--sp-7);">
+    <div class="container">
+      <p class="eyebrow" style="text-align:center;">Products live in market</p>
+    </div>
+    <div class="marquee" id="js-marquee" style="margin-top: var(--sp-5);">
+      <div class="marquee__track" id="js-marquee-track"></div>
+    </div>
+  </section>
 
-        function openSearch() {
-            searchOverlay.classList.add('active');
-            searchInput.focus();
-            document.body.style.overflow = 'hidden';
+  <!-- BLOCK 3 — OUTCOMES (3 STATS) -->
+  <section class="section">
+    <div class="container">
+      <p class="eyebrow">Outcomes</p>
+      <h2 class="display-l">Built for founders who want to ship — not just specs.</h2>
+      <div class="stats">
+        <div class="stat">
+          <div class="stat__num">2 Weeks</div>
+          <div class="stat__label">to MVP</div>
+          <div class="stat__caption">From the kick-off call to a deployed product in market.</div>
+        </div>
+        <div class="stat">
+          <div class="stat__num">$0</div>
+          <div class="stat__label">upfront</div>
+          <div class="stat__caption">Shared-risk, shared-upside co-founder model.</div>
+        </div>
+        <div class="stat">
+          <div class="stat__num"><span id="js-live-count-2">17</span></div>
+          <div class="stat__label">products live</div>
+          <div class="stat__caption">Shipped and serving real users today.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BLOCK 4 — FEATURED PRODUCTS -->
+  <section class="section">
+    <div class="container">
+      <p class="eyebrow">What we've shipped</p>
+      <h2 class="display-l">Real products, in market today.</h2>
+      <p class="lede">A few of the founder-led products we've co-built. Click any card for the story.</p>
+      <div class="proj-grid" id="js-home-featured" style="margin-top: var(--sp-9);"></div>
+      <div style="margin-top: var(--sp-7);">
+        <a class="btn btn--ghost btn--lg" href="/projects.html">See all <span id="js-total-count">29</span> products →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- BLOCK 5 — HOW IT WORKS -->
+  <section class="section">
+    <div class="container">
+      <p class="eyebrow">How it works</p>
+      <h2 class="display-l">Three weeks. Three steps.</h2>
+      <p class="lede">Lean. Honest. Built around the founder, not the agency.</p>
+      <div class="steps">
+        <div class="step step--active">
+          <div class="step__num">1</div>
+          <div class="step__title">Share your idea</div>
+          <p class="step__body">A 30-minute call to align on vision, audience, and the first slice of the product.</p>
+        </div>
+        <div class="step">
+          <div class="step__num">2</div>
+          <div class="step__title">CoCreate in 2 weeks</div>
+          <p class="step__body">Design, build, and ship the MVP together — you stay close, we stay fast.</p>
+        </div>
+        <div class="step">
+          <div class="step__num">3</div>
+          <div class="step__title">Launch &amp; grow</div>
+          <p class="step__body">We keep going post-launch — iterate, scale, and own the upside together.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BLOCK 6 — OUR APPROACH (CINEMATIC) -->
+  <section class="cinematic">
+    <div class="cinematic__bg" style="background-image: url('assets/cocreate_bg.png');"></div>
+    <div class="cinematic__inner">
+      <p class="eyebrow" style="color: var(--accent);">Our approach</p>
+      <h2 class="cinematic__title">Where ideas meet AI.</h2>
+      <p class="cinematic__sub">We're not a dev shop. We're the AI-native co-founder who builds the product with you, on shared risk and shared upside — so the vision actually ships.</p>
+      <div class="cinematic__cta">
+        <a class="btn btn--ghost btn--lg" href="/who-we-are.html">Our way →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- BLOCK 7 — FOUNDER VOICE -->
+  <section class="section">
+    <div class="container">
+      <blockquote class="quote">
+        <img class="quote__avatar" src="assets/cocreate-icon.svg" alt="">
+        <div>
+          <p class="quote__text">We didn't quote a number. We bet on the outcome — and shipped the product with the founder, not for them.</p>
+          <p class="quote__attrib">
+            <strong>Gopinath Varadharajan</strong> · CEO, CoCreate Idea
+            <br><span style="font-size: var(--fs-body-s); opacity: 0.7;">(Placeholder — swap for a real client testimonial once available.)</span>
+          </p>
+        </div>
+      </blockquote>
+    </div>
+  </section>
+
+  <!-- BLOCK 8 — CO-FOUNDER MODEL -->
+  <section class="section" style="background: var(--bg-secondary);">
+    <div class="container">
+      <p class="eyebrow">The co-founder model</p>
+      <h2 class="display-l">Not an agency. Not a contractor. A partner that ships.</h2>
+      <p class="lede">We don't charge upfront, and we don't disappear after launch — because we win when you win.</p>
+      <div class="stats">
+        <div class="stat"><div class="stat__num">$0</div><div class="stat__label">upfront cost</div><div class="stat__caption">We invest the build. You retain ownership and upside.</div></div>
+        <div class="stat"><div class="stat__num">2 wks</div><div class="stat__label">to first launch</div><div class="stat__caption">Scope is shaped to fit the window — every time.</div></div>
+        <div class="stat"><div class="stat__num">Shared</div><div class="stat__label">upside</div><div class="stat__caption">Aligned incentives, no hourly billing games.</div></div>
+        <div class="stat"><div class="stat__num">Always-on</div><div class="stat__label">post-launch</div><div class="stat__caption">We keep iterating with you, not handing off and ghosting.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BLOCK 9 — FAQ -->
+  <section class="section">
+    <div class="container">
+      <p class="eyebrow" style="text-align:center;">Founder FAQ</p>
+      <h2 class="display-l" style="text-align:center;">The things founders actually ask.</h2>
+      <div class="accordion" style="margin-top: var(--sp-9);">
+        <details class="accordion__item" open>
+          <summary class="accordion__q">How fast can we ship the first version?</summary>
+          <div class="accordion__a">Two weeks from kick-off, every time. We shape scope to fit the window — the smallest credible MVP that proves the thesis, deployed and in the hands of real users.</div>
+        </details>
+        <details class="accordion__item">
+          <summary class="accordion__q">What's the catch with $0 upfront?</summary>
+          <div class="accordion__a">No catch — we share the risk because we share the upside. The exact split depends on the project; we walk through it on the first call.</div>
+        </details>
+        <details class="accordion__item">
+          <summary class="accordion__q">Do I own the code and the brand?</summary>
+          <div class="accordion__a">Yes. You own the product, the code, the data, and the brand. We're the co-founder partner — not the owner.</div>
+        </details>
+        <details class="accordion__item">
+          <summary class="accordion__q">What stack do you build on?</summary>
+          <div class="accordion__a">Production AI-native stacks: Next.js or vanilla front-ends, Node / Python services, AWS (Lambda + S3 + CloudFront), and the right AI APIs for the job (Anthropic Claude, OpenAI, embeddings, etc.).</div>
+        </details>
+        <details class="accordion__item">
+          <summary class="accordion__q">What happens after launch?</summary>
+          <div class="accordion__a">We keep going. Iterate, grow, harden — the same team, the same shared-upside model. We're aligned on the long game, not a hand-off.</div>
+        </details>
+        <details class="accordion__item">
+          <summary class="accordion__q">Does my idea qualify for the model?</summary>
+          <div class="accordion__a">If it's a real founder-led product with a real audience, almost always yes. We'll tell you on the first call if it's not a fit, no theatrics.</div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- BLOCK 10 — FINAL CTA -->
+  <section class="cta-band">
+    <h2 class="cta-band__title">Ready to CoCreate?</h2>
+    <p class="cta-band__sub">Imagine. CoCreate. Done! Bring the vision — we'll bring the studio, the AI, and the conviction to ship it in two weeks.</p>
+    <div class="cta-band__actions">
+      <a class="btn btn--primary btn--lg" href="https://calendly.com/cocreateceo/30min">Let's CoCreate</a>
+      <a class="btn btn--ghost btn--lg" href="/projects.html">See what we've built</a>
+    </div>
+  </section>
+
+  <!-- GLOBAL FOOTER (verbatim from index.html) -->
+  <footer class="border-t border-theme py-12 px-6">
+    <div class="max-w-6xl mx-auto">
+      <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+        <div class="flex items-center gap-3">
+          <img src="assets/logo.png" alt="CoCreate Logo" class="w-10 h-10 object-contain">
+          <span class="font-display font-bold text-lg">
+            <span class="text-theme-primary">CO</span><span class="gradient-text">CREATE</span>
+          </span>
+        </div>
+        <p class="text-theme-muted text-sm font-medium">
+          &copy; 2026 CoCreate Technologies. All rights reserved. &middot; <a href="privacy.html" class="hover:text-primary transition">Privacy</a></p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Search Overlay -->
+  <div id="search-overlay" class="search-overlay">
+    <div class="search-modal">
+      <div class="search-header">
+        <div class="search-input-wrapper">
+          <svg class="w-5 h-5 text-theme-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <input type="text" id="search-input" placeholder="Search pages..." autocomplete="off">
+        </div>
+        <button id="search-close" class="search-close-btn" aria-label="Close search">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="search-results" id="search-results">
+        <p class="search-hint">Start typing to search...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Widget (iframe-based, persists across pages) -->
+  <script src="js/chat-widget.js"></script>
+  <script src="js/chat-loader.js"></script>
+
+  <script src="js/projects-data.js"></script>
+  <script src="js/projects-render.js"></script>
+  <script>
+    (function () {
+      var CP = window.CoCreateProjects;
+      if (!CP) return;
+
+      var all = CP.flatten();
+      var lives = all.filter(function (p) { return p.isLive; });
+      var featured = all.filter(function (p) { return p.featured; }).slice(0, 6);
+
+      // Trust strip + outcomes count
+      ['js-live-count', 'js-live-count-2'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el && lives.length) el.textContent = String(lives.length);
+      });
+      // Totals
+      var total = document.getElementById('js-total-count');
+      if (total) total.textContent = String(all.length);
+
+      // Marquee
+      var track = document.getElementById('js-marquee-track');
+      if (track && lives.length) {
+        var html = lives.map(function (p) {
+          return '<span class="marquee__item">' + p.name + '</span>';
+        }).join('');
+        track.innerHTML = html + html;
+      }
+
+      // Featured cards
+      var grid = document.getElementById('js-home-featured');
+      if (grid) grid.innerHTML = featured.map(function (p) {
+        return CP.productCardHTML(p, { showCategory: true });
+      }).join('');
+    })();
+  </script>
+  <script src="js/cinematic.js"></script>
+
+  <!-- NAV/THEME/SEARCH SCRIPTS (ported from index.html) -->
+  <script>
+    // ============================================
+    // THEME MANAGEMENT
+    // ============================================
+    const themes = {
+      ember:      { label: 'Ember',      icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"/>' },
+      coral:      { label: 'Coral',      icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>' },
+      sunset:     { label: 'Sunset',     icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>' },
+      aurora:     { label: 'Aurora',     icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>' },
+      legacy:     { label: 'Legacy',     icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>' },
+      sandstone:  { label: 'Sandstone',  icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/>' },
+      champagne:  { label: 'Champagne',  icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>' },
+      zoom:       { label: 'Zoom',       icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>' }
+    };
+
+    function migrateTheme(t) {
+      const m = { dark: 'ember', midnight: 'sunset', dusk: 'sunset', light: 'coral' };
+      return m[t] || (themes[t] ? t : 'ember');
+    }
+
+    let currentTheme = migrateTheme(localStorage.getItem('cocreate-theme') || localStorage.getItem('theme') || 'ember');
+
+    const themeToggle   = document.getElementById('theme-toggle');
+    const themeDropdown = document.getElementById('theme-dropdown');
+    const themeIcon     = document.getElementById('theme-icon');
+    const themeLabel    = document.getElementById('theme-label');
+    const themeOptions  = document.querySelectorAll('.theme-option');
+
+    function setTheme(theme) {
+      if (!themes[theme]) theme = migrateTheme(theme);
+      if (window.ThemeManager && window.ThemeManager.set) {
+        window.ThemeManager.set(theme);
+      } else {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('cocreate-theme', theme);
+        localStorage.setItem('theme', theme);
+      }
+      currentTheme = theme;
+      if (themeIcon && themes[theme])  themeIcon.innerHTML = themes[theme].icon;
+      if (themeLabel && themes[theme]) themeLabel.textContent = themes[theme].label;
+      themeOptions.forEach(o => o.classList.toggle('active', o.dataset.theme === theme));
+    }
+
+    if (themeToggle) {
+      themeToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        themeDropdown.classList.toggle('active');
+      });
+    }
+    document.addEventListener('click', () => themeDropdown && themeDropdown.classList.remove('active'));
+    themeOptions.forEach(o => {
+      o.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setTheme(o.dataset.theme);
+        themeDropdown.classList.remove('active');
+      });
+    });
+    setTheme(currentTheme);
+
+    // ============================================
+    // SCROLL PROGRESS + NAV BACKGROUND
+    // ============================================
+    const syncNavHeight = () => {
+      const nav = document.querySelector('nav');
+      if (nav) document.documentElement.style.setProperty('--nav-height', nav.offsetHeight + 'px');
+    };
+    window.addEventListener('resize', syncNavHeight);
+    syncNavHeight();
+
+    if (window.ScrollTrigger) {
+      ScrollTrigger.create({
+        start: 100,
+        onEnter: () => { const n = document.querySelector('nav'); if (n) n.style.background = 'var(--nav-bg)'; },
+        onLeaveBack: () => { const n = document.querySelector('nav'); if (n) n.style.background = ''; }
+      });
+    }
+
+    window.addEventListener('scroll', () => {
+      const nav = document.querySelector('nav');
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      const pct = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
+      if (nav) nav.style.setProperty('--scroll-width', pct + '%');
+    });
+
+    // ============================================
+    // MOBILE MENU
+    // ============================================
+    const mobileMenuBtn  = document.getElementById('mobile-menu-btn');
+    const mobileMenu     = document.getElementById('mobile-menu');
+    const mobileNavBtns  = document.querySelectorAll('.mobile-nav-btn');
+
+    if (mobileMenuBtn && mobileMenu) {
+      mobileMenuBtn.addEventListener('click', () => {
+        mobileMenu.classList.toggle('open');
+        const icon = mobileMenuBtn.querySelector('svg');
+        if (icon) {
+          icon.innerHTML = mobileMenu.classList.contains('open')
+            ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>'
+            : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>';
         }
+      });
+    }
 
-        function closeSearch() {
-            searchOverlay.classList.remove('active');
-            searchInput.value = '';
-            searchResults.innerHTML = '<p class="search-hint">Start typing to search...</p>';
-            document.body.style.overflow = '';
-        }
-
-        function performSearch(query) {
-            if (!query.trim()) {
-                searchResults.innerHTML = '<p class="search-hint">Start typing to search...</p>';
-                return;
-            }
-            const lowerQuery = query.toLowerCase();
-            const results = searchPages.filter(page =>
-                page.title.toLowerCase().includes(lowerQuery) ||
-                page.desc.toLowerCase().includes(lowerQuery)
-            );
-            if (results.length === 0) {
-                searchResults.innerHTML = '<p class="no-results">No results found</p>';
-            } else {
-                searchResults.innerHTML = results.map(page => `
-                    <a href="${page.url}" class="search-result-item">
-                        <div class="result-title">${page.title}</div>
-                        <div class="result-desc">${page.desc}</div>
-                    </a>
-                `).join('');
-            }
-        }
-
-        if (searchBtn) searchBtn.addEventListener('click', openSearch);
-        if (searchClose) searchClose.addEventListener('click', closeSearch);
-        if (searchOverlay) searchOverlay.addEventListener('click', (e) => {
-            if (e.target === searchOverlay) closeSearch();
+    mobileNavBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const dropdownId = btn.getAttribute('data-dropdown');
+        if (!dropdownId) return;
+        const dropdown = document.getElementById(dropdownId);
+        document.querySelectorAll('.mobile-dropdown.open').forEach(d => {
+          if (d.id !== dropdownId) {
+            d.classList.remove('open');
+            const ob = document.querySelector('[data-dropdown="' + d.id + '"]');
+            if (ob) ob.classList.remove('active');
+          }
         });
-        if (searchInput) searchInput.addEventListener('input', (e) => performSearch(e.target.value));
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && searchOverlay.classList.contains('active')) closeSearch();
-            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-                e.preventDefault();
-                openSearch();
-            }
-        });
-    </script>
+        if (dropdown) {
+          dropdown.classList.toggle('open');
+          btn.classList.toggle('active');
+        }
+      });
+    });
+
+    // ============================================
+    // SEARCH
+    // ============================================
+    const searchPages = [
+      { title: 'Home',                desc: 'CoCreate Idea - Launch your product in 2 weeks',      url: 'index.html' },
+      { title: 'Who We Are',          desc: 'Learn about CoCreate Idea and our mission',            url: 'who-we-are.html' },
+      { title: 'Partners',            desc: 'Our technology partners and alliances',                url: 'partners.html' },
+      { title: 'Culture',             desc: 'Our values and what makes us unique',                  url: 'culture.html' },
+      { title: 'What We Do',          desc: 'Overview of our services',                             url: 'what-we-do.html' },
+      { title: 'AI Solutions',        desc: 'Custom AI and machine learning solutions',             url: 'ai.html' },
+      { title: 'Product Development', desc: 'End-to-end product development services',             url: 'product.html' },
+      { title: 'Platforms',           desc: 'Our technology platforms and frameworks',              url: 'platforms.html' },
+      { title: 'Contact',             desc: 'Get in touch with us',                                 url: 'contact.html' },
+    ];
+
+    const searchOverlay = document.getElementById('search-overlay');
+    const searchInput   = document.getElementById('search-input');
+    const searchResults = document.getElementById('search-results');
+    const searchBtn     = document.querySelector('.nav-search-btn');
+    const searchClose   = document.getElementById('search-close');
+
+    function openSearch() {
+      if (searchOverlay) { searchOverlay.classList.add('active'); if (searchInput) searchInput.focus(); document.body.style.overflow = 'hidden'; }
+    }
+    function closeSearch() {
+      if (searchOverlay) { searchOverlay.classList.remove('active'); if (searchInput) searchInput.value = ''; if (searchResults) searchResults.innerHTML = '<p class="search-hint">Start typing to search...</p>'; document.body.style.overflow = ''; }
+    }
+    function performSearch(query) {
+      if (!query.trim()) { if (searchResults) searchResults.innerHTML = '<p class="search-hint">Start typing to search...</p>'; return; }
+      const lq = query.toLowerCase();
+      const results = searchPages.filter(p => p.title.toLowerCase().includes(lq) || p.desc.toLowerCase().includes(lq));
+      if (searchResults) searchResults.innerHTML = results.length === 0
+        ? '<p class="no-results">No results found</p>'
+        : results.map(p => '<a href="' + p.url + '" class="search-result-item"><div class="result-title">' + p.title + '</div><div class="result-desc">' + p.desc + '</div></a>').join('');
+    }
+
+    if (searchBtn)     searchBtn.addEventListener('click', openSearch);
+    if (searchClose)   searchClose.addEventListener('click', closeSearch);
+    if (searchOverlay) searchOverlay.addEventListener('click', e => { if (e.target === searchOverlay) closeSearch(); });
+    if (searchInput)   searchInput.addEventListener('input', e => performSearch(e.target.value));
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && searchOverlay && searchOverlay.classList.contains('active')) closeSearch();
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); openSearch(); }
+    });
+
+    // ============================================
+    // NAV + CHAT WIDGET INTEGRATION
+    // ============================================
+    function updateNavForChat() {
+      const nav        = document.querySelector('.nav-main');
+      const chatSidebar = document.querySelector('.chat-sidebar');
+      if (nav && chatSidebar) {
+        const isOpen = chatSidebar.classList.contains('open');
+        const w = chatSidebar.offsetWidth || 380;
+        nav.style.right = isOpen ? w + 'px' : '0';
+        if (isOpen) document.documentElement.style.setProperty('--chat-sidebar-width', w + 'px');
+      }
+    }
+    const chatObserver = new MutationObserver(mutations => {
+      mutations.forEach(m => { if (m.type === 'attributes' && m.attributeName === 'class') updateNavForChat(); });
+    });
+    setTimeout(() => {
+      const cs = document.querySelector('.chat-sidebar');
+      if (cs) { chatObserver.observe(cs, { attributes: true }); updateNavForChat(); }
+    }, 500);
+    window.addEventListener('resize', updateNavForChat);
+  </script>
 </body>
 </html>
