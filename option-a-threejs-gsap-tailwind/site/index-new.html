@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="ember">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CoCreate Idea — AI-Powered Product Studio</title>
+  <meta name="description" content="Your AI Partner. Launch your business in 2 weeks.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/themes/ember.css">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components/section.css">
+  <link rel="stylesheet" href="css/components/button.css">
+  <link rel="stylesheet" href="css/components/badge.css">
+  <link rel="stylesheet" href="css/components/stat.css">
+  <link rel="stylesheet" href="css/components/marquee.css">
+  <link rel="stylesheet" href="css/components/card.css">
+  <link rel="stylesheet" href="css/components/modal.css">
+  <link rel="stylesheet" href="css/components/steps.css">
+  <link rel="stylesheet" href="css/components/quote.css">
+  <link rel="stylesheet" href="css/components/accordion.css">
+  <link rel="stylesheet" href="css/components/cinematic.css">
+  <link rel="stylesheet" href="css/components/cta.css">
+  <link rel="stylesheet" href="css/pages/home.css">
+  <link rel="preload" as="image" href="assets/projects/vedic-astro.webp">
+  <link rel="preload" as="image" href="assets/projects/tradewell.webp">
+</head>
+<body>
+
+  <!-- (Existing global nav will be re-included in Task 13. For now, omit so we can test blocks in isolation.) -->
+
+  <!-- BLOCK 1 — HERO -->
+  <section class="home-hero">
+    <div class="container">
+      <div class="home-hero__grid">
+        <div class="home-hero__copy">
+          <p class="eyebrow">AI-Powered Product Studio</p>
+          <h1 class="home-hero__h1">Imagine. <span class="gradient">CoCreate</span>. Done!</h1>
+          <p class="home-hero__sub">Your AI Partner. Launch your business in 2 weeks.</p>
+          <div class="home-hero__ctas">
+            <a class="btn btn--primary btn--lg" href="https://calendly.com/cocreateceo/30min">Let's CoCreate</a>
+            <a class="btn btn--ghost btn--lg" href="/projects.html">See what we've built</a>
+          </div>
+          <div class="home-hero__trust">
+            <div class="trust-strip">
+              <span class="trust-strip__item">⚡ <strong>2 weeks</strong> to launch</span>
+              <span class="trust-strip__sep">·</span>
+              <span class="trust-strip__item"><strong>$0</strong> upfront</span>
+              <span class="trust-strip__sep">·</span>
+              <span class="trust-strip__item"><strong id="js-live-count">17</strong> products shipped</span>
+            </div>
+          </div>
+        </div>
+        <div class="home-hero__mosaic" aria-hidden="true">
+          <img src="assets/projects/vedic-astro.webp" alt="">
+          <img src="assets/projects/tradewell.webp" alt="">
+          <img src="assets/projects/career-builder.webp" alt="">
+          <img src="assets/projects/social-automation.webp" alt="">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script src="js/projects-data.js"></script>
+  <script>
+    // Live count from PROJECTS_DATA so the trust strip stays accurate.
+    (function () {
+      var n = 0;
+      (window.PROJECTS_DATA || []).forEach(function (c) {
+        c.projects.forEach(function (p) { if (p.liveUrl && p.liveUrl !== '#') n++; });
+      });
+      var el = document.getElementById('js-live-count');
+      if (el && n) el.textContent = String(n);
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+/* CoCreate · homepage-only layout.
+   Composes primitives from css/components/. Pages other than index.html
+   must not load this file. */
+
+/* HERO — content-led, 2-col on desktop, stacked on mobile */
+.home-hero {
+  padding: var(--sp-14) 0 var(--sp-12);
+  background: radial-gradient(ellipse at 80% 0%, rgba(255, 195, 106, 0.12), transparent 55%),
+              var(--bg-primary);
+}
+.home-hero__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: var(--sp-12);
+  align-items: center;
+}
+.home-hero__copy { display: flex; flex-direction: column; gap: var(--sp-5); }
+.home-hero__h1 {
+  font-family: var(--ff-display);
+  font-weight: 800;
+  font-size: var(--fs-display-xl);
+  letter-spacing: var(--ls-display);
+  line-height: 1.02;
+}
+.home-hero__h1 .gradient {
+  background: linear-gradient(135deg, var(--accent), var(--secondary), var(--primary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.home-hero__sub {
+  font-size: var(--fs-body-l);
+  color: var(--text-secondary);
+  max-width: 52ch;
+  line-height: var(--lh-relaxed);
+}
+.home-hero__ctas { display: flex; gap: var(--sp-3); flex-wrap: wrap; margin-top: var(--sp-3); }
+.home-hero__trust { margin-top: var(--sp-5); }
+
+/* Hero product mosaic — 4 portfolio thumbnails, staggered */
+.home-hero__mosaic {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  border-radius: var(--r-xl);
+}
+.home-hero__mosaic img {
+  position: absolute;
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-lg);
+  object-fit: cover;
+  transition: transform var(--dur-slow) var(--ease-spring);
+}
+.home-hero__mosaic img:nth-child(1) { top: 0;   left: 6%;  width: 56%; height: 38%; transform: rotate(-3deg); }
+.home-hero__mosaic img:nth-child(2) { top: 14%; right: 0;  width: 56%; height: 38%; transform: rotate(2deg); }
+.home-hero__mosaic img:nth-child(3) { bottom: 14%; left: 0;  width: 56%; height: 38%; transform: rotate(2.5deg); }
+.home-hero__mosaic img:nth-child(4) { bottom: 0;   right: 6%; width: 56%; height: 38%; transform: rotate(-2deg); }
+.home-hero__mosaic:hover img:nth-child(1) { transform: rotate(-5deg) translate(-6px, -4px); }
+.home-hero__mosaic:hover img:nth-child(4) { transform: rotate(-4deg) translate(4px, 4px); }
+
+@media (max-width: 880px) {
+  .home-hero__grid { grid-template-columns: 1fr; }
+  .home-hero__mosaic { aspect-ratio: 4 / 3; max-width: 520px; margin-inline: auto; }
+}
