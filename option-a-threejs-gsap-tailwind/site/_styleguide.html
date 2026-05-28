@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="ember">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CoCreate · Styleguide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/themes/ember.css">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components/section.css">
+  <link rel="stylesheet" href="css/components/button.css">
+  <style>
+    body { background: var(--bg-primary); color: var(--text-primary); }
+    .sg-grid { display: grid; gap: var(--sp-6); grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+    .sg-swatch { padding: var(--sp-6); border-radius: var(--r-lg); background: var(--bg-card); border: 1px solid var(--border-color); }
+  </style>
+</head>
+<body>
+  <section class="section">
+    <div class="container">
+      <p class="eyebrow">Section primitive</p>
+      <h2 class="display-l">A confident section heading</h2>
+      <p class="lede">Lede paragraph: this is the maximum width readable size at <code>--fs-body-l</code>. Used for hero sub-tagline and section ledes.</p>
+
+      <p class="eyebrow" style="margin-top: var(--sp-9);">Buttons</p>
+      <div style="display: flex; gap: var(--sp-3); flex-wrap: wrap; margin-top: var(--sp-3);">
+        <a class="btn btn--primary" href="#">Let's CoCreate</a>
+        <a class="btn btn--ghost"   href="#">See what we've built</a>
+        <a class="btn btn--primary btn--lg" href="#">Primary · large</a>
+        <a class="btn btn--ghost btn--sm"   href="#">Ghost · small</a>
+      </div>
+    </div>
+  </section>
+</body>
+</html>
