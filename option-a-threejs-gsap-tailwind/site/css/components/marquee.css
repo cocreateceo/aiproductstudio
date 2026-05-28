@@ -1,0 +1,31 @@
+/* CoCreate · infinite horizontal marquee (wordmarks/logos).
+   Uses two copies of the track to scroll seamlessly.
+   Pauses on hover; honours prefers-reduced-motion. */
+.marquee {
+  position: relative;
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.marquee__track {
+  display: flex;
+  gap: var(--sp-9);
+  width: max-content;
+  animation: marquee-scroll 40s linear infinite;
+}
+.marquee:hover .marquee__track { animation-play-state: paused; }
+.marquee__item {
+  font-family: var(--ff-display);
+  font-weight: 700;
+  font-size: var(--fs-display-m);
+  color: var(--text-secondary);
+  opacity: 0.7;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee__track { animation: none; }
+}

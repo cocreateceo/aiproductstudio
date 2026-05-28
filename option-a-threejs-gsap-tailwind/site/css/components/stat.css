@@ -1,0 +1,38 @@
+/* CoCreate · big-number stat block.
+   3-up grid container (.stats) + individual blocks (.stat). */
+.stats {
+  display: grid;
+  gap: var(--sp-7);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-top: var(--sp-9);
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-6) var(--sp-5);
+  border-radius: var(--r-lg);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+.stat__num {
+  font-family: var(--ff-display);
+  font-weight: 800;
+  font-size: clamp(2.2rem, 4.5vw, 3.5rem);
+  letter-spacing: var(--ls-display);
+  line-height: 1;
+  background: linear-gradient(135deg, var(--accent), var(--secondary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.stat__label {
+  font-family: var(--ff-display);
+  font-weight: 600;
+  font-size: var(--fs-title-m);
+  color: var(--text-primary);
+}
+.stat__caption {
+  font-size: var(--fs-body-s);
+  color: var(--text-secondary);
+}
