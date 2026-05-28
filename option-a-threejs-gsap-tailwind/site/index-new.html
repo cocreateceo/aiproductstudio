@@ -24,6 +24,9 @@
   <link rel="stylesheet" href="css/components/accordion.css">
   <link rel="stylesheet" href="css/components/cinematic.css">
   <link rel="stylesheet" href="css/components/cta.css">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+  <script>if (window.gsap && window.ScrollTrigger) window.gsap.registerPlugin(window.ScrollTrigger);</script>
   <link rel="stylesheet" href="css/pages/home.css">
   <link rel="preload" as="image" href="assets/projects/vedic-astro.webp">
   <link rel="preload" as="image" href="assets/projects/tradewell.webp">
@@ -112,6 +115,45 @@
     </div>
   </section>
 
+  <!-- BLOCK 5 — HOW IT WORKS -->
+  <section class="section">
+    <div class="container">
+      <p class="eyebrow">How it works</p>
+      <h2 class="display-l">Three weeks. Three steps.</h2>
+      <p class="lede">Lean. Honest. Built around the founder, not the agency.</p>
+      <div class="steps">
+        <div class="step step--active">
+          <div class="step__num">1</div>
+          <div class="step__title">Share your idea</div>
+          <p class="step__body">A 30-minute call to align on vision, audience, and the first slice of the product.</p>
+        </div>
+        <div class="step">
+          <div class="step__num">2</div>
+          <div class="step__title">CoCreate in 2 weeks</div>
+          <p class="step__body">Design, build, and ship the MVP together — you stay close, we stay fast.</p>
+        </div>
+        <div class="step">
+          <div class="step__num">3</div>
+          <div class="step__title">Launch &amp; grow</div>
+          <p class="step__body">We keep going post-launch — iterate, scale, and own the upside together.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BLOCK 6 — OUR APPROACH (CINEMATIC) -->
+  <section class="cinematic">
+    <div class="cinematic__bg" style="background-image: url('assets/cocreate_bg.png');"></div>
+    <div class="cinematic__inner">
+      <p class="eyebrow" style="color: var(--accent);">Our approach</p>
+      <h2 class="cinematic__title">Where ideas meet AI.</h2>
+      <p class="cinematic__sub">We're not a dev shop. We're the AI-native co-founder who builds the product with you, on shared risk and shared upside — so the vision actually ships.</p>
+      <div class="cinematic__cta">
+        <a class="btn btn--ghost btn--lg" href="/who-we-are.html">Our way →</a>
+      </div>
+    </div>
+  </section>
+
   <script src="js/projects-data.js"></script>
   <script src="js/projects-render.js"></script>
   <script>
@@ -148,5 +190,6 @@
       }).join('');
     })();
   </script>
+  <script src="js/cinematic.js"></script>
 </body>
 </html>
