@@ -1,0 +1,30 @@
+/* CoCreate · final CTA band (full-width, oversized headline + button). */
+.cta-band {
+  position: relative;
+  padding: var(--sp-14) var(--container-px);
+  text-align: center;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255, 195, 106, 0.18), transparent 60%),
+              var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+}
+.cta-band__title {
+  font-family: var(--ff-display);
+  font-weight: 800;
+  font-size: var(--fs-display-l);
+  letter-spacing: var(--ls-section);
+  margin-bottom: var(--sp-5);
+}
+.cta-band__sub {
+  color: var(--text-secondary);
+  font-size: var(--fs-body-l);
+  max-width: 56ch;
+  margin-inline: auto;
+  margin-bottom: var(--sp-7);
+}
+.cta-band__actions {
+  display: inline-flex;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  justify-content: center;
+}

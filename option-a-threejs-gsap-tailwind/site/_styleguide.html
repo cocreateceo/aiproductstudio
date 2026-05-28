@@ -15,6 +15,10 @@
   <link rel="stylesheet" href="css/components/badge.css">
   <link rel="stylesheet" href="css/components/stat.css">
   <link rel="stylesheet" href="css/components/marquee.css">
+  <link rel="stylesheet" href="css/components/steps.css">
+  <link rel="stylesheet" href="css/components/quote.css">
+  <link rel="stylesheet" href="css/components/accordion.css">
+  <link rel="stylesheet" href="css/components/cta.css">
   <style>
     body { background: var(--bg-primary); color: var(--text-primary); }
     .sg-grid { display: grid; gap: var(--sp-6); grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
@@ -97,6 +101,60 @@
           <span class="marquee__item">SpeakWell</span>
           <span class="marquee__item">Trustwise</span>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <p class="eyebrow">Steps</p>
+      <div class="steps">
+        <div class="step step--active">
+          <div class="step__num">1</div>
+          <div class="step__title">Share your idea</div>
+          <p class="step__body">A 30-minute call to align on vision, audience, and the first slice.</p>
+        </div>
+        <div class="step">
+          <div class="step__num">2</div>
+          <div class="step__title">CoCreate in 2 weeks</div>
+          <p class="step__body">Design, build, and ship the MVP together — you stay close, we stay fast.</p>
+        </div>
+        <div class="step">
+          <div class="step__num">3</div>
+          <div class="step__title">Launch &amp; grow</div>
+          <p class="step__body">We keep going post-launch — iterate, scale, and own the upside together.</p>
+        </div>
+      </div>
+
+      <p class="eyebrow" style="margin-top: var(--sp-12);">Quote</p>
+      <blockquote class="quote">
+        <img class="quote__avatar" src="assets/cocreate-icon.svg" alt="">
+        <div>
+          <p class="quote__text">CoCreate didn't quote me a number. They built the product with me and bet on the outcome — that's a co-founder, not a vendor.</p>
+          <p class="quote__attrib"><strong>Founder voice</strong> · placeholder, to be replaced with real testimonial</p>
+        </div>
+      </blockquote>
+
+      <p class="eyebrow" style="margin-top: var(--sp-12);">Accordion (FAQ)</p>
+      <div class="accordion">
+        <details class="accordion__item" open>
+          <summary class="accordion__q">How fast can we ship the first version?</summary>
+          <div class="accordion__a">Two weeks from kick-off, every time — that's the deal. Scope is shaped to fit that window.</div>
+        </details>
+        <details class="accordion__item">
+          <summary class="accordion__q">What's the catch with $0 upfront?</summary>
+          <div class="accordion__a">No catch — we share the risk because we share the upside. The co-founder model details are on the partnership page.</div>
+        </details>
+      </div>
+
+      <p class="eyebrow" style="margin-top: var(--sp-12);">Final CTA band</p>
+    </div>
+    <div class="cta-band">
+      <h2 class="cta-band__title">Ready to CoCreate?</h2>
+      <p class="cta-band__sub">Imagine. CoCreate. Done! Bring the vision, we'll bring the product.</p>
+      <div class="cta-band__actions">
+        <a class="btn btn--primary btn--lg" href="https://calendly.com/cocreateceo/30min">Let's CoCreate</a>
+        <a class="btn btn--ghost btn--lg" href="/projects.html">See what we've built</a>
       </div>
     </div>
   </section>

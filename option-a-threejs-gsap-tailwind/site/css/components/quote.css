@@ -1,0 +1,49 @@
+/* CoCreate · pull-quote / testimonial block. */
+.quote {
+  display: grid;
+  gap: var(--sp-6);
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  max-width: 880px;
+  margin-inline: auto;
+  padding: var(--sp-8) var(--sp-7);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--r-xl);
+  position: relative;
+}
+.quote::before {
+  content: '\201C';
+  position: absolute;
+  top: -28px;
+  left: var(--sp-7);
+  font-family: var(--ff-display);
+  font-weight: 800;
+  font-size: 5rem;
+  color: var(--accent);
+  line-height: 1;
+}
+.quote__avatar {
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--accent);
+}
+.quote__text {
+  font-family: var(--ff-display);
+  font-weight: 500;
+  font-size: var(--fs-title-l);
+  line-height: var(--lh-snug);
+  color: var(--text-primary);
+}
+.quote__attrib {
+  margin-top: var(--sp-3);
+  font-size: var(--fs-body-s);
+  color: var(--text-secondary);
+}
+.quote__attrib strong { color: var(--text-primary); font-weight: 600; }
+@media (max-width: 640px) {
+  .quote { grid-template-columns: 1fr; text-align: center; }
+  .quote__avatar { margin-inline: auto; }
+}

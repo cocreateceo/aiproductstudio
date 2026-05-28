@@ -1,0 +1,38 @@
+/* CoCreate · accessible accordion (uses native <details>/<summary>). */
+.accordion { display: grid; gap: var(--sp-3); max-width: 800px; margin-inline: auto; }
+.accordion__item {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+.accordion__q {
+  list-style: none;
+  cursor: pointer;
+  padding: var(--sp-5) var(--sp-6);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  font-family: var(--ff-display);
+  font-weight: 600;
+  font-size: var(--fs-title-m);
+  color: var(--text-primary);
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.accordion__q::-webkit-details-marker { display: none; }
+.accordion__q::after {
+  content: '+';
+  font-family: var(--ff-display);
+  font-weight: 600;
+  font-size: 1.5rem;
+  color: var(--accent);
+  transition: transform var(--dur-base) var(--ease-spring);
+}
+.accordion__item[open] .accordion__q::after { transform: rotate(45deg); }
+.accordion__item:hover .accordion__q { background: rgba(255, 255, 255, 0.03); }
+.accordion__a {
+  padding: 0 var(--sp-6) var(--sp-6);
+  color: var(--text-secondary);
+  line-height: var(--lh-relaxed);
+}
