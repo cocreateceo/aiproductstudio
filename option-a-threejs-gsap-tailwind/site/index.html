@@ -193,15 +193,9 @@
     .nav-dropdown-new a:hover {
       color: white; background: rgba(255,255,255,0.05);
     }
-    [data-theme="ember"] .nav-dropdown-new {
-      background: rgba(255,255,255,0.98);
-      border-color: rgba(0,0,0,0.08);
-      box-shadow: 0 10px 40px rgba(0,0,0,0.15);
-    }
-    [data-theme="ember"] .nav-dropdown-new a { color: rgba(0,0,0,0.6); }
-    [data-theme="ember"] .nav-dropdown-new a:hover {
-      color: rgba(0,0,0,0.9); background: rgba(0,0,0,0.04);
-    }
+    /* Nav dropdown — stays on the theme (no light-card inversion).
+       Removed: previous [data-theme="ember"] override that forced a
+       white background with black text — unreadable / off-brand on dark themes. */
 
     /* Theme Switcher */
     .theme-switcher { position: relative; }
