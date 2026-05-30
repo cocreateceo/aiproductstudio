@@ -1,187 +1,212 @@
-/* CoCreate · card component
-   Used by projects.html, projects-category.html, and the new home.html
-   product-showcase block. Variants: default, .proj-card--featured. */
+/* CoCreate · card component — Vedics glass-morphism.
+   Selector names preserved so projects-render.js + index.html consumers
+   are unaffected. .cc-card is the canonical primitive for net-new sections. */
 
+/* Glass-card primitive (use for any new section) */
+.cc-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--r-lg);
+  backdrop-filter: blur(20px) saturate(120%);
+  -webkit-backdrop-filter: blur(20px) saturate(120%);
+  box-shadow: var(--shadow-md);
+  transition: transform var(--transition-speed) var(--ease-smooth),
+              border-color var(--transition-speed) var(--ease-smooth),
+              background var(--transition-speed) var(--ease-smooth),
+              box-shadow var(--transition-speed) var(--ease-smooth);
+}
+.cc-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent);
+  background: var(--bg-card-hover);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Projects grid (same name as before — used by projects.html + home) */
 .proj-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.75rem;
+  gap: var(--s-5);
 }
 
+/* Project card (glass-morphism rewrite, same selectors) */
 .proj-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   background: var(--bg-card);
-  backdrop-filter: blur(20px);
   border: 1px solid var(--border-color);
-  border-radius: 1.25rem;
+  border-radius: var(--r-lg);
+  backdrop-filter: blur(20px) saturate(120%);
+  -webkit-backdrop-filter: blur(20px) saturate(120%);
+  box-shadow: var(--shadow-md);
   overflow: hidden;
-  height: 100%;
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s ease, border-color 0.4s ease;
+  cursor: pointer;
+  transition: transform var(--transition-speed) var(--ease-smooth),
+              border-color var(--transition-speed) var(--ease-smooth),
+              background var(--transition-speed) var(--ease-smooth),
+              box-shadow var(--transition-speed) var(--ease-smooth);
 }
 .proj-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 18px 46px var(--glow-color);
-  border-color: var(--primary);
+  transform: translateY(-8px) scale(1.01);
+  border-color: var(--accent);
+  background: var(--bg-card-hover);
+  box-shadow: var(--shadow-lg);
+}
+.proj-card:focus-visible {
+  outline: none;
+  box-shadow: var(--sh-focus);
 }
 
-/* Branded gradient tile */
+/* Tile (image area at top of card) */
 .proj-tile {
   position: relative;
-  height: 150px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 55%, var(--accent) 100%);
+  aspect-ratio: 16 / 10;
+  background: var(--grad-cta);
   overflow: hidden;
 }
 .proj-tile::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 72% 18%, rgba(255, 255, 255, 0.22), transparent 60%);
-}
-.proj-tile .tile-icon {
-  width: 52px;
-  height: 52px;
-  color: rgba(255, 255, 255, 0.95);
-  position: relative;
+  background: linear-gradient(180deg, transparent 50%, rgba(0, 0, 0, 0.35) 100%);
   z-index: 1;
-  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.25));
 }
-.proj-tile .tile-initial {
+.tile-icon {
   position: absolute;
-  right: 16px;
-  bottom: 2px;
-  font-family: 'Outfit', sans-serif;
-  font-weight: 800;
-  font-size: 64px;
-  line-height: 1;
-  color: rgba(255, 255, 255, 0.16);
+  top: 50%; left: 50%;
+  width: 80px; height: 80px;
+  transform: translate(-50%, -50%);
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.5);
+  stroke-width: 1.5;
   z-index: 0;
 }
-
-/* Real live-site screenshot — covers the gradient+icon when it loads.
-   Sits above the icon (z-index 1) but below the status badge (z-index 2). */
-.proj-tile .tile-shot {
+.tile-initial {
+  position: absolute;
+  bottom: 8px; right: 12px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 96px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.12);
+  z-index: 0;
+}
+.tile-shot {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
+  width: 100%; height: 100%;
   object-fit: cover;
   object-position: top center;
-  z-index: 1;
-  background: var(--bg-card);
-  animation: tile-shot-in 0.5s ease;
+  z-index: 0;
+  animation: tile-shot-in var(--transition-speed) var(--ease-smooth);
 }
-@keyframes tile-shot-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-.proj-card:hover .tile-shot { transform: scale(1.04); }
-.proj-tile.has-shot .tile-shot { transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
-/* Themed stock photos read best centered; screenshots stay top-anchored. */
-.proj-tile .tile-shot--photo { object-position: center center; }
+.tile-shot--photo { object-position: center center; }
 
-/* Cards are clickable → open the detail modal. */
-.proj-card { cursor: pointer; }
-.proj-card:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+@keyframes tile-shot-in {
+  from { opacity: 0; transform: scale(1.04); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* "View details" hint on tile */
 .proj-tile-hint {
   position: absolute;
-  bottom: 10px;
-  right: 12px;
-  z-index: 2;
-  display: inline-flex;
+  inset: 0;
+  display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
-  border-radius: 100px;
-  font-size: 0.68rem;
-  font-weight: 600;
+  justify-content: center;
+  z-index: 2;
+  background: linear-gradient(180deg, transparent 50%, rgba(0, 0, 0, 0.55) 100%);
   color: #fff;
-  background: rgba(0, 0, 0, 0.42);
-  backdrop-filter: blur(6px);
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  font: 600 0.875rem var(--font-display);
+  letter-spacing: var(--track-cta);
+  text-transform: uppercase;
   opacity: 0;
-  transform: translateY(6px);
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition: opacity var(--transition-speed) var(--ease-smooth);
 }
 .proj-card:hover .proj-tile-hint,
-.proj-card:focus-visible .proj-tile-hint { opacity: 1; transform: translateY(0); }
+.proj-card:focus-visible .proj-tile-hint { opacity: 1; }
 
-/* Status badge */
+/* Status badge (overlay top-right of tile) */
 .proj-badge {
   position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 2;
+  top: var(--s-3);
+  right: var(--s-3);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 11px;
-  border-radius: 100px;
-  font-size: 0.68rem;
-  font-weight: 700;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-pill);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(12px);
+  color: #fff;
+  font: 600 0.7rem var(--font-display);
+  letter-spacing: var(--track-cta);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  backdrop-filter: blur(6px);
+  z-index: 3;
 }
-.proj-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-.proj-badge.live { background: rgba(16, 185, 129, 0.22); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.45); }
-.proj-badge.soon { background: rgba(0, 0, 0, 0.28); color: #fff; border: 1px solid rgba(255, 255, 255, 0.35); }
+.proj-badge .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.18);
+}
+.proj-badge.live { color: #22c55e; }
+.proj-badge.soon { color: var(--cc-peach); }
 
 /* Card body */
 .proj-body {
   display: flex;
   flex-direction: column;
   flex: 1;
-  padding: 1.2rem 1.4rem 1.4rem;
-}
-.proj-cat-tag {
-  font-size: 0.68rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
-  margin-bottom: 0.45rem;
+  padding: var(--s-5);
+  gap: var(--s-2);
 }
 .proj-body h3 {
-  font-size: 1.18rem;
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-display);
   font-weight: 700;
-  margin-bottom: 0.5rem;
+  font-size: 1.15rem;
+  color: var(--text-primary);
+  letter-spacing: var(--track-tight);
 }
 .proj-body p {
   flex: 1;
+  font-size: 0.9rem;
+  line-height: 1.6;
   color: var(--text-secondary);
-  line-height: 1.55;
-  margin-bottom: 1.15rem;
-  font-size: 0.95rem;
+}
+.proj-cat-tag {
+  display: inline-block;
+  font: 600 0.65rem var(--font-display);
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Visit Live CTA + Coming Soon variants */
+.proj-visit, .proj-soon {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-top: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-pill);
+  font: 600 0.85rem var(--font-display);
+  letter-spacing: var(--track-cta);
+  align-self: flex-start;
+  transition: transform var(--transition-speed) var(--ease-smooth),
+              box-shadow var(--transition-speed) var(--ease-smooth);
 }
 .proj-visit {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  align-self: flex-start;
-  padding: 0.6rem 1.1rem;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  font-weight: 600;
+  background: var(--grad-cta);
   color: #fff;
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: var(--shadow-cta);
 }
-.proj-visit:hover { transform: translateY(-1px); box-shadow: 0 6px 22px var(--glow-color); }
+.proj-visit:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-cta-h);
+}
 .proj-soon {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  align-self: flex-start;
-  padding: 0.6rem 1.1rem;
-  border-radius: 8px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-muted);
-  border: 1px dashed var(--border-color);
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
 }
