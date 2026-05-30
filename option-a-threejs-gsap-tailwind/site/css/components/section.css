@@ -1,49 +1,59 @@
-/* CoCreate · section + container + eyebrow + display headings + lede.
-   Vertical rhythm: --sec-py top/bottom. Horizontal: --container-px. */
+/* CoCreate · section primitives — container, headings, lede.
+   .eyebrow now lives in base.css for cross-component reuse.
+   Section vertical rhythm uses --sec-py. */
+
 .section {
-  padding: var(--sec-py) 0;
   position: relative;
+  padding-top: var(--sec-py);
+  padding-bottom: var(--sec-py);
 }
+
 .container {
   width: 100%;
   max-width: var(--container-max);
   margin-inline: auto;
   padding-inline: var(--container-px);
+  position: relative;
+  z-index: 1;
 }
-.eyebrow {
-  font-family: var(--ff-body);
-  font-weight: 600;
-  font-size: var(--fs-caption);
-  letter-spacing: var(--ls-caption);
-  text-transform: uppercase;
-  color: var(--accent);
-  margin-bottom: var(--sp-3);
-}
+
 .display-xl {
-  font-family: var(--ff-display);
+  font-family: var(--font-display);
   font-weight: 700;
-  font-size: var(--fs-display-xl);
-  letter-spacing: var(--ls-display);
-  line-height: var(--lh-tight);
+  font-size: clamp(2.5rem, 6vw, 5rem);
+  letter-spacing: var(--track-display);
+  line-height: 1.02;
 }
+
 .display-l {
-  font-family: var(--ff-display);
+  font-family: var(--font-display);
   font-weight: 700;
-  font-size: var(--fs-display-l);
-  letter-spacing: var(--ls-section);
-  line-height: var(--lh-tight);
+  font-size: clamp(1.75rem, 3.5vw, 3rem);
+  letter-spacing: var(--track-tight);
+  line-height: 1.1;
 }
+
 .display-m {
-  font-family: var(--ff-display);
+  font-family: var(--font-display);
   font-weight: 600;
-  font-size: var(--fs-display-m);
-  line-height: var(--lh-snug);
+  font-size: 1.75rem;
+  letter-spacing: var(--track-tight);
+  line-height: 1.2;
 }
+
 .lede {
-  font-family: var(--ff-body);
-  font-size: var(--fs-body-l);
-  line-height: var(--lh-relaxed);
+  font-family: var(--font-body);
+  font-size: 1.125rem;
+  line-height: 1.7;
   color: var(--text-secondary);
-  max-width: 56ch;
-  margin-top: var(--sp-4);
+  max-width: 60ch;
+}
+
+/* Gradient phrase utility — applied to a single <span> per page */
+.gradient-word {
+  background: var(--grad-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  display: inline-block;
 }
