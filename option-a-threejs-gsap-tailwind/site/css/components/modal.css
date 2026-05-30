@@ -1,109 +1,128 @@
-/* CoCreate · modal component
-   Used by projects.html, projects-category.html, and the new home.html
-   product-showcase block. Opens when a .proj-card is clicked. */
+/* CoCreate · detail modal — glass panel rewrite.
+   Selectors preserved (.proj-modal*, body.proj-modal-open, @keyframes pm-*) */
 
-/* ----------------------------- Detail modal ----------------------------- */
 .proj-modal {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: var(--z-modal);
   display: none;
   align-items: center;
   justify-content: center;
-  padding: 1.25rem;
+  padding: var(--s-5);
 }
-.proj-modal.is-open { display: flex; }
+.proj-modal.is-open { display: flex; animation: pm-fade var(--transition-speed) var(--ease-smooth); }
+
 body.proj-modal-open { overflow: hidden; }
 
 .proj-modal__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(6, 8, 14, 0.72);
-  backdrop-filter: blur(6px);
-  animation: pm-fade 0.25s ease;
+  z-index: var(--z-modal-backdrop);
+  background: rgba(13, 5, 0, 0.78);
+  backdrop-filter: blur(8px);
 }
+
 .proj-modal__panel {
   position: relative;
-  z-index: 1;
-  width: min(620px, 100%);
-  max-height: calc(100dvh - 2.5rem);
+  z-index: calc(var(--z-modal) + 1);
+  max-width: 720px;
+  width: 100%;
+  max-height: calc(100vh - 2 * var(--s-5));
   overflow-y: auto;
-  background: var(--bg-card, #12141c);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 1.25rem;
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
-  animation: pm-rise 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: var(--r-lg);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  box-shadow: var(--shadow-lg);
+  animation: pm-rise var(--transition-speed) var(--ease-out);
 }
-@keyframes pm-fade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes pm-rise { from { opacity: 0; transform: translateY(18px) scale(0.98); } to { opacity: 1; transform: none; } }
 
 .proj-modal__close {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 3;
+  top: var(--s-4);
+  right: var(--s-4);
+  width: 36px;
+  height: 36px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  color: #fff;
+  border-radius: var(--r-pill);
   background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(6px);
-  cursor: pointer;
-  transition: background 0.2s ease, transform 0.2s ease;
+  color: #fff;
+  z-index: 2;
+  transition: background var(--transition-speed) var(--ease-smooth);
 }
-.proj-modal__close:hover { background: rgba(0, 0, 0, 0.65); transform: rotate(90deg); }
+.proj-modal__close:hover { background: var(--primary); }
 
-/* Reuse .proj-tile gradient/layers, just taller + rounded top only. */
-.proj-modal__media.proj-tile {
-  height: 250px;
-  border-radius: 1.25rem 1.25rem 0 0;
+.proj-modal__media {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-top-left-radius: var(--r-lg);
+  border-top-right-radius: var(--r-lg);
 }
-.proj-modal__media .tile-icon { width: 66px; height: 66px; }
-.proj-modal__media .tile-initial { font-size: 96px; }
+.proj-modal__media .tile-shot,
+.proj-modal__media .proj-tile { aspect-ratio: 16 / 9; }
 
-.proj-modal__body { padding: 1.5rem 1.6rem 1.7rem; }
-.proj-modal__body .proj-cat-tag { margin-bottom: 0.5rem; }
+.proj-modal__body {
+  padding: var(--s-6);
+}
 .proj-modal__body h2 {
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-display);
   font-weight: 700;
-  font-size: 1.6rem;
-  line-height: 1.15;
-  margin-bottom: 0.7rem;
+  font-size: 1.75rem;
+  letter-spacing: var(--track-tight);
+  margin-top: var(--s-2);
 }
+.proj-modal__body .proj-cat-tag {
+  display: inline-block;
+}
+
 .proj-modal__overview {
+  margin-top: var(--s-4);
   color: var(--text-secondary);
   line-height: 1.6;
-  font-size: 1rem;
-  margin-bottom: 1.2rem;
 }
+
 .proj-modal__highlights {
-  list-style: none;
-  margin: 0 0 1.5rem;
-  padding: 0;
+  margin-top: var(--s-5);
   display: grid;
-  gap: 0.6rem;
+  gap: var(--s-3);
+  list-style: none;
+  padding: 0;
 }
 .proj-modal__highlights li {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: var(--s-3);
   color: var(--text-primary);
   font-size: 0.95rem;
-  line-height: 1.45;
 }
 .proj-modal__highlights svg {
   flex-shrink: 0;
-  margin-top: 2px;
-  color: var(--primary);
+  color: var(--accent);
 }
-.proj-modal__actions { display: flex; }
-.proj-modal__actions .proj-visit { font-size: 0.92rem; padding: 0.7rem 1.3rem; }
+
+.proj-modal__actions {
+  margin-top: var(--s-6);
+  display: flex;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+
+@keyframes pm-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes pm-rise {
+  from { opacity: 0; transform: translateY(20px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
 
 @media (max-width: 520px) {
-  .proj-modal__media.proj-tile { height: 190px; }
-  .proj-modal__body h2 { font-size: 1.35rem; }
+  .proj-modal { padding: 0; }
+  .proj-modal__panel { max-height: 100vh; border-radius: 0; }
+  .proj-modal__media { border-radius: 0; }
+  .proj-modal__body { padding: var(--s-5); }
 }
