@@ -486,20 +486,19 @@
   </section>
 
   <!-- BLOCK 2 — WORDMARK MARQUEE -->
-  <section class="section" style="padding-top: var(--sp-7); padding-bottom: var(--sp-7);">
-    <div class="container">
-      <p class="eyebrow" style="text-align:center;">Products live in market</p>
-    </div>
-    <div class="marquee" id="js-marquee" style="margin-top: var(--sp-5);">
-      <div class="marquee__track" id="js-marquee-track"></div>
+  <section class="home-marquee">
+    <div class="marquee">
+      <div class="marquee__track" id="js-marquee-track">
+        <!-- populated by IIFE in Task 15 -->
+      </div>
     </div>
   </section>
 
   <!-- BLOCK 3 — OUTCOMES (3 STATS) -->
   <section class="section">
     <div class="container">
-      <p class="eyebrow">Outcomes</p>
-      <h2 class="display-l">Built for founders who want to ship — not just specs.</h2>
+      <p class="eyebrow home-outcomes__eyebrow">Outcomes</p>
+      <h2 class="display-l home-outcomes__h2">Built for founders who want to <span class="gradient-word">ship</span> &mdash; not just specs.</h2>
       <div class="stats">
         <div class="stat">
           <div class="stat__num">2 Weeks</div>
@@ -512,7 +511,7 @@
           <div class="stat__caption">Shared-risk, shared-upside co-founder model.</div>
         </div>
         <div class="stat">
-          <div class="stat__num"><span id="js-live-count-2">17</span></div>
+          <div class="stat__num" id="js-live-count-2">17</div>
           <div class="stat__label">products live</div>
           <div class="stat__caption">Shipped and serving real users today.</div>
         </div>

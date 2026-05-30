@@ -41,3 +41,20 @@
 .home-hero__trust {
   display: inline-flex;
 }
+
+/* BLOCK 2 — marquee */
+.home-marquee {
+  padding-block: var(--s-6);
+}
+
+/* BLOCK 3 — outcomes */
+.home-outcomes__eyebrow {
+  text-align: center;
+  display: block;
+}
+.home-outcomes__h2 {
+  text-align: center;
+  margin-top: var(--s-3);
+  max-width: 22ch;
+  margin-inline: auto;
+}
