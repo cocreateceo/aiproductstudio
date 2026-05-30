@@ -1,74 +1,200 @@
-/* CoCreate design tokens — non-color foundation.
-   Color tokens live in css/themes/<theme>.css (ember default).
-   Additive: safe to load alongside any existing per-page CSS. */
-:root {
-  /* Spacing — 4px base, 8px scale */
-  --sp-1:  4px;  --sp-2:  8px;  --sp-3: 12px; --sp-4: 16px;
-  --sp-5: 20px;  --sp-6: 24px;  --sp-7: 32px; --sp-8: 40px;
-  --sp-9: 48px;  --sp-10: 56px; --sp-11: 64px; --sp-12: 80px;
-  --sp-13: 96px; --sp-14: 120px; --sp-15: 160px; --sp-16: 200px;
+/* CoCreate design tokens — Vedics design system foundation.
+   Source: design/Vedics Design System_FInal/colors_and_type.css.
+   Color tokens are theme-aware (themes/<name>.css overrides).
+   Brand primitives are constants. Aliases at the bottom keep
+   prior component CSS files working without find-and-replace. */
 
-  /* Section + container */
+:root {
+  /* ────────────────────────────────────────────────────────────────────── */
+  /* BRAND PRIMITIVES — theme-agnostic constants                            */
+  /* ────────────────────────────────────────────────────────────────────── */
+  --cc-peach:        #FFC36A;
+  --cc-coral:        #FE9F7D;
+  --cc-coral-red:    #FD6C71;
+  --cc-vermillion:   #FC2A0D;
+  --cc-ink:          #1A0A00;
+  --cc-ink-deep:     #0D0500;
+  --cc-ember-bg-2:   #2D1408;
+  --cc-ember-card:   rgba(45, 20, 8, 0.85);
+  --cc-ember-card-h: rgba(60, 28, 12, 0.9);
+  --cc-cream:        #FFF8F0;
+  --cc-cream-mid:    #FFCBA4;
+  --cc-cream-dim:    #C4916C;
+
+  /* ────────────────────────────────────────────────────────────────────── */
+  /* SEMANTIC TOKENS — default (ember theme overrides these in themes/*)    */
+  /* ────────────────────────────────────────────────────────────────────── */
+  --bg-primary:      var(--cc-ink);
+  --bg-secondary:    var(--cc-ember-bg-2);
+  --bg-card:         var(--cc-ember-card);
+  --bg-card-hover:   var(--cc-ember-card-h);
+
+  --text-primary:    var(--cc-cream);
+  --text-secondary:  var(--cc-cream-mid);
+  --text-muted:      var(--cc-cream-dim);
+
+  --primary:         var(--cc-vermillion);
+  --secondary:       var(--cc-coral-red);
+  --accent:          var(--cc-peach);
+
+  --border-color:    rgba(252, 42, 13, 0.25);
+  --nav-bg:          rgba(26, 10, 0, 0.9);
+  --glow-color:      rgba(252, 42, 13, 0.35);
+
+  /* ────────────────────────────────────────────────────────────────────── */
+  /* SIGNATURE GRADIENTS                                                    */
+  /* ────────────────────────────────────────────────────────────────────── */
+  --grad-brand: linear-gradient(135deg, var(--accent) 0%, var(--primary) 50%, var(--secondary) 100%);
+  --grad-cta:   linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  --grad-mesh:
+    radial-gradient(ellipse 80% 60% at 30% 20%, rgba(255, 195, 106, 0.4) 0%, transparent 50%),
+    radial-gradient(ellipse 70% 80% at 70% 60%, rgba(252, 42, 13, 0.5) 0%, transparent 50%),
+    radial-gradient(ellipse 90% 70% at 50% 90%, rgba(139, 37, 0, 0.6) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 50% at 80% 20%, rgba(253, 108, 113, 0.3) 0%, transparent 45%),
+    linear-gradient(180deg, #1A0A00 0%, #0D0500 100%);
+
+  /* ────────────────────────────────────────────────────────────────────── */
+  /* SPACING — 4 px ladder                                                  */
+  /* ────────────────────────────────────────────────────────────────────── */
+  --s-1:  4px;
+  --s-2:  8px;
+  --s-3:  12px;
+  --s-4:  16px;
+  --s-5:  24px;
+  --s-6:  32px;
+  --s-7:  48px;
+  --s-8:  64px;
+  --s-9:  96px;
+  --s-10: 128px;
+  --nav-height: 80px;
+
+  /* Section + container (carry over) */
   --sec-py: clamp(64px, 8vw, 120px);
   --container-max: 1200px;
   --container-px: clamp(20px, 4vw, 40px);
 
-  /* Type scale (fluid, clamped) */
-  --fs-display-xl: clamp(2.5rem, 6vw, 5rem);
-  --fs-display-l:  clamp(2rem, 4.5vw, 3.5rem);
-  --fs-display-m:  1.75rem;
-  --fs-title-l:    1.35rem;
-  --fs-title-m:    1.25rem;
-  --fs-body-l:     1.125rem;
-  --fs-body-m:     1rem;
-  --fs-body-s:     0.875rem;
-  --fs-caption:    0.78rem;
-  --ls-display:    -0.03em;
-  --ls-section:    -0.02em;
-  --ls-caption:    0.08em;
-  --lh-tight:      1.1;
-  --lh-snug:       1.3;
-  --lh-normal:     1.55;
-  --lh-relaxed:    1.7;
+  /* Parallax variable for the cinematic background (driven by GSAP) */
+  --cc-bg-y: 0px;
 
-  /* Font families (loaded via Google Fonts links in <head>) */
-  --ff-display: 'Outfit', system-ui, -apple-system, sans-serif;
-  --ff-body:    'DM Sans', system-ui, -apple-system, sans-serif;
-  --ff-mono:    ui-monospace, 'JetBrains Mono', Menlo, monospace;
-
-  /* Radius */
-  --r-sm:   6px;
-  --r-md:  10px;
-  --r-lg:  16px;
-  --r-xl:  24px;
-  --r-2xl: 32px;
+  /* ────────────────────────────────────────────────────────────────────── */
+  /* RADII                                                                  */
+  /* ────────────────────────────────────────────────────────────────────── */
+  --r-xs:   4px;
+  --r-sm:   8px;
+  --r-md:   12px;
+  --r-lg:   16px;
+  --r-xl:   20px;
+  --r-2xl:  24px;
+  --r-pill: 9999px;
   --r-full: 999px;
 
-  /* Shadows (kept theme-agnostic; glow color picks up --accent if defined) */
-  --sh-sm: 0 2px 6px rgba(0, 0, 0, 0.18);
-  --sh-md: 0 6px 18px rgba(0, 0, 0, 0.24);
-  --sh-lg: 0 30px 80px rgba(0, 0, 0, 0.55);
-  --sh-glow: 0 12px 36px var(--glow-color, rgba(255, 195, 106, 0.28));
-  --sh-focus: 0 0 0 3px var(--focus-color, rgba(255, 195, 106, 0.45));
+  /* ────────────────────────────────────────────────────────────────────── */
+  /* SHADOWS — warm-tinted                                                  */
+  /* ────────────────────────────────────────────────────────────────────── */
+  --shadow-sm:    0 4px 12px rgba(0, 0, 0, 0.25);
+  --shadow-md:    0 8px 32px rgba(252, 42, 13, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --shadow-lg:    0 12px 48px rgba(252, 42, 13, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --shadow-glow:  0 0 20px var(--glow-color);
+  --shadow-glow-strong: 0 0 40px var(--glow-color), 0 0 60px rgba(255, 195, 106, 0.2);
+  --shadow-cta:   0 4px 20px rgba(252, 42, 13, 0.4);
+  --shadow-cta-h: 0 8px 32px rgba(252, 42, 13, 0.6);
+  --focus-color:  rgba(255, 195, 106, 0.45);
 
-  /* Z-index */
-  --z-base: 1;
+  /* ────────────────────────────────────────────────────────────────────── */
+  /* Z-INDEX                                                                */
+  /* ────────────────────────────────────────────────────────────────────── */
   --z-nav: 100;
   --z-modal-backdrop: 1000;
   --z-modal: 1001;
   --z-toast: 1100;
 
+  /* ────────────────────────────────────────────────────────────────────── */
+  /* TYPE                                                                   */
+  /* ────────────────────────────────────────────────────────────────────── */
+  --font-display:  'Outfit', 'DM Sans', system-ui, sans-serif;
+  --font-body:     'DM Sans', system-ui, sans-serif;
+  --font-stat:     'Space Grotesk', 'Outfit', system-ui, sans-serif;
+  --font-mono:     ui-monospace, 'JetBrains Mono', Menlo, monospace;
+
+  --track-display: -0.03em;
+  --track-tight:   -0.02em;
+  --track-eyebrow: 0.18em;
+  --track-cta:     0.08em;
+
+  /* ────────────────────────────────────────────────────────────────────── */
+  /* MOTION                                                                 */
+  /* ────────────────────────────────────────────────────────────────────── */
+  --transition-speed: 0.4s;
+  --ease-out:    cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ╔══════════════════════════════════════════════════════════════════╗ */
+  /* ║ BACK-COMPAT ALIASES                                              ║ */
+  /* ║ Bridges every prior Wave 0 token name to a current value, so     ║ */
+  /* ║ surviving component CSS works without find-and-replace.          ║ */
+  /* ╚══════════════════════════════════════════════════════════════════╝ */
+
+  /* Spacing — old --sp-N → new --s-N (rounded to closest step) */
+  --sp-1:  var(--s-1);
+  --sp-2:  var(--s-2);
+  --sp-3:  var(--s-3);
+  --sp-4:  var(--s-4);
+  --sp-5:  var(--s-5);
+  --sp-6:  var(--s-5);
+  --sp-7:  var(--s-6);
+  --sp-8:  var(--s-6);
+  --sp-9:  var(--s-7);
+  --sp-10: var(--s-7);
+  --sp-11: var(--s-8);
+  --sp-12: var(--s-8);
+  --sp-13: var(--s-9);
+  --sp-14: var(--s-9);
+  --sp-15: var(--s-10);
+  --sp-16: var(--s-10);
+
+  /* Shadows */
+  --sh-sm:    var(--shadow-sm);
+  --sh-md:    var(--shadow-md);
+  --sh-lg:    var(--shadow-lg);
+  --sh-glow:  var(--shadow-glow);
+  --sh-focus: 0 0 0 3px var(--focus-color);
+
+  /* Type scale */
+  --fs-display-xl: clamp(2.25rem, 5vw, 4.5rem);
+  --fs-display-l:  clamp(1.75rem, 3.5vw, 3rem);
+  --fs-display-m:  1.75rem;
+  --fs-title-l:    1.4rem;
+  --fs-title-m:    1.25rem;
+  --fs-body-l:     1.125rem;
+  --fs-body-m:     1rem;
+  --fs-body-s:     0.875rem;
+  --fs-caption:    0.75rem;
+
+  /* Letter-spacing + line-height */
+  --ls-display: var(--track-display);
+  --ls-section: var(--track-tight);
+  --ls-caption: var(--track-eyebrow);
+  --lh-tight:   1.1;
+  --lh-snug:    1.3;
+  --lh-normal:  1.55;
+  --lh-relaxed: 1.7;
+
+  /* Font-family */
+  --ff-display: var(--font-display);
+  --ff-body:    var(--font-body);
+  --ff-mono:    var(--font-mono);
+
   /* Motion */
-  --dur-fast: 160ms;
-  --dur-base: 280ms;
-  --dur-slow: 480ms;
-  --ease-out:    cubic-bezier(0.2, 0.7, 0.1, 1);
-  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast:    160ms;
+  --dur-base:    280ms;
+  --dur-slow:    var(--transition-speed);
+  --ease-in-out: var(--ease-smooth);
   --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {
   :root {
+    --transition-speed: 0ms;
     --dur-fast: 0ms;
     --dur-base: 0ms;
     --dur-slow: 0ms;
