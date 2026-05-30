@@ -1,31 +1,80 @@
-/* CoCreate base styles — minimal reset + system defaults.
-   Loaded AFTER tokens.css. Per-page CSS still wins on specificity. */
+/* CoCreate base — Vedics design system.
+   Loaded AFTER tokens.css. Sets body color/bg + heading defaults +
+   the .eyebrow and .stat-number utilities that the homepage uses. */
+
 *, *::before, *::after { box-sizing: border-box; }
 * { margin: 0; }
+
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+
 body {
-  font-family: var(--ff-body);
-  font-size: var(--fs-body-m);
-  line-height: var(--lh-normal);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
   color: var(--text-primary);
+  background: var(--bg-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+  transition: background var(--transition-speed) ease, color var(--transition-speed) ease;
 }
+
 img, picture, video, canvas, svg { display: block; max-width: 100%; }
 input, button, textarea, select { font: inherit; color: inherit; }
 button { background: none; border: 0; cursor: pointer; }
 a { color: inherit; text-decoration: none; }
+
 a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
   outline: none;
   box-shadow: var(--sh-focus);
   border-radius: var(--r-sm);
 }
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--ff-display);
-  font-weight: 700;
-  line-height: var(--lh-tight);
-  letter-spacing: var(--ls-section);
+
+h1, h2, h3, h4, h5, h6, .font-display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: var(--track-tight);
 }
+h1, .h-1 {
+  font-weight: 700;
+  font-size: clamp(2.25rem, 5vw, 4.5rem);
+  line-height: 1.05;
+  letter-spacing: var(--track-display);
+}
+h2, .h-2 {
+  font-size: clamp(1.75rem, 3.5vw, 3rem);
+  line-height: 1.1;
+}
+h3, .h-3 {
+  font-size: 1.4rem;
+  line-height: 1.25;
+}
+h4, .h-4 {
+  font-size: 1.05rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
 p { line-height: var(--lh-normal); }
-::selection { background: var(--accent, #ffc36a); color: #1a0a00; }
+
+.eyebrow {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--fs-caption);
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.stat-number {
+  font-family: var(--font-stat);
+  font-weight: 700;
+  background: var(--grad-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+::selection { background: var(--accent); color: var(--cc-ink); }
