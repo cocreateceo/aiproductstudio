@@ -1,0 +1,18 @@
+/* CoCreate · partner-card — larger glass-morphism card variant for hero callouts. */
+
+.partner-card {
+  padding: var(--s-6);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--r-lg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition: transform var(--transition-speed) var(--ease-smooth),
+              border-color var(--transition-speed) var(--ease-smooth),
+              box-shadow var(--transition-speed) var(--ease-smooth);
+}
+.partner-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-lg);
+}

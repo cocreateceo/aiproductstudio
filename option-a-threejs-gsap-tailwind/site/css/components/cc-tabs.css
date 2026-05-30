@@ -1,0 +1,40 @@
+/* CoCreate · status tabs (pill rail, active state = gradient pill). */
+
+.cc-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--r-pill);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  flex-wrap: wrap;
+}
+.cc-tab {
+  padding: var(--s-2) var(--s-5);
+  border-radius: var(--r-pill);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 0.875rem;
+  letter-spacing: var(--track-cta);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-speed) var(--ease-smooth);
+}
+.cc-tab:hover { color: var(--text-primary); }
+.cc-tab.is-active {
+  background: var(--grad-cta);
+  color: #fff;
+  box-shadow: var(--shadow-cta);
+}
+.cc-tab__count {
+  margin-left: var(--s-2);
+  opacity: 0.7;
+  font-size: 0.75em;
+}
+
+/* Cards hidden by the tabs filter */
+.proj-card.is-hidden { display: none; }

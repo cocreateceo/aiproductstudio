@@ -1,0 +1,24 @@
+/* CoCreate · signature fixed cinematic background.
+   Apply by adding class="cc-bg-fixed" to <body>.
+   Light themes override body.cc-bg-fixed::after with a cream gradient. */
+
+.cc-bg-fixed::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: url('assets/cocreate_bg.png') center calc(100% + var(--cc-bg-y, 0px)) / cover no-repeat;
+  z-index: -2;
+  pointer-events: none;
+  will-change: background-position;
+}
+.cc-bg-fixed::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 120% 100% at 50% 100%, transparent 30%, rgba(26, 10, 0, 0.6) 100%),
+    linear-gradient(90deg, rgba(26, 10, 0, 0.65) 0%, rgba(26, 10, 0, 0.3) 40%, transparent 60%),
+    linear-gradient(180deg, rgba(26, 10, 0, 0.5) 0%, transparent 40%);
+}

@@ -1,0 +1,35 @@
+/* CoCreate · chat FAB (visual re-skin of the existing chat-widget trigger). */
+
+.cc-fab {
+  position: fixed;
+  right: var(--s-5);
+  bottom: var(--s-5);
+  z-index: 90;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--r-pill);
+  background: var(--grad-cta);
+  color: #fff;
+  box-shadow: var(--shadow-cta);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform var(--transition-speed) var(--ease-smooth),
+              box-shadow var(--transition-speed);
+  border: 0;
+}
+.cc-fab:hover {
+  transform: translateY(-2px) scale(1.06);
+  box-shadow: var(--shadow-cta-h);
+}
+.cc-fab svg {
+  width: 24px;
+  height: 24px;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+@media (max-width: 560px) { .cc-fab { display: none; } }
