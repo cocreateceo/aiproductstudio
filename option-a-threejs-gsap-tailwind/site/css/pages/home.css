@@ -94,3 +94,38 @@
   margin-top: var(--s-7);
   text-align: center;
 }
+
+/* BLOCK 5 — day-by-day timeline */
+.home-timeline__eyebrow {
+  margin-top: var(--s-9);
+  text-align: center;
+  display: block;
+}
+.home-timeline__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--s-5);
+  margin-top: var(--s-6);
+}
+.home-timeline__card {
+  padding: var(--s-5);
+}
+.home-timeline__day {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--accent);
+  margin-bottom: var(--s-3);
+}
+.home-timeline__list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: var(--s-2);
+  color: var(--text-secondary);
+}
+.home-timeline__list li::before {
+  content: '✓  ';
+  color: var(--accent);
+  font-weight: 700;
+}
