@@ -6,7 +6,7 @@
   content: '';
   position: fixed;
   inset: 0;
-  background: url('assets/cocreate_bg.png') center calc(100% + var(--cc-bg-y, 0px)) / cover no-repeat;
+  background: url('../../assets/cocreate_bg.png') center calc(100% + var(--cc-bg-y, 0px)) / cover no-repeat;
   z-index: -2;
   pointer-events: none;
   will-change: background-position;
