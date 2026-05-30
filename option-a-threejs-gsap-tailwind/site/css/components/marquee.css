@@ -1,25 +1,23 @@
-/* CoCreate · infinite horizontal marquee (wordmarks/logos).
-   Uses two copies of the track to scroll seamlessly.
-   Pauses on hover; honours prefers-reduced-motion. */
+/* CoCreate · wordmark marquee — slower opacity, fade mask. */
 .marquee {
-  position: relative;
   overflow: hidden;
-  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  position: relative;
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
 }
 .marquee__track {
   display: flex;
-  gap: var(--sp-9);
+  gap: var(--s-7);
   width: max-content;
   animation: marquee-scroll 40s linear infinite;
 }
-.marquee:hover .marquee__track { animation-play-state: paused; }
 .marquee__item {
-  font-family: var(--ff-display);
+  font-family: var(--font-display);
   font-weight: 700;
-  font-size: var(--fs-display-m);
+  font-size: 1.25rem;
+  letter-spacing: var(--track-tight);
   color: var(--text-secondary);
   opacity: 0.7;
-  letter-spacing: -0.01em;
   white-space: nowrap;
 }
 @keyframes marquee-scroll {

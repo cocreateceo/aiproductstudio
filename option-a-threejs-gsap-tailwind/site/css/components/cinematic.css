@@ -1,50 +1,42 @@
-/* CoCreate · cinematic section.
-   Full-bleed dark image with overlay headline. Pinned via GSAP ScrollTrigger
-   (see js/cinematic.js). Degrades gracefully without JS. */
+/* CoCreate · cinematic section overlay — no longer paints its own background.
+   The body's .cc-bg-fixed::before already shows the photo. This section just
+   reserves vertical space and overlays content. */
+
 .cinematic {
   position: relative;
-  min-height: 90vh;
-  display: grid;
-  place-items: center;
-  isolation: isolate;
-  color: #fff;
-}
-.cinematic__bg {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background-size: cover;
-  background-position: center 30%;
-  background-color: var(--bg-primary);
-  will-change: transform;
-}
-.cinematic__bg::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg,
-    rgba(26, 10, 0, 0.55) 0%,
-    rgba(26, 10, 0, 0.25) 50%,
-    rgba(26, 10, 0, 0.85) 100%);
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+  padding-top: var(--sec-py);
+  padding-bottom: var(--sec-py);
 }
 .cinematic__inner {
   width: 100%;
   max-width: var(--container-max);
-  padding: var(--sp-12) var(--container-px);
+  margin-inline: auto;
+  padding-inline: var(--container-px);
   text-align: center;
+  position: relative;
+  z-index: 1;
 }
 .cinematic__title {
-  font-family: var(--ff-display);
-  font-weight: 800;
-  font-size: clamp(2.6rem, 7vw, 5.5rem);
-  letter-spacing: var(--ls-display);
-  line-height: 0.95;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2rem, 4.5vw, 3.5rem);
+  letter-spacing: var(--track-display);
+  line-height: 1.05;
 }
 .cinematic__sub {
-  margin-top: var(--sp-5);
-  font-size: var(--fs-body-l);
-  color: rgba(255, 255, 255, 0.78);
-  max-width: 60ch;
-  margin-inline: auto;
+  margin: var(--s-4) auto 0;
+  max-width: 56ch;
+  color: var(--text-secondary);
+  font-size: 1.05rem;
+  line-height: 1.7;
 }
-.cinematic__cta { margin-top: var(--sp-7); }
+.cinematic__cta {
+  margin-top: var(--s-5);
+  display: inline-flex;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  justify-content: center;
+}
