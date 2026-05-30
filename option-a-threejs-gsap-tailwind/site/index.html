@@ -522,33 +522,39 @@
   <!-- BLOCK 3.5 — THE CHALLENGE (dual founder pain) -->
   <section class="section">
     <div class="container">
-      <p class="eyebrow">The challenge</p>
-      <h2 class="display-l">Great ideas remain ideas.</h2>
-      <p class="lede">Two founder archetypes — both stuck on the wrong side of the same problem. The traditional agency model can't fix it, because it isn't built to.</p>
-      <div style="display: grid; gap: var(--sp-6); grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); margin-top: var(--sp-9);">
-        <article style="padding: var(--sp-7); border-radius: var(--r-lg); background: var(--bg-card); border: 1px solid var(--border-color);">
-          <h3 class="display-m" style="margin-bottom: var(--sp-3);">Tech Founders</h3>
-          <p style="color: var(--text-secondary); line-height: var(--lh-relaxed);">Lack distribution and sales. Build amazing products but struggle with go-to-market. The product sits unused while competitors capture the market.</p>
+      <p class="eyebrow home-outcomes__eyebrow">The challenge</p>
+      <h2 class="display-l home-outcomes__h2">Great ideas remain ideas.</h2>
+      <div class="home-challenge__grid">
+        <article class="cc-card home-challenge__card">
+          <h3 class="display-m">Tech founders</h3>
+          <p>Lack distribution and sales. Build amazing products but struggle with go-to-market. The product sits unused while competitors capture the market.</p>
         </article>
-        <article style="padding: var(--sp-7); border-radius: var(--r-lg); background: var(--bg-card); border: 1px solid var(--border-color);">
-          <h3 class="display-m" style="margin-bottom: var(--sp-3);">Business Founders</h3>
-          <p style="color: var(--text-secondary); line-height: var(--lh-relaxed);">Have vision and market. Don't have a technical team. Months turn into years waiting for the right co-founder — and the window closes.</p>
+        <article class="cc-card home-challenge__card">
+          <h3 class="display-m">Business founders</h3>
+          <p>Have vision and market. Don't have a technical team. Months turn into years waiting for the right co-founder &mdash; and the window closes.</p>
         </article>
       </div>
-      <p style="margin-top: var(--sp-7); text-align: center; color: var(--text-muted); font-style: italic; font-size: var(--fs-body-l);">Traditional agencies get paid whether you succeed or fail. Incentives are completely misaligned.</p>
+      <p class="home-challenge__close"><em>Traditional agencies get paid whether you succeed or fail. Incentives are completely misaligned.</em></p>
     </div>
   </section>
 
-  <!-- BLOCK 4 — FEATURED PRODUCTS -->
+  <!-- BLOCK 4 — FEATURED PRODUCTS (status tabs) -->
   <section class="section">
     <div class="container">
-      <p class="eyebrow">What we've shipped</p>
-      <h2 class="display-l">Real products, in market today.</h2>
-      <p class="lede">A few of the founder-led products we've co-built. Click any card for the story.</p>
-      <div class="proj-grid" id="js-home-featured" style="margin-top: var(--sp-9);"></div>
-      <div style="margin-top: var(--sp-7);">
-        <a class="btn btn--ghost btn--lg" href="/projects.html">See all <span id="js-total-count">29</span> products →</a>
+      <p class="eyebrow home-outcomes__eyebrow">Our work</p>
+      <h2 class="display-l home-outcomes__h2">Real products. Real users. <span class="gradient-word">Shipped</span>.</h2>
+      <div class="home-featured__tabs-wrap">
+        <div class="cc-tabs" id="js-cc-tabs">
+          <button class="cc-tab is-active" data-filter="all">Everything <span class="cc-tab__count" id="js-tab-count-all">0</span></button>
+          <button class="cc-tab" data-filter="live">Live <span class="cc-tab__count" id="js-tab-count-live">0</span></button>
+          <button class="cc-tab" data-filter="building">Building <span class="cc-tab__count" id="js-tab-count-building">0</span></button>
+          <button class="cc-tab" data-filter="launching">Launching <span class="cc-tab__count" id="js-tab-count-launching">0</span></button>
+        </div>
       </div>
+      <div class="proj-grid" id="js-home-featured"></div>
+      <p class="home-featured__cta-row">
+        <a class="btn btn--ghost btn--lg" href="/projects.html">See all <span id="js-total-count">29</span> products</a>
+      </p>
     </div>
   </section>
 

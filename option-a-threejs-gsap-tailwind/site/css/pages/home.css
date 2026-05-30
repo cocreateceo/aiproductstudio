@@ -58,3 +58,39 @@
   max-width: 22ch;
   margin-inline: auto;
 }
+
+/* BLOCK 3.5 — challenge */
+.home-challenge__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--s-5);
+  margin-top: var(--s-7);
+}
+.home-challenge__card {
+  padding: var(--s-6);
+}
+.home-challenge__card h3 {
+  margin-bottom: var(--s-3);
+  letter-spacing: var(--track-tight);
+}
+.home-challenge__card p {
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+.home-challenge__close {
+  margin-top: var(--s-6);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 1.05rem;
+}
+
+/* BLOCK 4 — featured + tabs */
+.home-featured__tabs-wrap {
+  margin-top: var(--s-6);
+  margin-bottom: var(--s-7);
+  text-align: center;
+}
+.home-featured__cta-row {
+  margin-top: var(--s-7);
+  text-align: center;
+}
