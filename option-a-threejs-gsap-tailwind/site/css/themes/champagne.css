@@ -162,3 +162,12 @@
 [data-theme="champagne"] .text-accent {
     color: #B8860B;
 }
+
+/* Light theme — cream gradient overlay on top of the fixed cinematic bg
+   so text on the homepage stays legible. */
+body.cc-bg-fixed::after {
+  background:
+    radial-gradient(ellipse 120% 100% at 50% 100%, transparent 30%, rgba(255, 248, 240, 0.6) 100%),
+    linear-gradient(90deg, rgba(255, 248, 240, 0.65) 0%, rgba(255, 248, 240, 0.3) 40%, transparent 60%),
+    linear-gradient(180deg, rgba(255, 248, 240, 0.5) 0%, transparent 40%);
+}
