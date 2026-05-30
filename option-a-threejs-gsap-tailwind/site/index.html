@@ -8,7 +8,7 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Outfit:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <!-- Tailwind CSS (required by nav/footer utility classes) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -25,7 +25,6 @@
   <!-- Theme JS (must run before rendering for correct initial theme) -->
   <script src="js/theme.js"></script>
   <!-- All theme CSS (theme-switcher swaps data-theme attribute) -->
-  <link rel="stylesheet" href="css/themes/ember.css">
   <link rel="stylesheet" href="css/themes/coral.css">
   <link rel="stylesheet" href="css/themes/sunset.css">
   <link rel="stylesheet" href="css/themes/aurora.css">
@@ -36,8 +35,10 @@
   <!-- Nav / footer CSS -->
   <link rel="stylesheet" href="css/chat-widget.css">
   <link rel="stylesheet" href="css/responsive.css">
+  <link rel="stylesheet" href="css/themes/ember.css">
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components/cc-bg.css">
   <link rel="stylesheet" href="css/components/section.css">
   <link rel="stylesheet" href="css/components/button.css">
   <link rel="stylesheet" href="css/components/badge.css">
@@ -45,11 +46,14 @@
   <link rel="stylesheet" href="css/components/marquee.css">
   <link rel="stylesheet" href="css/components/card.css">
   <link rel="stylesheet" href="css/components/modal.css">
+  <link rel="stylesheet" href="css/components/cc-tabs.css">
   <link rel="stylesheet" href="css/components/steps.css">
   <link rel="stylesheet" href="css/components/quote.css">
   <link rel="stylesheet" href="css/components/accordion.css">
   <link rel="stylesheet" href="css/components/cinematic.css">
   <link rel="stylesheet" href="css/components/cta.css">
+  <link rel="stylesheet" href="css/components/partner-card.css">
+  <link rel="stylesheet" href="css/components/cc-fab.css">
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
   <script>if (window.gsap && window.ScrollTrigger) window.gsap.registerPlugin(window.ScrollTrigger);</script>
@@ -318,7 +322,7 @@
     .home-hero { padding-top: calc(var(--nav-height, 64px) + var(--sp-12, 3rem)); }
   </style>
 </head>
-<body>
+<body class="cc-bg-fixed">
 
   <!-- GLOBAL NAV (verbatim from index.html) -->
   <nav class="fixed top-0 left-0 glass-card border-b border-theme nav-main" style="z-index: 10000; width: 100%;">
@@ -459,33 +463,23 @@
     </div>
   </nav>
 
-  <!-- BLOCK 1 — HERO -->
+  <!-- BLOCK 1 — HERO (centered, single-gradient phrase on CoCreate) -->
   <section class="home-hero">
     <div class="container">
-      <div class="home-hero__grid">
-        <div class="home-hero__copy">
-          <p class="eyebrow">AI-Powered Product Studio</p>
-          <h1 class="home-hero__h1">Imagine. <span class="gradient">CoCreate</span>. Done!</h1>
-          <p class="home-hero__sub">Your AI Partner. Launch your business in 2 weeks.</p>
-          <div class="home-hero__ctas">
-            <a class="btn btn--primary btn--lg" href="https://calendly.com/cocreateceo/30min">Let's CoCreate</a>
-            <a class="btn btn--ghost btn--lg" href="/projects.html">See what we've built</a>
-          </div>
-          <div class="home-hero__trust">
-            <div class="trust-strip">
-              <span class="trust-strip__item">⚡ <strong>2 weeks</strong> to launch</span>
-              <span class="trust-strip__sep">·</span>
-              <span class="trust-strip__item"><strong>$0</strong> upfront</span>
-              <span class="trust-strip__sep">·</span>
-              <span class="trust-strip__item"><strong id="js-live-count">17</strong> products shipped</span>
-            </div>
-          </div>
+      <div class="home-hero__inner">
+        <span class="pill home-hero__eyebrow"><span class="dot"></span>AI-Powered Product Studio</span>
+        <h1 class="home-hero__h1">Imagine. <span class="gradient-word">CoCreate</span>. Done!</h1>
+        <p class="home-hero__sub">Your AI Partner. Launch your business in 2 weeks.</p>
+        <div class="home-hero__ctas">
+          <a class="btn btn--primary btn--lg" href="https://calendly.com/cocreateceo/30min">Let's CoCreate</a>
+          <a class="btn btn--ghost btn--lg" href="/projects.html">See what we've built</a>
         </div>
-        <div class="home-hero__mosaic" aria-hidden="true">
-          <img src="assets/projects/vedic-astro.webp" alt="">
-          <img src="assets/projects/tradewell.webp" alt="">
-          <img src="assets/projects/career-builder.webp" alt="">
-          <img src="assets/projects/social-automation.webp" alt="">
+        <div class="trust-strip home-hero__trust">
+          <span class="trust-strip__item">⚡ <strong>2 weeks</strong> to launch</span>
+          <span class="trust-strip__sep">·</span>
+          <span class="trust-strip__item"><strong>$0</strong> upfront</span>
+          <span class="trust-strip__sep">·</span>
+          <span class="trust-strip__item"><strong id="js-live-count">17</strong> products shipped</span>
         </div>
       </div>
     </div>
