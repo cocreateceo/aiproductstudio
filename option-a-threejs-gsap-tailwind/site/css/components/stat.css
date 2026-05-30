@@ -1,38 +1,53 @@
-/* CoCreate · big-number stat block.
-   3-up grid container (.stats) + individual blocks (.stat). */
+/* CoCreate · stat block — Space Grotesk gradient numerals on glass cards. */
+
 .stats {
   display: grid;
-  gap: var(--sp-7);
+  gap: var(--s-5);
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  margin-top: var(--sp-9);
+  margin-top: var(--s-7);
 }
+
 .stat {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-  padding: var(--sp-6) var(--sp-5);
-  border-radius: var(--r-lg);
+  padding: var(--s-6);
   background: var(--bg-card);
   border: 1px solid var(--border-color);
+  border-radius: var(--r-lg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: var(--shadow-md);
+  transition: transform var(--transition-speed) var(--ease-smooth),
+              border-color var(--transition-speed) var(--ease-smooth),
+              box-shadow var(--transition-speed) var(--ease-smooth);
 }
+.stat:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-lg);
+}
+
 .stat__num {
-  font-family: var(--ff-display);
-  font-weight: 800;
-  font-size: clamp(2.2rem, 4.5vw, 3.5rem);
-  letter-spacing: var(--ls-display);
+  font-family: var(--font-stat);
+  font-weight: 700;
+  font-size: clamp(2.5rem, 5vw, 3.5rem);
   line-height: 1;
-  background: linear-gradient(135deg, var(--accent), var(--secondary));
+  letter-spacing: var(--track-tight);
+  background: var(--grad-brand);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
+
 .stat__label {
-  font-family: var(--ff-display);
+  margin-top: var(--s-2);
+  font-family: var(--font-display);
   font-weight: 600;
-  font-size: var(--fs-title-m);
+  font-size: 1rem;
   color: var(--text-primary);
 }
+
 .stat__caption {
-  font-size: var(--fs-body-s);
+  margin-top: var(--s-2);
+  font-size: 0.9rem;
+  line-height: 1.6;
   color: var(--text-secondary);
 }

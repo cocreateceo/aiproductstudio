@@ -1,35 +1,53 @@
-/* CoCreate · pill / trust-strip primitives.
-   Generic chip used in heros and trust strips. Status badges (live/soon)
-   live in components/card.css next to the card. */
+/* CoCreate · pills + trust strip — glass-pill row in the hero. */
+
 .pill {
   display: inline-flex;
   align-items: center;
-  gap: var(--sp-2);
-  padding: 0.4rem 0.85rem;
-  border-radius: var(--r-full);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  font-size: var(--fs-body-s);
-  font-weight: 500;
-}
-.pill .dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 3px rgba(255, 195, 106, 0.18);
-}
-.trust-strip {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-3);
-  padding: var(--sp-3) var(--sp-4);
-  border-radius: var(--r-full);
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-4);
+  border-radius: var(--r-pill);
   background: var(--bg-card);
   border: 1px solid var(--border-color);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  font: 600 0.7rem var(--font-display);
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
   color: var(--text-secondary);
-  font-size: var(--fs-body-s);
 }
-.trust-strip__sep { opacity: 0.4; }
-.trust-strip__item { display: inline-flex; align-items: center; gap: var(--sp-2); }
-.trust-strip__item strong { color: var(--text-primary); font-weight: 600; }
+.pill .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+}
+
+.trust-strip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-3) var(--s-5);
+  border-radius: var(--r-pill);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.trust-strip__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+.trust-strip__item strong {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+.trust-strip__sep {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
