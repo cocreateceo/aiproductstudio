@@ -88,7 +88,7 @@
       : '<span class="proj-soon"><svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Coming Soon</span>';
 
     return '' +
-      '<div class="proj-card" data-slug="' + esc(p.slug || '') + '" role="button" tabindex="0" aria-label="View details for ' + esc(p.name) + '">' +
+      '<div class="proj-card" data-slug="' + esc(p.slug || '') + '" data-status="' + esc(p.status || (p.liveUrl && p.liveUrl !== '#' ? 'live' : 'building')) + '" role="button" tabindex="0" aria-label="View details for ' + esc(p.name) + '">' +
         '<div class="proj-tile' + (img ? ' has-shot' : '') + '">' +
           tileLayers(p, img) +
           badge +

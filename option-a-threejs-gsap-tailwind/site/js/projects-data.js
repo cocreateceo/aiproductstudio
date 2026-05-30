@@ -292,3 +292,16 @@ window.PROJECTS_DATA = [
     ]
   }
 ];
+
+/* Wave A — default-fill status field per project.
+   "live" if liveUrl set (and not '#'), else "building".
+   CEO can override per project by setting status: 'launching' on a record. */
+(function () {
+  (window.PROJECTS_DATA || []).forEach(function (cat) {
+    (cat.projects || []).forEach(function (p) {
+      if (!p.status) {
+        p.status = (p.liveUrl && p.liveUrl !== '#') ? 'live' : 'building';
+      }
+    });
+  });
+})();
